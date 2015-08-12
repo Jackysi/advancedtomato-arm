@@ -166,6 +166,10 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_isp_opt",		"0"				, 0 },	// wan.c add eval option for dhcpd
 #endif
 
+#ifdef RTCONFIG_FANCTRL
+	{ "fanctrl_dutycycle",		"0"				, 0 },
+#endif
+
 	// Wireless parameters
 	{ "wl_ifname",			""				, 0 },	// Interface name
 	{ "wl_hwaddr",			""				, 0 },	// MAC address
@@ -515,6 +519,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "qos_rst",			"1"				, 0 },
 	{ "qos_udp",			"0"				, 0 },
 	{ "qos_icmp",			"1"				, 0 },
+	{ "qos_pfifo",			"3"				, 0 }, //Set FQ_Codel Default Qdisc Scheduler
 	{ "qos_reset",			"1"				, 0 },
 	{ "qos_obw",			"700"				, 0 },
 	{ "qos_ibw",			"16000"				, 0 },
