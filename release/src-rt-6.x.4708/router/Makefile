@@ -74,7 +74,8 @@ obj-y += etc
 obj-y += pppd
 obj-y += rp-pppoe
 obj-y += utils
-obj-y += ntpclient
+#obj-y += ntpclient #Asus version
+obj-y += ntpc
 obj-y += rstats
 obj-y += cstats
 obj-y += udpxy
@@ -103,6 +104,7 @@ obj-$(TCONFIG_NOCAT) += nocat
 # !!TB
 obj-$(TCONFIG_USB) += p910nd
 obj-$(TCONFIG_USB) += comgt
+obj-$(TCONFIG_USB) += uqmi
 
 obj-$(TCONFIG_UPS) += apcupsd
 
@@ -592,6 +594,8 @@ endif
 	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/mii.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/cdc_*.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usbnet.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/cdc-wdm.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/net/qmi_wwan.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/ftdi_sio.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(NEED_EX_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/pl2303.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(NEED_SD_MODULES),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/mmc/*.*o $(PLATFORMDIR)/extras/ || true
@@ -607,10 +611,8 @@ endif
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/ov51*.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/pwc*.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/emi*.*o $(PLATFORMDIR)/extras/ || true
-	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/cdc-wdm.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/net/cdc_subset.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/net/rndis_host.*o $(PLATFORMDIR)/extras/ || true
-	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/net/qmi_wwan.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/net/ipheth.*o $(PLATFORMDIR)/extras/ || true
 	@rm -rf $(TARGETDIR)/lib/modules/*/kernel/drivers/net/usb || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/drivers/media/* $(PLATFORMDIR)/extras/ || true
@@ -1441,6 +1443,8 @@ iproute2-3.x-clean:
 
 ntpclient: nvram$(BCMEX) shared
 
+ntpc: nvram$(BCMEX) shared
+
 dropbear: dropbear/config.h
 	@$(SEP)
 	@$(MAKE) -C dropbear PROGRAMS="dropbear dbclient dropbearkey scp" MULTI=1 $(PARALLEL_BUILD)
@@ -2154,7 +2158,7 @@ libncurses-install: libncurses
 
 mysql/stamp-h1: openssl zlib libncurses
 	@$(SEP)
-	cd mysql && \
+	cd mysql && cp -f configure.arm configure && \
 	CFLAGS="-O2 -Wall -fno-delete-null-pointer-checks -funit-at-a-time --param large-function-growth=800 \
 		--param max-inline-insns-single=3000 -ffunction-sections -fdata-sections -I$(TOP)/zlib \
 		-I$(TOP)/openssl/include -I$(TOP)/libncurses/include" \
@@ -2769,6 +2773,31 @@ ipset-install: ipset
 ipset-clean:
 	-@$(MAKE) -C ipset clean
 	-@rm -rf ipset/Makefile ipset/stamp-h1
+
+libjson-c/stamp-h1:
+	cd $(TOP)/libjson-c && CC=$(CC) STRIP=$(CROSS_COMPILE)strip \
+	./autogen.sh && \
+	$(CONFIGURE) --prefix=/usr
+	touch libjson-c/stamp-h1
+
+libjson-c: libjson-c/stamp-h1
+	$(MAKE) -C libjson-c $(PARALLEL_BUILD)
+
+libjson-c-clean:
+	-@$(MAKE) -C libjson-c clean
+	@rm -rf libjson-c/stamp-h1
+
+uqmi: libjson-c
+	$(MAKE) -C uqmi/libubox
+	$(MAKE) -C uqmi SHARED=0 CC='$(CC) -static'
+
+uqmi-install: uqmi
+	install -D uqmi/uqmi $(INSTALLDIR)/uqmi/usr/sbin/uqmi
+	$(STRIP) $(INSTALLDIR)/uqmi/usr/sbin/uqmi
+
+uqmi-clean: libjson-c-clean
+	-@$(MAKE) -C uqmi/libubox clean
+	-@$(MAKE) -C uqmi clean
 
 comgt:
 	@$(MAKE) -C comgt CC=$(CC) CFLAGS="$(EXTRACFLAGS)" LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" comgt
