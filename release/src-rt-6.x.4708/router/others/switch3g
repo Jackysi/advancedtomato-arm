@@ -4,16 +4,18 @@
 # Copyright (C) 2011 shibby
 #
 
+PREFIX=$1
+
 LOCK="/tmp/switch3g.lock"
 if [ -f $LOCK ]; then #lock exist
     logger 3G MODEM - previous proces of switch3g still working
     exit 0
 else
 
-DEVNR=`nvram get modem_dev`
-PIN=`nvram get modem_pin`
-IS_PIN=`nvram get modem_pin | wc -w`
-MODE=`nvram get wan_proto`
+DEVNR=`nvram get "$PREFIX"_modem_dev`
+PIN=`nvram get "$PREFIX"_modem_pin`
+IS_PIN=`nvram get "$PREFIX"_modem_pin | wc -w`
+MODE=`nvram get "$PREFIX"_proto`
 
 if [ "$MODE" == "lte" ]; then
     exit 0
@@ -124,7 +126,7 @@ else
     else
         logger 3G MODEM not found by cdc-acm, option or sierra module. Trying usbserial ...
 
-        #rmmod cdc_acm //we can`t do that. I don`t know why...
+        #modprobe -r cdc_acm //we can`t do that. I don`t know why...
         modprobe -r sierra
         modprobe -r option
         modprobe -r cdc-acm
@@ -134,7 +136,7 @@ else
             IS_PRODUCT=`echo $PRODUCT | wc -w`
             if [ "$IS_PRODUCT" -gt 0 ]; then
                 logger 3G MODEM - loading module usbserial
-                rmmod usbserial
+                modprobe -r usbserial
                 insmod usbserial vendor=0x$VENDOR product=0x$PRODUCT
                 echo "$VENDOR:$PRODUCT" > /tmp/3g.detect
             fi
@@ -167,7 +169,7 @@ else
                     break;
                 else
                     logger 3G MODEM - loading module
-                    rmmod usbserial
+                    modprobe -r usbserial
                     insmod usbserial vendor=0x$VENDOR product=0x$PRODUCT
                     echo "$VENDOR:$PRODUCT" > /tmp/3g.detect
                     nvram set 3g_module=usbserial
@@ -184,7 +186,7 @@ else
             for SWITCH in $DEVICES; do
                 VENDOR=`echo $SWITCH | cut -d ":" -f1`
                 PRODUCT=`echo $SWITCH | cut -d ":" -f2`
-                    rmmod usbserial
+                    modprobe -r usbserial
                     insmod usbserial vendor=0x$VENDOR product=0x$PRODUCT
 
                     DEV=`cat /proc/bus/usb/devices | grep Driver | grep usbserial | wc -l`

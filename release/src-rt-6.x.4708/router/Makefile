@@ -66,7 +66,6 @@ obj-y += others
 obj-y += busybox
 obj-y += httpd
 obj-y += www
-obj-y += wwwAT
 obj-y += bridge
 obj-y += dnsmasq
 obj-y += etc
