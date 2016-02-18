@@ -1295,6 +1295,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "tor_iface",			"br0"				, 0 },
 	{ "tor_users",			"192.168.1.0/24"		, 0 },
 	{ "tor_custom",			""				, 0 },
+	{ "tor_ports",			"80"				, 0 },
+	{ "tor_ports_custom",		"80,443,8080:8880"		, 0 },
 #endif
 
 	{ 0, 0, 0}
