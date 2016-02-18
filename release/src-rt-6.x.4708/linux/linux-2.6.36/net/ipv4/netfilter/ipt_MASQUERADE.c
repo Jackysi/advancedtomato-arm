@@ -50,7 +50,7 @@ masquerade_tg(struct sk_buff *skb, const struct xt_action_param *par)
 	enum ip_conntrack_info ctinfo;
 	struct nf_nat_range newrange;
 	const struct nf_nat_multi_range_compat *mr;
-	const struct rtable *rt;
+	struct rtable *rt;
 	__be32 newsrc;
 
 	NF_CT_ASSERT(par->hooknum == NF_INET_POST_ROUTING);
@@ -72,12 +72,28 @@ masquerade_tg(struct sk_buff *skb, const struct xt_action_param *par)
 		return NF_ACCEPT;
 
 	mr = par->targinfo;
-	rt = skb_rtable(skb);
-	newsrc = inet_select_addr(par->out, rt->rt_gateway, RT_SCOPE_UNIVERSE);
-	if (!newsrc) {
-		pr_info("%s ate my IP address\n", par->out->name);
-		return NF_DROP;
+
+	{
+		struct flowi fl = { .nl_u = { .ip4_u =
+					      { .daddr = ip_hdr(skb)->daddr,
+						.tos = (RT_TOS(ip_hdr(skb)->tos) |
+							RTO_CONN),
+						.gw = skb_rtable(skb)->rt_gateway,
+					      } },
+				    .mark = skb->mark,
+				    .oif = par->out->ifindex };
+		if (ip_route_output_key(dev_net(par->out), &rt, &fl) != 0) {
+			/* Funky routing can do this. */
+			if (net_ratelimit())
+				pr_info("%s:"
+				       " No route: Rusty's brain broke!\n",
+				       par->out->name);
+			return NF_DROP;
+		}
 	}
+
+	newsrc = rt->rt_src;
+	ip_rt_put(rt);
 
 	nat->masq_index = par->out->ifindex;
 

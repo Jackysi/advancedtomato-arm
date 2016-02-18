@@ -897,8 +897,12 @@ int fib_semantic_match(struct list_head *head, const struct flowi *flp,
 				for_nexthops(fi) {
 					if (nh->nh_flags&RTNH_F_DEAD)
 						continue;
-					if (!flp->oif || flp->oif == nh->nh_oif)
-						break;
+					if (flp->oif && flp->oif != nh->nh_oif)
+						continue;
+					if (flp->fl4_gw && flp->fl4_gw != nh->nh_gw &&
+					    nh->nh_gw && nh->nh_scope == RT_SCOPE_LINK)
+						continue;
+					break;
 				}
 #ifdef CONFIG_IP_ROUTE_MULTIPATH
 				if (nhsel < fi->fib_nhs) {
