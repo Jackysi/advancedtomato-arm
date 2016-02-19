@@ -235,8 +235,9 @@ REMOVE-END */
 			}
 			else if ((nvram.wan_proto == 'pptp') || (nvram.wan2_proto == 'pptp')
 /* MULTIWAN-BEGIN */
-			    ||(nvram.wan3_proto == 'pptp') || (nvram.wan4_proto == 'pptp') ) {
+			    ||(nvram.wan3_proto == 'pptp') || (nvram.wan4_proto == 'pptp')
 /* MULTIWAN-END */
+			) {
 				if (nvram.wan_ifname == i) t = 'MAN1 <small>(' + i + ')</small>';
 				else if (nvram.wan2_ifname == i) t = 'MAN2 <small>(' + i + ')</small>';
 /* MULTIWAN-BEGIN */
@@ -248,8 +249,9 @@ REMOVE-END */
 			    ||(nvram.wan2_proto == 'pppoe') || (nvram.wan2_proto == 'ppp3g')
 /* MULTIWAN-BEGIN */
 			    ||(nvram.wan3_proto == 'pppoe') || (nvram.wan3_proto == 'ppp3g')
-			    ||(nvram.wan4_proto == 'pppoe') || (nvram.wan4_proto == 'ppp3g') ) {
+			    ||(nvram.wan4_proto == 'pppoe') || (nvram.wan4_proto == 'ppp3g')
 /* MULTIWAN-END */
+			) {
 				if (nvram.wan_iface == i) t = 'WAN1 <small>(' + i + ')</small>';
 				else if (nvram.wan2_iface == i) t = 'WAN2 <small>(' + i + ')</small>';
 /* MULTIWAN-BEGIN */
@@ -259,8 +261,9 @@ REMOVE-END */
 			}
 			else if ((nvram.wan_proto != 'disabled') || (nvram.wan2_proto != 'disabled')
 /* MULTIWAN-BEGIN */
-			    ||(nvram.wan3_proto != 'disabled') || (nvram.wan4_proto != 'disabled')) {
+			    ||(nvram.wan3_proto != 'disabled') || (nvram.wan4_proto != 'disabled')
 /* MULTIWAN-END */
+			) {
 				if (nvram.wan_ifname == i) t = 'WAN1 <small>(' + i + ')</small>';
 				else if (nvram.wan2_ifname == i) t = 'WAN2 <small>(' + i + ')</small>';
 /* MULTIWAN-BEGIN */
