@@ -450,7 +450,6 @@ struct nvram_tuple router_defaults[] = {
 #endif
 #endif
 
-<<<<<<< HEAD
 #ifdef TCONFIG_BCM7
 	{ "wl_acs_dfs", "2", 0 },		/* acsd fcs disable init DFS chan */
 #else
@@ -499,14 +498,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_vht_features", "-1", 0 },		/* VHT features */
 #endif
 
-	{ "pptp_server_ip",		""				, 0 },	// as same as WAN gateway
-	{ "ppp_get_ip",			""				, 0 },	// IP Address assigned by PPTP/L2TP server
-	{ "pptp_dhcp",			"1"				, 0 },
-=======
 	{ "wan_pptp_server_ip",		""				, 0 },	// as same as WAN gateway
 	{ "wan_ppp_get_ip",		""				, 0 },	// IP Address assigned by PPTP/L2TP server
 	{ "wan_pptp_dhcp",		"1"				, 0 },
->>>>>>> shibby-arm
 
 	// for firewall
 	{ "wan_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
