@@ -255,6 +255,14 @@ static struct nf_hook_ops nf_nat_ops[] __read_mostly = {
 		.hooknum	= NF_INET_PRE_ROUTING,
 		.priority	= NF_IP_PRI_NAT_DST,
 	},
+	/* Before routing, route before mangling */
+	{
+		.hook		= ip_nat_route_input,
+		.owner		= THIS_MODULE,
+		.pf		= NFPROTO_IPV4,
+		.hooknum	= NF_INET_PRE_ROUTING,
+		.priority	= NF_IP_PRI_LAST-1,
+	},
 	/* After packet filtering, change source */
 	{
 		.hook		= nf_nat_out,

@@ -45,6 +45,10 @@ OBJS += blink_5g.o
 ifeq ($(TCONFIG_FANCTRL),y)
 OBJS += phy_tempsense.o
 endif
+
+# dualwan / multiwan
+OBJS += mwan.o pbr.o
+
 ifeq ($(TCONFIG_USB),y)
 OBJS += usb.o
 endif
@@ -145,6 +149,9 @@ endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc reboot
 	@cd $(INSTALLDIR)/sbin && ln -sf rc halt
 	@cd $(INSTALLDIR)/sbin && ln -sf rc redial
+
+	@cd $(INSTALLDIR)/sbin && ln -sf rc mwanroute
+
 	@cd $(INSTALLDIR)/sbin && ln -sf rc gpio
 	@cd $(INSTALLDIR)/sbin && ln -sf rc sched
 

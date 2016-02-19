@@ -20,9 +20,9 @@
 #ifndef _THREAD_DB_H
 #define _THREAD_DB_H	1
 
-/* This is the debugger interface for the LinuxThreads library.  It is
-   modelled closely after the interface with same names in Solaris with
-   the goal to share the same code in the debugger.  */
+/* This is the debugger interface for the NPTL library.  It is
+   modelled closely after the interface with same names in Solaris
+   with the goal to share the same code in the debugger.  */
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -56,7 +56,7 @@ typedef enum
   TD_TLSDEFER,	  /* Thread has not yet allocated TLS for given module.  */
   TD_NOTALLOC = TD_TLSDEFER,
   TD_VERSION,	  /* Version if libpthread and libthread_db do not match.  */
-  TD_NOTLS	  /* There is TLS segment in the given module.  */
+  TD_NOTLS	  /* There is no TLS segment in the given module.  */
 } td_err_e;
 
 
@@ -278,7 +278,7 @@ typedef struct td_thrinfo
   intptr_t ti_sp;			/* Unused.  */
   short int ti_flags;			/* Unused.  */
   int ti_pri;				/* Thread priority.  */
-  lwpid_t ti_lid;			/* Unused.  */
+  lwpid_t ti_lid;			/* Kernel PID for this thread.  */
   sigset_t ti_sigmask;			/* Signal mask.  */
   unsigned char ti_traceme;		/* Nonzero if event reporting
 					   enabled.  */
@@ -355,10 +355,10 @@ extern td_err_e td_ta_clear_event (const td_thragent_t *__ta,
 extern td_err_e td_ta_event_getmsg (const td_thragent_t *__ta,
 				    td_event_msg_t *__msg);
 
-
+#ifdef __UCLIBC_SUSV4_LEGACY__
 /* Set suggested concurrency level for process associated with TA.  */
 extern td_err_e td_ta_setconcurrency (const td_thragent_t *__ta, int __level);
-
+#endif
 
 /* Enable collecting statistics for process associated with TA.  */
 extern td_err_e td_ta_enable_stats (const td_thragent_t *__ta, int __enable);
@@ -412,8 +412,8 @@ extern td_err_e td_thr_tlsbase (const td_thrhandle_t *__th,
 
 /* Get address of thread local variable.  */
 extern td_err_e td_thr_tls_get_addr (const td_thrhandle_t *__th,
-				     void *__map_address, size_t __offset,
-				     void **__address);
+				     psaddr_t __map_address, size_t __offset,
+				     psaddr_t *__address);
 
 
 /* Enable reporting for EVENT for thread TH.  */

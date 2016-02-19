@@ -357,8 +357,8 @@ static void shutdn(int rb)
 	set_action(ACT_REBOOT);
 
 	// Disconnect pppd - need this for PPTP/L2TP to finish gracefully
-	stop_pptp();
-	stop_l2tp();
+	stop_pptp("wan");
+	stop_l2tp("wan");
 
 	_dprintf("TERM\n");
 	kill(-1, SIGTERM);
@@ -1569,7 +1569,7 @@ static int init_nvram(void)
 		break;
 	case MODEL_RTAC68U:
 		mfr = "Asus";
-		name = nvram_match("boardrev", "0x1103") ? "RT-AC68P" : "RT-AC68R/U";
+		name = nvram_match("boardrev", "0x1103") ? "RT-AC68P/U B1" : "RT-AC68R/U";
 		features = SUP_SES | SUP_80211N | SUP_1000ET | SUP_80211AC;
 #ifdef TCONFIG_USB
 		nvram_set("usb_uhci", "-1");
@@ -4401,7 +4401,7 @@ int init_main(int argc, char *argv[])
 			run_nvscript("script_shut", NULL, 10);
 
 			stop_services();
-			stop_wan();
+			stop_wan("wan");
 			stop_lan();
 			stop_vlan();
 			stop_syslog();

@@ -52,6 +52,13 @@ struct nvram_tuple router_defaults[] = {
 	{ "lan3_netmask",		""				, 0 },
 	{ "lan3_stp",			"0"				, 0 },
 
+	{ "mwan_num",			"1"				, 0 },
+	{ "mwan_init",			"0"				, 0 },
+	{ "mwan_cktime",		"60"				, 0 },
+	{ "mwan_ckdst",			"google.com,microsoft.com"	, 0 }, // mode, target, custom adresses
+	{ "mwan_debug",			"0"				, 0 },
+	{ "pbr_rules",			""				, 0 },
+
 	// WAN H/W parameters
 	{ "wan_hwname",			""				, 0 },	// WAN driver name (e.g. et1)
 	{ "wan_hwaddr",			""				, 0 },	// WAN interface MAC address
@@ -64,6 +71,40 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_gateway",		"0.0.0.0"			, 0 },	// WAN gateway
 	{ "wan_gateway_get",		"0.0.0.0"			, 0 },	// default gateway for PPP
 	{ "wan_dns",			""				, 0 },	// x.x.x.x x.x.x.x ...
+	{ "wan_weight",			"1"				, 0 },
+
+	{ "wan2_proto",			"dhcp"				, 0 },	// [static|dhcp|pppoe|disabled]
+	{ "wan2_ipaddr",		"0.0.0.0"			, 0 },	// WAN IP address
+	{ "wan2_netmask",		"0.0.0.0"			, 0 },	// WAN netmask
+	{ "wan2_gateway",		"0.0.0.0"			, 0 },	// WAN gateway
+	{ "wan2_dns",			""				, 0 },	// x.x.x.x x.x.x.x ...
+	{ "wan2_weight",		"1"				, 0 },
+	{ "wan2_hwname",		""				, 0 },	// WAN driver name (e.g. et1)
+	{ "wan2_hwaddr",		""				, 0 },	// WAN interface MAC address
+	{ "wan2_ifnameX",		NULL				, 0 },	// real wan if; see wan.c:start_wan
+
+#ifdef TCONFIG_MULTIWAN
+	{ "wan3_proto",			"dhcp"				, 0 },	// [static|dhcp|pppoe|disabled]
+	{ "wan3_ipaddr",		"0.0.0.0"			, 0 },	// WAN IP address
+	{ "wan3_netmask",		"0.0.0.0"			, 0 },	// WAN netmask
+	{ "wan3_gateway",		"0.0.0.0"			, 0 },	// WAN gateway
+	{ "wan3_dns",			""				, 0 },	// x.x.x.x x.x.x.x ...
+	{ "wan3_weight",		"1"				, 0 },
+	{ "wan3_hwname",		""				, 0 },	// WAN driver name (e.g. et1)
+	{ "wan3_hwaddr",		""				, 0 },	// WAN interface MAC address
+	{ "wan3_ifnameX",		NULL				, 0 },	// real wan if; see wan.c:start_wan
+
+	{ "wan4_proto",			"dhcp"				, 0 },	// [static|dhcp|pppoe|disabled]
+	{ "wan4_ipaddr",		"0.0.0.0"			, 0 },	// WAN IP address
+	{ "wan4_netmask",		"0.0.0.0"			, 0 },	// WAN netmask
+	{ "wan4_gateway",		"0.0.0.0"			, 0 },	// WAN gateway
+	{ "wan4_dns",			""				, 0 },	// x.x.x.x x.x.x.x ...
+	{ "wan4_weight",		"1"				, 0 },
+	{ "wan4_hwname"			""				, 0 },	// WAN driver name (e.g. et1)
+	{ "wan4_hwaddr",		""				, 0 },	// WAN interface MAC address
+	{ "wan4_ifnameX",		NULL				, 0 },	// real wan if; see wan.c:start_wan
+#endif
+
 #ifdef TCONFIG_DNSSEC
 	{ "dnssec_enable",		"0"				, 0 },
 #endif
@@ -81,10 +122,18 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_wins",			""				, 0 },	// x.x.x.x x.x.x.x ...
 	{ "wan_lease",			"86400"				, 0 },	// WAN lease time in seconds
 	{ "wan_islan",			"0"				, 0 },
-	{ "modem_ipaddr",		"0.0.0.0"			, 0 }, // modem IP address (i.e. PPPoE bridged modem)
+	{ "wan_modem_ipaddr",		"0.0.0.0"			, 0 }, // modem IP address (i.e. PPPoE bridged modem)
 
 	{ "wan_primary",		"1"				, 0 },	// Primary wan connection
 	{ "wan_unit",			"0"				, 0 },	// Last configured connection
+	{ "wan2_islan",			"0"				, 0 },
+	{ "wan2_modem_ipaddr",		"0.0.0.0"			, 0 }, // modem IP address (i.e. PPPoE bridged modem)
+#ifdef TCONFIG_MULTIWAN
+	{ "wan3_islan",			"0"				, 0 },
+	{ "wan3_modem_ipaddr",		"0.0.0.0"			, 0 }, // modem IP address (i.e. PPPoE bridged modem)
+	{ "wan4_islan",			"0"				, 0 },
+	{ "wan4_modem_ipaddr",		"0.0.0.0"			, 0 }, // modem IP address (i.e. PPPoE bridged modem)
+#endif
 
 	// DHCP server parameters
 	{ "dhcp_start",			"2"				, 0 },	//
@@ -113,34 +162,90 @@ struct nvram_tuple router_defaults[] = {
 	{ "dhcpd3_endip",		"" 				, 0 },
 	{ "dhcp3_lease",		"1440"				, 0 },
 
+#ifdef TCONFIG_USB
 	// 3G Modem
-	{ "modem_pin",			""				, 0 },
-	{ "modem_dev",			"ttyUSB0"			, 0 },
-	{ "modem_init",			"*99#"				, 0 },
-	{ "modem_apn",			"internet"			, 0 },
-	{ "modem_watchdog",		"2"				, 0 },
+	{ "wan_modem_pin",		""				, 0 },
+	{ "wan_modem_dev",		"ttyUSB0"			, 0 },
+	{ "wan_modem_init",		"*99#"				, 0 },
+	{ "wan_modem_apn",		"internet"			, 0 },
+	{ "wan_modem_speed",		"00"				, 0 },
+
+	{ "wan2_modem_pin",		""				, 0 },
+	{ "wan2_modem_dev",		"ttyUSB0"			, 0 },
+	{ "wan2_modem_init",		"*99#"				, 0 },
+	{ "wan2_modem_apn",		"internet"			, 0 },
+	{ "wan2_modem_speed",		"00"				, 0 },
+
+#ifdef TCONFIG_MULTIWAN
+	{ "wan3_modem_pin",		""				, 0 },
+	{ "wan3_modem_dev",		"ttyUSB0"			, 0 },
+	{ "wan3_modem_init",		"*99#"				, 0 },
+	{ "wan3_modem_apn",		"internet"			, 0 },
+	{ "wan3_modem_speed",		"00"				, 0 },
+
+	{ "wan4_modem_pin",		""				, 0 },
+	{ "wan4_modem_dev",		"ttyUSB0"			, 0 },
+	{ "wan4_modem_init",		"*99#"				, 0 },
+	{ "wan4_modem_apn",		"internet"			, 0 },
+	{ "wan4_modem_speed",		"00"				, 0 },
+#endif
+#endif
 
 	// PPPoE parameters
-	{ "pppoe_ifname",		""				, 0 },	// PPPoE enslaved interface
-	{ "ppp_username",		""				, 0 },	// PPP username
-	{ "ppp_passwd",			""				, 0 },	// PPP password
-	{ "ppp_idletime",		"5"				, 0 },	// Dial on demand max idle time (mins)
-	{ "ppp_keepalive",		"0"				, 0 },	// Restore link automatically
-	{ "ppp_demand",			"0"				, 0 },	// Dial on demand
-	{ "ppp_redialperiod",		"10"				, 0 },	// Redial Period  (seconds)*/
-	{ "ppp_mru",			"1500"				, 0 },	// Negotiate MRU to this value
-	{ "ppp_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
-	{ "ppp_service",		""				, 0 },	// PPPoE service name
-	{ "ppp_ac",			""				, 0 },	// PPPoE access concentrator name
-	{ "ppp_static",			"0"				, 0 },	// Enable / Disable Static IP
-	{ "ppp_static_ip",		""				, 0 },	// PPPoE Static IP
-	{ "ppp_get_ac",			""				, 0 },	// PPPoE Server ac name
-	{ "ppp_get_srv",		""				, 0 },	// PPPoE Server service name
-	{ "ppp_custom",			""				, 0 },	// PPPD additional options
-	{ "ppp_mlppp",			"0"				, 0 },	// PPPoE single line MLPPP
+	{ "wan_pppoe_ifname",		""				, 0 },	// PPPoE enslaved interface
+	{ "wan_ppp_username",		""				, 0 },	// PPP username
+	{ "wan_ppp_passwd",		""				, 0 },	// PPP password
+	{ "wan_ppp_idletime",		"5"				, 0 },	// Dial on demand max idle time (mins)
+	{ "wan_ppp_keepalive",		"0"				, 0 },	// Restore link automatically
+	{ "wan_ppp_demand",		"0"				, 0 },	// Dial on demand
+	{ "wan_ppp_redialperiod",	"10"				, 0 },	// Redial Period  (seconds)*/
+	{ "wan_ppp_mru",		"1500"				, 0 },	// Negotiate MRU to this value
+	{ "wan_ppp_mtu",		"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
+	{ "wan_ppp_service",		""				, 0 },	// PPPoE service name
+	{ "wan_ppp_ac",			""				, 0 },	// PPPoE access concentrator name
+	{ "wan_ppp_static",		"0"				, 0 },	// Enable / Disable Static IP
+	{ "wan_ppp_static_ip",		""				, 0 },	// PPPoE Static IP
+	{ "wan_ppp_get_ac",		""				, 0 },	// PPPoE Server ac name
+	{ "wan_ppp_get_srv",		""				, 0 },	// PPPoE Server service name
+	{ "wan_ppp_custom",		""				, 0 },	// PPPD additional options
+	{ "wan_ppp_mlppp",		"0"				, 0 },	// PPPoE single line MLPPP
+	{ "wan_pppoe_lei",		"10"				, 0 },
+	{ "wan_pppoe_lef",		"5"				, 0 },
 
-	{ "pppoe_lei",			"10"				, 0 },
-	{ "pppoe_lef",			"5"				, 0 },
+	{ "wan2_ppp_username",		""				, 0 },	// PPP username
+	{ "wan2_ppp_passwd",		""				, 0 },	// PPP password
+	{ "wan2_ppp_idletime",		"5"				, 0 },	// Dial on demand max idle time (mins)
+	{ "wan2_ppp_demand",		"0"				, 0 },	// Dial on demand
+	{ "wan2_ppp_redialperiod",	"10"				, 0 },	// Redial Period  (seconds)*/
+	{ "wan2_ppp_service",		""				, 0 },	// PPPoE service name
+	{ "wan2_ppp_custom",		""				, 0 },	// PPPD additional options
+	{ "wan2_ppp_mlppp",		"0"				, 0 },	// PPPoE single line MLPPP
+	{ "wan2_pppoe_lei",		"10"				, 0 },
+	{ "wan2_pppoe_lef",		"5"				, 0 },
+
+#ifdef TCONFIG_MULTIWAN
+	{ "wan3_ppp_username",		""				, 0 },	// PPP username
+	{ "wan3_ppp_passwd",		""				, 0 },	// PPP password
+	{ "wan3_ppp_idletime",		"5"				, 0 },	// Dial on demand max idle time (mins)
+	{ "wan3_ppp_demand",		"0"				, 0 },	// Dial on demand
+	{ "wan3_ppp_redialperiod",	"10"				, 0 },	// Redial Period  (seconds)*/
+	{ "wan3_ppp_service",		""				, 0 },	// PPPoE service name
+	{ "wan3_ppp_custom",		""				, 0 },	// PPPD additional options
+	{ "wan3_ppp_mlppp",		"0"				, 0 },	// PPPoE single line MLPPP
+	{ "wan3_pppoe_lei",		"10"				, 0 },
+	{ "wan3_pppoe_lef",		"5"				, 0 },
+
+	{ "wan4_ppp_username",		""				, 0 },	// PPP username
+	{ "wan4_ppp_passwd",		""				, 0 },	// PPP password
+	{ "wan4_ppp_idletime",		"5"				, 0 },	// Dial on demand max idle time (mins)
+	{ "wan4_ppp_demand",		"0"				, 0 },	// Dial on demand
+	{ "wan4_ppp_redialperiod",	"10"				, 0 },	// Redial Period  (seconds)*/
+	{ "wan4_ppp_service",		""				, 0 },	// PPPoE service name
+	{ "wan4_ppp_custom",		""				, 0 },	// PPPD additional options
+	{ "wan4_ppp_mlppp",		"0"				, 0 },	// PPPoE single line MLPPP
+	{ "wan4_pppoe_lei",		"10"				, 0 },
+	{ "wan4_pppoe_lef",		"5"				, 0 },
+#endif
 
 #ifdef TCONFIG_IPV6
 	// IPv6 parameters
@@ -164,7 +269,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_6rd_borderrelay",	"68.113.165.1"			, 0 },	// 6RD border relay address
 	{ "ipv6_6rd_ipv4masklen",	"0"				, 0 },	// 6RD IPv4 mask length (0-30) checkme
 	{ "ipv6_vlan",			"0"				, 0 },	// Enable IPv6 on 1=LAN1 2=LAN2 4=LAN3
-	{ "ipv6_isp_opt",		"0"				, 0 },	// wan.c add eval option for dhcpd
+	{ "ipv6_pdonly",		"0"				, 0 },	// Request DHCPv6 Prefix Delegation Only
 #endif
 
 #ifdef RTCONFIG_FANCTRL
@@ -345,6 +450,7 @@ struct nvram_tuple router_defaults[] = {
 #endif
 #endif
 
+<<<<<<< HEAD
 #ifdef TCONFIG_BCM7
 	{ "wl_acs_dfs", "2", 0 },		/* acsd fcs disable init DFS chan */
 #else
@@ -396,12 +502,36 @@ struct nvram_tuple router_defaults[] = {
 	{ "pptp_server_ip",		""				, 0 },	// as same as WAN gateway
 	{ "ppp_get_ip",			""				, 0 },	// IP Address assigned by PPTP/L2TP server
 	{ "pptp_dhcp",			"1"				, 0 },
+=======
+	{ "wan_pptp_server_ip",		""				, 0 },	// as same as WAN gateway
+	{ "wan_ppp_get_ip",		""				, 0 },	// IP Address assigned by PPTP/L2TP server
+	{ "wan_pptp_dhcp",		"1"				, 0 },
+>>>>>>> shibby-arm
 
 	// for firewall
-	{ "mtu_enable",			"0"				, 0 },	// WAN MTU [1|0]
+	{ "wan_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 
-	{ "l2tp_server_ip",		""				, 0 },	// L2TP auth server (IP Address)
+	{ "wan_l2tp_server_ip",		""				, 0 },	// L2TP auth server (IP Address)
+	{ "wan2_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
+	{ "wan2_pptp_dhcp",		"1"				, 0 },
+	{ "wan2_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
+	{ "wan2_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
+	{ "wan2_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
+
+#ifdef TCONFIG_MULTIWAN
+	{ "wan3_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
+	{ "wan3_pptp_dhcp",		"1"				, 0 },
+	{ "wan3_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
+	{ "wan3_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
+	{ "wan3_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
+
+	{ "wan4_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
+	{ "wan4_pptp_dhcp",		"1"				, 0 },
+	{ "wan4_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
+	{ "wan4_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
+	{ "wan4_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
+#endif
 
 // misc
 	{ "wl_tnoise",			"-99"				, 0 },
@@ -464,7 +594,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "nf_ftp",			"1"				, 0 },
 
 // advanced-mac
-	{ "mac_wan",			""				, 0 },
+	{ "wan_mac",			""				, 0 },
 	{ "wl_macaddr",			""				, 0 },
 
 // advanced-misc
@@ -582,8 +712,16 @@ struct nvram_tuple router_defaults[] = {
 	{ "qos_icmp",			"1"				, 0 },
 	{ "qos_pfifo",			"3"				, 0 }, //Set FQ_Codel Default Qdisc Scheduler
 	{ "qos_reset",			"1"				, 0 },
-	{ "qos_obw",			"700"				, 0 },
-	{ "qos_ibw",			"16000"				, 0 },
+	{ "wan_qos_obw",		"700"				, 0 },
+	{ "wan_qos_ibw",		"16000"				, 0 },
+	{ "wan2_qos_obw",		"700"				, 0 },
+	{ "wan2_qos_ibw",		"16000"				, 0 },
+#ifdef TCONFIG_MULTIWAN
+	{ "wan3_qos_obw",		"700"				, 0 },
+	{ "wan3_qos_ibw",		"16000"				, 0 },
+	{ "wan4_qos_obw",		"700"				, 0 },
+	{ "wan4_qos_ibw",		"16000"				, 0 },
+#endif
 	{ "qos_orules",			"0<<-1<d<53<0<<0:10<<0<DNS>0<<-1<d<37<0<<0:10<<0<Time>0<<17<d<123<0<<0:10<<0<NTP>0<<-1<d<3455<0<<0:10<<0<RSVP>0<<-1<d<9<0<<0:50<<3<SCTP, Discard>0<<-1<x<135,2101,2103,2105<0<<<<3<RPC (Microsoft)>0<<17<d<3544<0<<<<-1<Teredo Tunnel>0<<6<x<22,2222<0<<<<2<SSH>0<<6<d<23,992<0<<<<2<Telnet>0<<6<s<80,5938,8080,2222<0<<<<2<Remote Access>0<<-1<x<3389<0<<<<2<Remote Assistance>0<<-1<x<1220,6970:7170,8554<0<<<<4<Quicktime/RealAudio>0<<-1<x<554,5004,5005<0<<<<4<RTP, RTSP>0<<-1<x<1755<0<<<<4<MMS (Microsoft)>0<<-1<d<3478,3479,5060:5063<0<<<<1<SIP, Sipgate Stun Services>0<<-1<s<53,88,3074<0<<<<1<Xbox Live>0<<6<d<1718:1720<0<<<<1<H323>0<<-1<d<4380,27000:27050,11031,11235:11335,11999,2300:2400,6073,28800:29100,47624<0<<<<1<Various Games>0<<-1<d<1493,1502,1503,1542,1863,1963,3389,5061,5190:5193,7001<0<<<<5<MSGR1 - Windows Live>0<<-1<d<1071:1074,1455,1638,1644,5000:5010,5050,5100,5101,5150,8000:8002<0<<<<5<MSGR2 - Yahoo>0<<-1<d<194,1720,1730:1732,5220:5223,5298,6660:6669,22555<0<<<<5<MSGR3 - Additional>0<<-1<d<19294:19310<0<<<<5<Google+ & Voice>0<<6<d<6005,6006<0<<<<5<Camfrog>0<<-1<x<6571,6891:6901<0<<<<5<WLM File/Webcam>0<<-1<x<29613<0<<<<5<Skype incoming>0<<6<x<4244,5242<0<<<<1<Viber TCP>0<<17<x<5243,9785<0<<<<1<Viber UDP>0<<17<x<3478:3497,16384:16387,16393:16402<0<<<<5<Apple Facetime/Game Center>0<<6<d<443<0<<0:512<<3<HTTPS>0<<6<d<443<0<<512:<<5<HTTPS>0<<17<d<443<0<<0:512<<3<QUIC>0<<17<d<443<0<<512:<<5<QUIC>0<<-1<a<<0<skypetoskype<<<1<Skype to Skype>0<<-1<a<<0<skypeout<<<-1<Skype Phone (deprecated)>0<<-1<a<<0<youtube-2012<<<4<YouTube 2012 (Youtube)>0<<-1<a<<0<httpvideo<<<4<HTTP Video (Youtube)>0<<-1<a<<0<flash<<<4<Flash Video (Youtube)>0<<-1<a<<0<rtp<<<4<RTP>0<<-1<a<<0<rtmp<<<4<RTMP>0<<-1<a<<0<shoutcast<<<4<Shoutcast>0<<-2<a<<0<rtmpt<<<4<RTMPT (RTMP over HTTP)>0<<-1<a<<0<irc<<<5<IRC>0<<6<d<80,8080<0<<0:512<<3<HTTP, HTTP Proxy>0<<6<d<80,8080<0<<512:<<7<HTTP, HTTP Proxy File Transfers>0<<6<d<20,21,989,990<0<<<<7<FTP>0<<6<d<25,587,465,2525<0<<<<6<SMTP, Submission Mail>0<<6<d<110,995<0<<<<6<POP3 Mail>0<<6<d<119,563<0<<<<7<NNTP News & Downloads>0<<6<d<143,220,585,993<0<<<<6<IMAP Mail>0<<17<d<1:65535<0<<<<8<P2P (uTP, UDP)" , 0 },
 	{ "qos_burst0",			""				, 0 },
 	{ "qos_burst1",			""				, 0 },
@@ -1223,6 +1361,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "tor_iface",			"br0"				, 0 },
 	{ "tor_users",			"192.168.1.0/24"		, 0 },
 	{ "tor_custom",			""				, 0 },
+	{ "tor_ports",			"80"				, 0 },
+	{ "tor_ports_custom",		"80,443,8080:8880"		, 0 },
 #endif
 
 	{ 0, 0, 0}

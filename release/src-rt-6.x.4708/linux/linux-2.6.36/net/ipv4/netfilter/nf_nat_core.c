@@ -734,6 +734,52 @@ static struct pernet_operations nf_nat_net_ops = {
 	.exit = nf_nat_net_exit,
 };
 
+unsigned int
+ip_nat_route_input(unsigned int hooknum,
+		struct sk_buff *skb,
+		const struct net_device *in,
+		const struct net_device *out,
+		int (*okfn)(struct sk_buff *))
+{
+	struct iphdr *iph;
+	struct nf_conn *conn;
+	enum ip_conntrack_info ctinfo;
+	enum ip_conntrack_dir dir;
+	unsigned long statusbit;
+	__be32 saddr;
+
+	if (!(conn = nf_ct_get(skb, &ctinfo)))
+		return NF_ACCEPT;
+
+	if (!(conn->status & IPS_NAT_DONE_MASK))
+		return NF_ACCEPT;
+	dir = CTINFO2DIR(ctinfo);
+	statusbit = IPS_SRC_NAT;
+	if (dir == IP_CT_DIR_REPLY)
+		statusbit ^= IPS_NAT_MASK;
+	if (!(conn->status & statusbit))
+		return NF_ACCEPT;
+
+	if (skb_dst(skb))
+		return NF_ACCEPT;
+
+	if (skb->len < sizeof(struct iphdr))
+		return NF_ACCEPT;
+
+	/* use daddr in other direction as masquerade address (lsrc) */
+	iph = ip_hdr(skb);
+	saddr = conn->tuplehash[!dir].tuple.dst.u3.ip;
+	if (saddr == iph->saddr)
+		return NF_ACCEPT;
+
+	if (ip_route_input_lookup(skb, iph->daddr, iph->saddr, iph->tos,
+	    skb->dev, saddr))
+		return NF_DROP;
+
+	return NF_ACCEPT;
+}
+EXPORT_SYMBOL_GPL(ip_nat_route_input);
+
 static int __init nf_nat_init(void)
 {
 	size_t i;

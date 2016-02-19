@@ -1,7 +1,7 @@
-This is doc/gccinstall.info, produced by makeinfo version 4.8 from
-/projects/toolchains_build/buildroot-2012.02-brcm/output/toolchain/gcc-4.5.3/gcc/doc/install.texi.
+This is doc/gccinstall.info, produced by makeinfo version 4.13 from
+/home/yipst/buildroot-2012.02/output/toolchain/gcc-4.5.3/gcc/doc/install.texi.
 
-   Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 2011 Free Software Foundation, Inc.
 
@@ -81,7 +81,7 @@ as well as detailing some target specific installation instructions.
 distributions with their own installation instructions.  This document
 supersedes all package specific installation instructions.
 
-   _Before_ starting the build/install procedure please check the *Note
+   _Before_ starting the build/install procedure please check the *note
 host/target specific installation notes: Specific.  We recommend you
 browse the entire generic installation instructions before you proceed.
 
@@ -2364,7 +2364,7 @@ following information:
      build status list will include a link to the archived copy of your
      message.
 
-   We'd also like to know if the *Note host/target specific
+   We'd also like to know if the *note host/target specific
 installation notes: Specific.  didn't include your host/target
 information or if that information is incomplete or out of date.  Send
 a note to <gcc@gcc.gnu.org> detailing how the information should be
@@ -3891,7 +3891,7 @@ main manual.
      irrelevant, and will be ignored.  So you might as well specify the
      version if you know it.
 
-     See *Note Configurations::, for a list of supported configuration
+     See *note Configurations::, for a list of supported configuration
      names and notes on many of the configurations.  You should check
      the notes in that section before proceeding any further with the
      installation of GCC.
@@ -4446,88 +4446,88 @@ Concept Index
 
 
 Tag Table:
-Node: Top2031
-Node: Installing GCC2589
-Node: Prerequisites4104
-Node: Downloading the source13766
-Node: Configuration15703
-Ref: with-gnu-as29845
-Ref: with-as30743
-Ref: with-gnu-ld32156
-Node: Building75631
-Node: Testing90942
-Node: Final install98722
-Node: Binaries103952
-Node: Specific105456
-Ref: alpha-x-x105962
-Ref: alpha-dec-osf106451
-Ref: arc-x-elf108752
-Ref: arm-x-elf108852
-Ref: avr109072
-Ref: bfin109714
-Ref: cris109956
-Ref: crx110772
-Ref: dos111435
-Ref: x-x-freebsd111758
-Ref: h8300-hms113571
-Ref: hppa-hp-hpux113923
-Ref: hppa-hp-hpux10116294
-Ref: hppa-hp-hpux11116707
-Ref: x-x-linux-gnu122366
-Ref: ix86-x-linux122559
-Ref: ix86-x-solaris289122872
-Ref: ix86-x-solaris210123718
-Ref: ia64-x-linux124948
-Ref: ia64-x-hpux125718
-Ref: x-ibm-aix126273
-Ref: iq2000-x-elf132532
-Ref: lm32-x-elf132672
-Ref: lm32-x-uclinux132776
-Ref: m32c-x-elf132904
-Ref: m32r-x-elf133006
-Ref: m6811-elf133108
-Ref: m6812-elf133258
-Ref: m68k-x-x133408
-Ref: m68k-x-uclinux134380
-Ref: mep-x-elf134743
-Ref: mips-x-x134853
-Ref: mips-sgi-irix5137530
-Ref: mips-sgi-irix6138796
-Ref: moxie-x-elf142127
-Ref: powerpc-x-x142247
-Ref: powerpc-x-darwin142452
-Ref: powerpc-x-elf142999
-Ref: powerpc-x-linux-gnu143084
-Ref: powerpc-x-netbsd143179
-Ref: powerpc-x-eabisim143267
-Ref: powerpc-x-eabi143393
-Ref: powerpcle-x-elf143469
-Ref: powerpcle-x-eabisim143561
-Ref: powerpcle-x-eabi143694
-Ref: rx-x-elf143777
-Ref: s390-x-linux143976
-Ref: s390x-x-linux144048
-Ref: s390x-ibm-tpf144135
-Ref: x-x-solaris2144266
-Ref: sparc-sun-solaris2148078
-Ref: sparc-sun-solaris27150804
-Ref: sparc-sun-solaris210153362
-Ref: sparc-x-linux153738
-Ref: sparc64-x-solaris2153963
-Ref: sparcv9-x-solaris2154605
-Ref: x-x-vxworks154692
-Ref: x86-64-x-x156214
-Ref: xtensa-x-elf156542
-Ref: xtensa-x-linux157213
-Ref: windows157554
-Ref: x-x-cygwin159511
-Ref: x-x-interix160064
-Ref: x-x-mingw32160430
-Ref: older160656
-Ref: elf162773
-Node: Old163031
-Node: Configurations166168
-Node: GNU Free Documentation License170150
-Node: Concept Index192566
+Node: Top2009
+Node: Installing GCC2567
+Node: Prerequisites4082
+Node: Downloading the source13744
+Node: Configuration15681
+Ref: with-gnu-as29823
+Ref: with-as30721
+Ref: with-gnu-ld32134
+Node: Building75609
+Node: Testing90920
+Node: Final install98700
+Node: Binaries103930
+Node: Specific105434
+Ref: alpha-x-x105940
+Ref: alpha-dec-osf106429
+Ref: arc-x-elf108730
+Ref: arm-x-elf108830
+Ref: avr109050
+Ref: bfin109692
+Ref: cris109934
+Ref: crx110750
+Ref: dos111413
+Ref: x-x-freebsd111736
+Ref: h8300-hms113549
+Ref: hppa-hp-hpux113901
+Ref: hppa-hp-hpux10116272
+Ref: hppa-hp-hpux11116685
+Ref: x-x-linux-gnu122344
+Ref: ix86-x-linux122537
+Ref: ix86-x-solaris289122850
+Ref: ix86-x-solaris210123696
+Ref: ia64-x-linux124926
+Ref: ia64-x-hpux125696
+Ref: x-ibm-aix126251
+Ref: iq2000-x-elf132510
+Ref: lm32-x-elf132650
+Ref: lm32-x-uclinux132754
+Ref: m32c-x-elf132882
+Ref: m32r-x-elf132984
+Ref: m6811-elf133086
+Ref: m6812-elf133236
+Ref: m68k-x-x133386
+Ref: m68k-x-uclinux134358
+Ref: mep-x-elf134721
+Ref: mips-x-x134831
+Ref: mips-sgi-irix5137508
+Ref: mips-sgi-irix6138774
+Ref: moxie-x-elf142105
+Ref: powerpc-x-x142225
+Ref: powerpc-x-darwin142430
+Ref: powerpc-x-elf142977
+Ref: powerpc-x-linux-gnu143062
+Ref: powerpc-x-netbsd143157
+Ref: powerpc-x-eabisim143245
+Ref: powerpc-x-eabi143371
+Ref: powerpcle-x-elf143447
+Ref: powerpcle-x-eabisim143539
+Ref: powerpcle-x-eabi143672
+Ref: rx-x-elf143755
+Ref: s390-x-linux143954
+Ref: s390x-x-linux144026
+Ref: s390x-ibm-tpf144113
+Ref: x-x-solaris2144244
+Ref: sparc-sun-solaris2148056
+Ref: sparc-sun-solaris27150782
+Ref: sparc-sun-solaris210153340
+Ref: sparc-x-linux153716
+Ref: sparc64-x-solaris2153941
+Ref: sparcv9-x-solaris2154583
+Ref: x-x-vxworks154670
+Ref: x86-64-x-x156192
+Ref: xtensa-x-elf156520
+Ref: xtensa-x-linux157191
+Ref: windows157532
+Ref: x-x-cygwin159489
+Ref: x-x-interix160042
+Ref: x-x-mingw32160408
+Ref: older160634
+Ref: elf162751
+Node: Old163009
+Node: Configurations166146
+Node: GNU Free Documentation License170128
+Node: Concept Index192544
 
 End Tag Table

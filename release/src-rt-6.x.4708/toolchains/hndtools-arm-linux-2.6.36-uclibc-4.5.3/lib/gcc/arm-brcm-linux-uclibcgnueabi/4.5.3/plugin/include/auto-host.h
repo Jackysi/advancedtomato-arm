@@ -116,7 +116,7 @@
 
 /* Define to enable LTO support. */
 #ifndef USED_FOR_TARGET
-#define ENABLE_LTO 1
+/* #undef ENABLE_LTO */
 #endif
 
 
@@ -452,7 +452,7 @@
 
 /* Define if your assembler supports thread-local storage. */
 #ifndef USED_FOR_TARGET
-/* #undef HAVE_AS_TLS */
+#define HAVE_AS_TLS 1
 #endif
 
 
@@ -835,13 +835,13 @@
 
 /* Define to 1 if you have the `elf_getshstrndx' function. */
 #ifndef USED_FOR_TARGET
-#define HAVE_ELF_GETSHSTRNDX 1
+/* #undef HAVE_ELF_GETSHSTRNDX */
 #endif
 
 
 /* Define if elf_getshstrndx has gABI conformant return values. */
 #ifndef USED_FOR_TARGET
-#define HAVE_ELF_GETSHSTRNDX_GABI 1
+/* #undef HAVE_ELF_GETSHSTRNDX_GABI */
 #endif
 
 
@@ -938,7 +938,7 @@
 
 /* Define 0/1 if your assembler supports CFI directives. */
 #ifndef USED_FOR_TARGET
-#define HAVE_GAS_CFI_DIRECTIVE 1
+#define HAVE_GAS_CFI_DIRECTIVE 0
 #endif
 
 
@@ -1522,7 +1522,7 @@
 
 /* Define if libelf is in use. */
 #ifndef USED_FOR_TARGET
-#define HAVE_libelf 1
+/* #undef HAVE_libelf */
 #endif
 
 
@@ -1613,7 +1613,7 @@
 
 /* The size of `long', as computed by sizeof. */
 #ifndef USED_FOR_TARGET
-#define SIZEOF_LONG 4
+#define SIZEOF_LONG 8
 #endif
 
 
@@ -1631,7 +1631,7 @@
 
 /* The size of `void *', as computed by sizeof. */
 #ifndef USED_FOR_TARGET
-#define SIZEOF_VOID_P 4
+#define SIZEOF_VOID_P 8
 #endif
 
 

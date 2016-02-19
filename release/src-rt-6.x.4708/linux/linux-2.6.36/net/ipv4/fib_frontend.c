@@ -933,9 +933,7 @@ static int fib_inetaddr_event(struct notifier_block *this, unsigned long event, 
 	switch (event) {
 	case NETDEV_UP:
 		fib_add_ifaddr(ifa);
-#ifdef CONFIG_IP_ROUTE_MULTIPATH
 		fib_sync_up(dev);
-#endif
 		rt_cache_flush(dev_net(dev), -1);
 		break;
 	case NETDEV_DOWN:
@@ -971,9 +969,7 @@ static int fib_netdev_event(struct notifier_block *this, unsigned long event, vo
 		for_ifa(in_dev) {
 			fib_add_ifaddr(ifa);
 		} endfor_ifa(in_dev);
-#ifdef CONFIG_IP_ROUTE_MULTIPATH
 		fib_sync_up(dev);
-#endif
 		rt_cache_flush(dev_net(dev), -1);
 		break;
 	case NETDEV_DOWN:

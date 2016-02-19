@@ -1,5 +1,5 @@
 /* Generated automatically by the program 'build/genpreds'
-   from the machine description file '/projects/toolchains_build/buildroot-2012.02-brcm/output/toolchain/gcc-4.5.3/gcc/config/arm/arm.md'.  */
+   from the machine description file '/home/yipst/buildroot-2012.02/output/toolchain/gcc-4.5.3/gcc/config/arm/arm.md'.  */
 
 #ifndef GCC_TM_PREDS_H
 #define GCC_TM_PREDS_H
