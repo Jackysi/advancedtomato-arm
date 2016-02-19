@@ -60,7 +60,7 @@
 # When reporting a bug, please describe a test case to reproduce it and
 # include the following information:
 #
-#       host-triplet:	i686-pc-linux-gnu
+#       host-triplet:	x86_64-unknown-linux-gnu
 #       $progname:	(GNU libtool) 2.2.10
 #       automake:		$automake_version
 #       autoconf:		$autoconf_version
@@ -948,11 +948,11 @@ seen_ltdl=false
 ltdl_mode=
 
 # Locations for important files:
-prefix=/opt/brcm-arm
-datadir=/opt/brcm-arm/share
-pkgdatadir=/opt/brcm-arm/share/libtool
-pkgltdldir=/opt/brcm-arm/share/libtool
-aclocaldir=/opt/brcm-arm/share/aclocal
+prefix=/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3
+datadir=/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/share
+pkgdatadir=/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/share/libtool
+pkgltdldir=/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/share/libtool
+aclocaldir=/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/share/aclocal
 auxdir=
 macrodir=
 ltdldir=

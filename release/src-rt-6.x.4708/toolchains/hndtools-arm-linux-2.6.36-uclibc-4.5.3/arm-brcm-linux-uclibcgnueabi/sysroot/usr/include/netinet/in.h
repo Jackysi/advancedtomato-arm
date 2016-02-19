@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <bits/types.h>
 
+#define __USE_GNU 1        /* kvic: for compatibility with Tomatoware */
 
 __BEGIN_DECLS
 
@@ -198,14 +199,19 @@ struct in_addr
 /* IPv6 address */
 struct in6_addr
   {
-        union {
-                uint8_t            u6_addr8[16];
-                uint16_t           u6_addr16[8];
-                uint32_t           u6_addr32[4];
-        } in6_u;
-#define s6_addr                 in6_u.u6_addr8
-#define s6_addr16               in6_u.u6_addr16
-#define s6_addr32               in6_u.u6_addr32
+    union
+      {
+	uint8_t	__u6_addr8[16];
+#if defined __USE_MISC || defined __USE_GNU
+	uint16_t __u6_addr16[8];
+	uint32_t __u6_addr32[4];
+#endif
+      } __in6_u;
+#define s6_addr			__in6_u.__u6_addr8
+#if defined __USE_MISC || defined __USE_GNU
+# define s6_addr16		__in6_u.__u6_addr16
+# define s6_addr32		__in6_u.__u6_addr32
+#endif
   };
 
 #define IN6ADDR_ANY_INIT { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } } }
@@ -479,6 +485,8 @@ extern int bindresvport6 (int __sockfd, struct sockaddr_in6 *__sock_in)
 #endif
 
 
+#ifdef __USE_GNU
+# if defined __UCLIBC_HAS_IPV6__ || !defined __UCLIBC_STRICT_HEADERS__
 /* IPv6 packet information.  */
 struct in6_pktinfo
   {
@@ -493,8 +501,6 @@ struct ip6_mtuinfo
     uint32_t ip6m_mtu;		   /* path MTU in host byte order */
   };
 
-#ifdef __USE_GNU
-# if defined __UCLIBC_HAS_IPV6__ || !defined __UCLIBC_STRICT_HEADERS__
 
 #  if 0
 /* Obsolete hop-by-hop and Destination Options Processing (RFC 2292).  */

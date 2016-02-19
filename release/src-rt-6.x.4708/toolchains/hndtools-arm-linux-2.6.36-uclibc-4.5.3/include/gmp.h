@@ -30,7 +30,7 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.  */
 #if ! defined (__GMP_WITHIN_CONFIGURE)
 #define __GMP_HAVE_HOST_CPU_FAMILY_power   0
 #define __GMP_HAVE_HOST_CPU_FAMILY_powerpc 0
-#define GMP_LIMB_BITS                      32
+#define GMP_LIMB_BITS                      64
 #define GMP_NAIL_BITS                      0
 #endif
 #define GMP_NUMB_BITS     (GMP_LIMB_BITS - GMP_NAIL_BITS)
@@ -2268,7 +2268,7 @@ enum
 
 /* Define CC and CFLAGS which were used to build this version of GMP */
 #define __GMP_CC "/usr/bin/gcc -std=gnu99"
-#define __GMP_CFLAGS "-O2 -I/projects/toolchains_build/buildroot-2012.02-brcm/output/host/include -I/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/include"
+#define __GMP_CFLAGS "-O2 -I/home/yipst/buildroot-2012.02/output/host/include -I/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/include"
 
 /* Major version number is the value of __GNU_MP__ too, above and in mp.h. */
 #define __GNU_MP_VERSION 5

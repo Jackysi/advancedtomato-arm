@@ -1,19 +1,19 @@
-#define __lc_time_data_LEN		303
-#define __lc_time_rows_LEN		100
+#define __lc_time_data_LEN		273
+#define __lc_time_rows_LEN		50
 #define __lc_time_item_offsets_LEN		50
-#define __lc_time_item_idx_LEN		53
-#define __lc_numeric_data_LEN		7
-#define __lc_numeric_rows_LEN		6
+#define __lc_time_item_idx_LEN		50
+#define __lc_numeric_data_LEN		3
+#define __lc_numeric_rows_LEN		3
 #define __lc_numeric_item_offsets_LEN		3
-#define __lc_numeric_item_idx_LEN		5
-#define __lc_monetary_data_LEN		25
-#define __lc_monetary_rows_LEN		44
+#define __lc_numeric_item_idx_LEN		3
+#define __lc_monetary_data_LEN		5
+#define __lc_monetary_rows_LEN		22
 #define __lc_monetary_item_offsets_LEN		22
-#define __lc_monetary_item_idx_LEN		43
-#define __lc_messages_data_LEN		29
-#define __lc_messages_rows_LEN		8
+#define __lc_monetary_item_idx_LEN		22
+#define __lc_messages_data_LEN		13
+#define __lc_messages_rows_LEN		4
 #define __lc_messages_item_offsets_LEN		4
-#define __lc_messages_item_idx_LEN		6
+#define __lc_messages_item_idx_LEN		4
 #define __lc_ctype_data_LEN		21
 #define __lc_ctype_rows_LEN		10
 #define __lc_ctype_item_offsets_LEN		10
@@ -81,21 +81,21 @@ typedef struct {
 #define __CTYPE_HAS_CODESET_UTF_8
 #define __LOCALE_DATA_WC_TABLE_DOMAIN_MAX   0x2ffff
 
-#define __LOCALE_DATA_WCctype_II_LEN        768
-#define __LOCALE_DATA_WCctype_TI_LEN       1888
-#define __LOCALE_DATA_WCctype_UT_LEN        948
+#define __LOCALE_DATA_WCctype_II_LEN         48
+#define __LOCALE_DATA_WCctype_TI_LEN         64
+#define __LOCALE_DATA_WCctype_UT_LEN        128
 #define __LOCALE_DATA_WCctype_II_SHIFT        5
-#define __LOCALE_DATA_WCctype_TI_SHIFT        3
+#define __LOCALE_DATA_WCctype_TI_SHIFT        7
 
 
-#define __LOCALE_DATA_WCuplow_II_LEN        384
-#define __LOCALE_DATA_WCuplow_TI_LEN        576
-#define __LOCALE_DATA_WCuplow_UT_LEN        720
-#define __LOCALE_DATA_WCuplow_II_SHIFT        6
-#define __LOCALE_DATA_WCuplow_TI_SHIFT        3
+#define __LOCALE_DATA_WCuplow_II_LEN         96
+#define __LOCALE_DATA_WCuplow_TI_LEN         64
+#define __LOCALE_DATA_WCuplow_UT_LEN        128
+#define __LOCALE_DATA_WCuplow_II_SHIFT        5
+#define __LOCALE_DATA_WCuplow_TI_SHIFT        6
 
 
-#define __LOCALE_DATA_WCuplow_diffs       98
+#define __LOCALE_DATA_WCuplow_diffs        3
 
 
 /* #define __LOCALE_DATA_MAGIC_SIZE 64 */

@@ -4,14 +4,15 @@
 
 #define __UCLIBC_MAJOR__ 0
 #define __UCLIBC_MINOR__ 9
-#define __UCLIBC_SUBLEVEL__ 32
+#define __UCLIBC_SUBLEVEL__ 33
 /* Automatically generated make config: don't edit */
-/* Version: 0.9.32.1 */
-/* Tue Jun 12 11:43:33 2012 */
+/* Version: 0.9.33.2 */
+/* Tue Nov  3 18:59:07 2015 */
 #undef __TARGET_alpha__
 #define __TARGET_arm__ 1
 #undef __TARGET_avr32__
 #undef __TARGET_bfin__
+#undef __TARGET_c6x__
 #undef __TARGET_cris__
 #undef __TARGET_e1__
 #undef __TARGET_frv__
@@ -33,31 +34,13 @@
 #undef __TARGET_vax__
 #undef __TARGET_x86_64__
 #undef __TARGET_xtensa__
-#undef __TARGET_c6x__
 
 /* Target Architecture Features and Options */
 #define __TARGET_ARCH__ "arm"
 #define __FORCE_OPTIONS_FOR_ARCH__ 1
-#undef __CONFIG_ARM_OABI__
 #define __CONFIG_ARM_EABI__ 1
-#define __CONFIG_GENERIC_ARM__ 1
-#undef __CONFIG_ARM610__
-#undef __CONFIG_ARM710__
-#undef __CONFIG_ARM7TDMI__
-#undef __CONFIG_ARM720T__
-#undef __CONFIG_ARM920T__
-#undef __CONFIG_ARM922T__
-#undef __CONFIG_ARM926T__
-#undef __CONFIG_ARM10T__
-#undef __CONFIG_ARM1136JF_S__
-#undef __CONFIG_ARM1176JZ_S__
-#undef __CONFIG_ARM1176JZF_S__
-#undef __CONFIG_ARM_CORTEX_M3__
-#undef __CONFIG_ARM_CORTEX_M1__
-#undef __CONFIG_ARM_SA110__
-#undef __CONFIG_ARM_SA1100__
-#undef __CONFIG_ARM_XSCALE__
-#undef __CONFIG_ARM_IWMMXT__
+#undef __COMPILE_IN_THUMB_MODE__
+#define __USE_BX__ 1
 #define __TARGET_SUBARCH__ ""
 
 /* Using ELF file format */
@@ -73,30 +56,32 @@
 #define __DO_C99_MATH__ 1
 #undef __DO_XSI_MATH__
 #undef __UCLIBC_HAS_FENV__
-#define __KERNEL_HEADERS__ "/projects/toolchains_build/buildroot-2012.02-brcm/output/toolchain/linux/include"
+#define __KERNEL_HEADERS__ "/home/yipst/buildroot-2012.02/output/toolchain/linux/include"
 #define __HAVE_DOT_CONFIG__ 1
 
 /* General Library Settings */
-#undef __HAVE_NO_PIC__
 #define __DOPIC__ 1
-#undef __ARCH_HAS_NO_SHARED__
-#undef __ARCH_HAS_NO_LDSO__
 #define __HAVE_SHARED__ 1
 #undef __FORCE_SHAREABLE_TEXT_SEGMENTS__
 #define __LDSO_LDD_SUPPORT__ 1
 #undef __LDSO_CACHE_SUPPORT__
 #define __LDSO_PRELOAD_ENV_SUPPORT__ 1
 #undef __LDSO_PRELOAD_FILE_SUPPORT__
+#undef __LDSO_STANDALONE_SUPPORT__
+#undef __LDSO_PRELINK_SUPPORT__
 #undef __UCLIBC_STATIC_LDCONFIG__
 #define __LDSO_RUNPATH__ 1
 #define __LDSO_SEARCH_INTERP_PATH__ 1
+#define __LDSO_LD_LIBRARY_PATH__ 1
+#undef __LDSO_NO_CLEANUP__
 #define __UCLIBC_CTOR_DTOR__ 1
 #undef __LDSO_GNU_HASH_SUPPORT__
 #undef __HAS_NO_THREADS__
-#define __LINUXTHREADS_OLD__ 1
+#undef __LINUXTHREADS_OLD__
 #undef __LINUXTHREADS_NEW__
-#undef __UCLIBC_HAS_THREADS_NATIVE__
+#define __UCLIBC_HAS_THREADS_NATIVE__ 1
 #define __UCLIBC_HAS_THREADS__ 1
+#define __UCLIBC_HAS_TLS__ 1
 #define __PTHREADS_DEBUG_SUPPORT__ 1
 #define __UCLIBC_HAS_SYSLOG__ 1
 #define __UCLIBC_HAS_LFS__ 1
@@ -116,7 +101,7 @@
 #define __UCLIBC_HAS___PROGNAME__ 1
 #define __UCLIBC_HAS_PTY__ 1
 #define __ASSUME_DEVPTS__ 1
-#undef __UNIX98PTY_ONLY__
+#define __UNIX98PTY_ONLY__ 1
 #define __UCLIBC_HAS_GETPT__ 1
 #define __UCLIBC_HAS_LIBUTIL__ 1
 #define __UCLIBC_HAS_TM_EXTENSIONS__ 1
@@ -131,7 +116,8 @@
 #define __UCLIBC_GRP_BUFFER_SIZE__ 256
 
 /* Support various families of functions */
-#define __UCLIBC_LINUX_MODULE_24__ 1
+#define __UCLIBC_LINUX_MODULE_26__ 1
+#undef __UCLIBC_LINUX_MODULE_24__
 #define __UCLIBC_LINUX_SPECIFIC__ 1
 #define __UCLIBC_HAS_GNU_ERROR__ 1
 #define __UCLIBC_BSD_SPECIFIC__ 1
@@ -146,6 +132,8 @@
 #define __UCLIBC_HAS_XATTR__ 1
 #define __UCLIBC_HAS_PROFILING__ 1
 #define __UCLIBC_HAS_CRYPT_IMPL__ 1
+#undef __UCLIBC_HAS_SHA256_CRYPT_IMPL__
+#undef __UCLIBC_HAS_SHA512_CRYPT_IMPL__
 #define __UCLIBC_HAS_CRYPT__ 1
 #define __UCLIBC_HAS_NETWORK_SUPPORT__ 1
 #define __UCLIBC_HAS_SOCKET__ 1
@@ -159,6 +147,7 @@
 #undef __UCLIBC_HAS_BSD_RES_CLOSE__
 #define __UCLIBC_HAS_COMPAT_RES_STATE__ 1
 #undef __UCLIBC_HAS_EXTRA_COMPAT_RES_STATE__
+#define __UCLIBC_HAS_RESOLVER_SUPPORT__ 1
 #define __UCLIBC_HAS_LIBRESOLV_STUB__ 1
 #define __UCLIBC_HAS_LIBNSL_STUB__ 1
 
@@ -198,6 +187,7 @@
 #define __UCLIBC_HAS_STDIO_AUTO_RW_TRANSITION__ 1
 #undef __UCLIBC_HAS_FOPEN_LARGEFILE_MODE__
 #define __UCLIBC_HAS_FOPEN_EXCLUSIVE_MODE__ 1
+#undef __UCLIBC_HAS_FOPEN_CLOSEEXEC_MODE__
 #define __UCLIBC_HAS_GLIBC_CUSTOM_STREAMS__ 1
 #define __UCLIBC_HAS_PRINTF_M_SPEC__ 1
 #define __UCLIBC_HAS_ERRNO_MESSAGES__ 1
@@ -205,6 +195,7 @@
 #define __UCLIBC_HAS_SIGNUM_MESSAGES__ 1
 #undef __UCLIBC_HAS_SYS_SIGLIST__
 #define __UCLIBC_HAS_GNU_GETOPT__ 1
+#define __UCLIBC_HAS_STDIO_FUTEXES__ 1
 #undef __UCLIBC_HAS_GNU_GETSUBOPT__
 
 /* Big and Tall */
@@ -215,7 +206,7 @@
 #undef __UCLIBC_HAS_WORDEXP__
 #define __UCLIBC_HAS_NFTW__ 1
 #define __UCLIBC_HAS_FTW__ 1
-#define __UCLIBC_HAS_FTS__ 1
+#undef __UCLIBC_HAS_FTS__
 #define __UCLIBC_HAS_GLOB__ 1
 #define __UCLIBC_HAS_GNU_GLOB__ 1
 #undef __UCLIBC_HAS_UTMPX__
@@ -229,7 +220,6 @@
 /* Security options */
 #undef __UCLIBC_BUILD_PIE__
 #undef __UCLIBC_HAS_ARC4RANDOM__
-#undef __HAVE_NO_SSP__
 #define __UCLIBC_HAS_SSP__ 1
 #undef __UCLIBC_HAS_SSP_COMPAT__
 #undef __SSP_QUICK_CANARY__
@@ -240,11 +230,10 @@
 #define __UCLIBC_BUILD_NOW__ 1
 #define __UCLIBC_BUILD_NOEXECSTACK__ 1
 
-/* uClibc development/debugging options */
+/* Development/debugging options */
 #define __CROSS_COMPILER_PREFIX__ "/projects/hnd/tools/linux/hndtools-arm-linux-2.6.36-uclibc-4.5.3/bin/arm-brcm-linux-uclibcgnueabi-"
 #define __UCLIBC_EXTRA_CFLAGS__ ""
 #undef __DODEBUG__
-#undef __DODEBUG_PT__
 #define __DOSTRIP__ 1
 #undef __DOASSERTS__
 #undef __SUPPORT_LD_DEBUG__

@@ -84,9 +84,6 @@ extern int settimeofday (__const struct timeval *__tv,
    If OLDDELTA is not NULL, it is filled in with the amount
    of time adjustment remaining to be done from the last `adjtime' call.
    This call is restricted to the super-user.  */
-/* gracecsm */
-#define __adjtimex(ntx) adjtimex((ntx))
-
 extern int adjtime (__const struct timeval *__delta,
 		    struct timeval *__olddelta) __THROW;
 #endif
