@@ -77,7 +77,7 @@ libexecsubdir=${libexecdir}/gcc/${target_noncanonical}/${version}
 itoolsdir=${libexecsubdir}/install-tools
 itoolsdatadir=${libsubdir}/install-tools
 incdir=${libsubdir}/include-fixed
-mkinstalldirs="/bin/bash ${itoolsdir}/mkinstalldirs"
+mkinstalldirs="/bin/sh ${itoolsdir}/mkinstalldirs"
 
 cd ${itoolsdir}
 rm -rf ${incdir}/*
@@ -90,7 +90,7 @@ for ml in `cat ${itoolsdatadir}/fixinc_list`; do
   if [ x${STMP_FIXINC} != x ] ; then
 	TARGET_MACHINE="${target}" target_canonical="${target}" \
 	    MACRO_LIST="${itoolsdatadir}/macro_list" \
-	    /bin/bash ./fixinc.sh ${subincdir} \
+	    /bin/sh ./fixinc.sh ${subincdir} \
 	    ${isysroot}${SYSTEM_HEADER_DIR} ${OTHER_FIXINCLUDES_DIRS}
 	rm -f ${subincdir}/syslimits.h
 	if [ -f ${subincdir}/limits.h ]; then

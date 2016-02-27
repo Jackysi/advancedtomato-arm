@@ -116,8 +116,9 @@ struct timex
 
 __BEGIN_DECLS
 
-#undef __adjtimex
-#define __adjtimex adjtimex
+#if 0
+extern int __adjtimex (struct timex *__ntx) __THROW;
+#endif
 extern int adjtimex (struct timex *__ntx) __THROW;
 
 #if defined __UCLIBC_NTP_LEGACY__
