@@ -673,10 +673,10 @@ _GLIBCXX_END_NAMESPACE
 /* #undef _GLIBCXX_HAVE_SETENV */
 
 /* Define to 1 if you have the `sincos' function. */
-#define _GLIBCXX_HAVE_SINCOS 1
+/* #undef _GLIBCXX_HAVE_SINCOS */
 
 /* Define to 1 if you have the `sincosf' function. */
-#define _GLIBCXX_HAVE_SINCOSF 1
+/* #undef _GLIBCXX_HAVE_SINCOSF */
 
 /* Define to 1 if you have the `sincosl' function. */
 /* #undef _GLIBCXX_HAVE_SINCOSL */
@@ -787,7 +787,7 @@ _GLIBCXX_END_NAMESPACE
 #define _GLIBCXX_HAVE_TGMATH_H 1
 
 /* Define to 1 if the target supports thread-local storage. */
-#define _GLIBCXX_HAVE_TLS 1
+/* #undef _GLIBCXX_HAVE_TLS */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define _GLIBCXX_HAVE_UNISTD_H 1

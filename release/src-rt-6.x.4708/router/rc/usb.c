@@ -971,7 +971,7 @@ static inline void usbled_proc(char *device, int add)
 				(void) closedir (usb4);
 				usb4 = NULL;
 			}
-		else {
+		} else {
 			if (usb1 == NULL && usb3 == NULL) {
 				xstart("gpio", "enable", "17");
 			}

@@ -71,8 +71,6 @@
 
 /* The number of threads per process.  */
 #define _POSIX_THREAD_THREADS_MAX	64
-/* We have no predefined limit on the number of threads.  */
-#undef PTHREAD_THREADS_MAX
 
 /* Maximum amount by which a process can descrease its asynchronous I/O
    priority level.  */
@@ -95,6 +93,3 @@
 
 /* Maximum message queue priority level.  */
 #define MQ_PRIO_MAX		32768
-
-/* Maximum value the semaphore can have.  */
-#define SEM_VALUE_MAX   (2147483647)
