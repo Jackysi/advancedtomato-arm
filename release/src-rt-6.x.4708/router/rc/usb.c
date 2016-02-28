@@ -944,7 +944,7 @@ static inline void usbled_proc(char *device, int add)
 	DIR *usb4=NULL;
 	
 	/*Start USB LED Patch provided by AndreDVJ at:  http://www.linksysinfo.org/index.php?threads/tomato-for-arm-routers.69719/page-21#post-269691  - Some fortification added by NULLing out vars after use*/
-	if (get_model() == MODEL_R7000) {
+	if ((get_model() == MODEL_R7000) || (get_model() == MODEL_R8000)) {
 		usb1 = opendir ("/sys/bus/usb/devices/2-1:1.0");	// port 1 gpio 17
 		usb2 = opendir ("/sys/bus/usb/devices/2-2:1.0");	// port 2 gpio 18
 		usb3 = opendir ("/sys/bus/usb/devices/1-1:1.0");	// port 1 gpio 17
@@ -979,7 +979,7 @@ static inline void usbled_proc(char *device, int add)
 				xstart("gpio", "enable", "18");
 			}
 		}
-	}	
+	}
 	/*End USB LED Patch provided by AndreDVJ at:  http://www.linksysinfo.org/index.php?threads/tomato-for-arm-routers.69719/page-21#post-269691  - Some fortification added by NULLing out vars after use*/
 
 	if (get_model() == MODEL_WS880) {
@@ -1187,4 +1187,3 @@ void hotplug_usb(void)
 		run_nvscript("script_usbhotplug", NULL, 2);
 	}
 }
-
