@@ -84,8 +84,8 @@ void ipt_qoslimit(int chain)
 	//read qos1rules from nvram
 	g = buf = strdup(nvram_safe_get("new_qoslimit_rules"));
 
-	ibw = nvram_safe_get("qos_ibw");  // Read from QOS setting - KRP
-	obw = nvram_safe_get("qos_obw");  // Read from QOS setting - KRP
+	ibw = nvram_safe_get("wan_qos_ibw");  // Read from QOS setting - KRP
+	obw = nvram_safe_get("wan_qos_obw");  // Read from QOS setting - KRP
 	
 	lanipaddr = nvram_safe_get("lan_ipaddr");
 	lanmask = nvram_safe_get("lan_netmask");
@@ -156,16 +156,22 @@ void ipt_qoslimit(int chain)
 	if (chain == 2)
 	{
 		if (nvram_get_int("qosl_enable") == 1) {
-			if (nvram_get_int("qosl_tcp") > 0) {
-				ipt_write(
-					"-A PREROUTING -s %s/%s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
-				,lanipaddr,lanmask,qosl_tcp);
-			}
-			
 			if (nvram_get_int("qosl_udp") > 0) {
 				ipt_write(
 					"-A PREROUTING -s %s/%s -p udp -m limit --limit %s/sec -j ACCEPT\n"
 				,lanipaddr,lanmask,qosl_udp);
+			}
+		}
+	}
+
+	//Filter
+	if (chain == 3)
+	{
+		if (nvram_get_int("qosl_enable") == 1) {
+			if (nvram_get_int("qosl_tcp") > 0) {
+				ipt_write(
+					"-A FORWARD -s %s/%s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
+				,lanipaddr,lanmask,qosl_tcp);
 			}
 		}
 	}
@@ -233,22 +239,22 @@ void ipt_qoslimit(int chain)
 		}
 		
 		if(atoi(tcplimit) > 0){
-			if (chain == 2) {
+			if (chain == 3) {
 				switch (address_type)
 				{
 						case IP_ADDRESS:
 							ipt_write(
-							"-A PREROUTING -s %s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
+							"-A FORWARD -s %s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
 							,ipaddr,tcplimit);
 							break;
 						case MAC_ADDRESS:
 							ipt_write(
-							"-A PREROUTING -m mac --mac-source %s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
+							"-A FORWARD -m mac --mac-source %s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
 							,ipaddr,tcplimit);
 							break;
 						case IP_RANGE:
 							ipt_write(
-							"-A PREROUTING -m iprange --src-range %s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
+							"-A FORWARD -m iprange --src-range %s -p tcp --syn -m connlimit --connlimit-above %s -j DROP\n"
 							,ipaddr,tcplimit);
 							break;
 				}
@@ -310,8 +316,8 @@ void new_qoslimit_start(void)
 	//read qos1rules from nvram
 	g = buf = strdup(nvram_safe_get("new_qoslimit_rules"));
 
-	ibw = nvram_safe_get("qos_ibw");  
-	obw = nvram_safe_get("qos_obw");  
+	ibw = nvram_safe_get("wan_qos_ibw");
+	obw = nvram_safe_get("wan_qos_obw");
 
 	lanipaddr = nvram_safe_get("lan_ipaddr");
 	lanmask = nvram_safe_get("lan_netmask");
@@ -354,7 +360,7 @@ void new_qoslimit_start(void)
 		,waniface
 		,waniface,obw
 	);
-	
+
 	if ((nvram_get_int("qosl_enable") == 1) && strcmp(dlr,"") && strcmp(ulr,"")) {
 		if (!strcmp(dlc,"")) strcpy(dlc, dlr);
 		if (!strcmp(ulc,"")) strcpy(ulc, ulr);
@@ -554,7 +560,6 @@ void new_qoslimit_stop(void)
 	FILE *f;
 	char *s = "/tmp/qoslimittc_stop.sh";
 	char *waniface;
-
 	waniface = nvram_safe_get("wan_iface"); //shibby
 
 	if ((f = fopen(s, "w")) == NULL) return;
