@@ -1145,6 +1145,7 @@ function verifyFields(focused, quiet)
             vis['_wan'+u+'_ppp_service'] = 0;
             vis['_wan'+u+'_gateway'] = (!E('_f_wan'+u+'_pptp_dhcp').checked);
             vis['_wan'+u+'_ipaddr'] = (!E('_f_wan'+u+'_pptp_dhcp').checked);
+            vis['_wan'+u+'_netmask'] = (!E('_f_wan'+u+'_pptp_dhcp').checked);
             vis['_wan'+u+'_modem_ipaddr'] = 0;
 
             vis['_wan'+u+'_modem_pin'] = 0;
@@ -1160,6 +1161,7 @@ function verifyFields(focused, quiet)
             vis['_wan'+u+'_ppp_service'] = 0;
             vis['_wan'+u+'_gateway'] = (!E('_f_wan'+u+'_pptp_dhcp').checked);
             vis['_wan'+u+'_ipaddr'] = (!E('_f_wan'+u+'_pptp_dhcp').checked);
+            vis['_wan'+u+'_netmask'] = (!E('_f_wan'+u+'_pptp_dhcp').checked);
             vis['_wan'+u+'_modem_ipaddr'] = 0;
 
             vis['_wan'+u+'_modem_pin'] = 0;
