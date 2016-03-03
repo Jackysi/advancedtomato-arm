@@ -508,9 +508,9 @@ elif [ "$2" == "disconnect" ]; then
 elif [ "$2" == "signal" ]; then
     signal
 else
-    if [ ! -f $READY ]; then #modem not detected
-        checkLock
+    checkLock
 
+    if [ ! -f $READY ]; then #modem not detected
         switchMode
 
         searchWAN
@@ -521,8 +521,9 @@ else
             setPIN
         fi
     fi
-        #force connection after detect 4G modem
-        connect
+
+    #force connection after detect 4G modem
+    connect
 
     #remove lock
     rm $LOCK
