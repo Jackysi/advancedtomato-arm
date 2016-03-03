@@ -404,6 +404,11 @@ REMOVE-END */
 
 // WAN port
     bridged[parseInt(nvram['wan_ifnameX'].replace('vlan',''))] = '2';
+    bridged[parseInt(nvram['wan2_ifnameX'].replace('vlan',''))] = '7';
+/* MULTIWAN-BEGIN */
+    bridged[parseInt(nvram['wan3_ifnameX'].replace('vlan',''))] = '8';
+    bridged[parseInt(nvram['wan4_ifnameX'].replace('vlan',''))] = '9';
+/* MULTIWAN-END */
 
 // go thru all possible VLANs
     for (var i = 0 ; i <= MAX_VLAN_ID ; i++) {
@@ -464,6 +469,23 @@ REMOVE-END */
   {
     return this.countElem(COL_BRI,2);
   }
+
+  vlg.countWan2 = function()
+  {
+    return this.countElem(COL_BRI,7);
+  }
+
+/* MULTIWAN-BEGIN */
+  vlg.countWan3 = function()
+  {
+    return this.countElem(COL_BRI,8);
+  }
+
+  vlg.countWan4 = function()
+  {
+    return this.countElem(COL_BRI,9);
+  }
+/* MULTIWAN-END */
 
   vlg.countLan = function(l)
   {
@@ -589,6 +611,29 @@ REMOVE-END */
       ferror.clear(f[COL_BRI]);
     }
 
+    if ((this.countWan2() > 0) && (f[COL_BRI].selectedIndex == 6)) {
+      ferror.set(f[COL_BRI],'Only one VID can be used as WAN2 at any time', quiet);
+      valid = 0;
+    } else {
+      ferror.clear(f[COL_BRI]);
+    }
+
+/* MULTIWAN-BEGIN */
+    if ((this.countWan3() > 0) && (f[COL_BRI].selectedIndex == 7)) {
+      ferror.set(f[COL_BRI],'Only one VID can be used as WAN3 at any time', quiet);
+      valid = 0;
+    } else {
+      ferror.clear(f[COL_BRI]);
+    }
+
+    if ((this.countWan4() > 0) && (f[COL_BRI].selectedIndex == 8)) {
+      ferror.set(f[COL_BRI],'Only one VID can be used as WAN4 at any time', quiet);
+      valid = 0;
+    } else {
+      ferror.clear(f[COL_BRI]);
+    }
+/* MULTIWAN-END */
+
     for(var i=0; i<4; i++) {
       if ((this.countLan(i) > 0) && (f[COL_BRI].selectedIndex == (i+2))) {
         ferror.set(f[COL_BRI],'One and only one VID can be used for LAN' + ((i==0) ? '' : i ) + ' (br'+i+') at any time', quiet);
@@ -615,7 +660,11 @@ REMOVE-END */
     (data[COL_P4].toString() != '0') ? 'Yes' : '',
     (data[COL_P4T].toString() != '0') ? 'On' : '',
     (data[COL_VID_DEF].toString() != '0') ? '*' : '',
-    ['', 'WAN', 'LAN (br0)', 'LAN1 (br1)', 'LAN2 (br2)', 'LAN3 (br3)' ][data[COL_BRI] - 1]];
+    ['', 'WAN', 'LAN (br0)', 'LAN1 (br1)', 'LAN2 (br2)', 'LAN3 (br3)', 'WAN2'
+/* MULTIWAN-BEGIN */
+        , 'WAN3', 'WAN4'
+/* MULTIWAN-END
+    ][data[COL_BRI] - 1]];
   }
 
   vlg.dataToFieldValues = function (data) {
@@ -845,6 +894,11 @@ function earlyInit() {
 <input type='hidden' name='vlan14hwname'>
 <input type='hidden' name='vlan15hwname'>
 <input type='hidden' name='wan_ifnameX'>
+<input type='hidden' name='wan2_ifnameX'>
+/* MULTIWAN-BEGIN */
+<input type='hidden' name='wan3_ifnameX'>
+<input type='hidden' name='wan4_ifnameX'>
+/* MULTIWAN-END */
 <input type='hidden' name='manual_boot_nv'>
 <input type='hidden' name='lan_ifnames'>
 <input type='hidden' name='lan1_ifnames'>
