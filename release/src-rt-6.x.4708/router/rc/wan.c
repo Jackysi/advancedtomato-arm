@@ -608,7 +608,8 @@ void start_l2tp(char *prefix)
 
 	enable_ip_forward();
 
-	eval("xl2tpd");
+	eval("xl2tpd", "-c", "/etc/%s_xl2tpd.conf", prefix);
+	mwanlog(LOG_DEBUG, "MultiWAN: xl2tpd -c /etc/%s_xl2tpd.conf", prefix);
 
 	if (demand) {
 		eval("listen", nvram_safe_get("lan_ifname"), prefix);
