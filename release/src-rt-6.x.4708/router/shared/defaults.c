@@ -54,8 +54,8 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "mwan_num",			"1"				, 0 },
 	{ "mwan_init",			"0"				, 0 },
-	{ "mwan_cktime",		"60"				, 0 },
-	{ "mwan_ckdst",			"google.com,microsoft.com"	, 0 }, // mode, target, custom adresses
+	{ "mwan_cktime",		"0"				, 0 },
+	{ "mwan_ckdst",			"google.com,microsoft.com"	, 0 }, // target1,target2
 	{ "mwan_debug",			"0"				, 0 },
 	{ "pbr_rules",			""				, 0 },
 
