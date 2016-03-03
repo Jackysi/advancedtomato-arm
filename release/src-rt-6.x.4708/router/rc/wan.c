@@ -608,7 +608,7 @@ void start_l2tp(char *prefix)
 
 	enable_ip_forward();
 
-	eval("xl2tpd");
+	eval("xl2tpd", "-c", xl2tp_file);
 
 	if (demand) {
 		eval("listen", nvram_safe_get("lan_ifname"), prefix);
