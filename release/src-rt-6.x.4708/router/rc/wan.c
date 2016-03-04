@@ -189,6 +189,8 @@ static int config_pppd(int wan_proto, int num, char *prefix) //static int config
 			"plugin pptp.so\n"
 			"pptp_server %s\n"
 			"nomppe-stateful\n"
+			"require-mschap-v2\n"
+			"noauth\n"	// No authenticate peer (i dunno why it doesn't apply from shared params)
 			"mtu %d\n",
 			nvram_safe_get(strcat_r(prefix, "_pptp_server_ip", tmp)), //"pptp_server_ip"
 			nvram_get_int(strcat_r(prefix, "_mtu_enable", tmp)) ? nvram_get_int(strcat_r(prefix, "_wan_mtu", tmp)) : 1400); 
