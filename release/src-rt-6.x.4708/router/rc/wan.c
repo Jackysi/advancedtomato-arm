@@ -578,14 +578,19 @@ void start_l2tp(char *prefix)
 
 	/* Generate XL2TPD configuration file */
 	memset(xl2tp_file, 0, 256);
-	sprintf(xl2tp_file, "/etc/%s_xl2tpd.conf", prefix);
+	sprintf(xl2tp_file, "/etc/xl2tpd.conf");
 	if ((fp = fopen(xl2tp_file, "w")) == NULL)
 		return;
 	fprintf(fp,
 		"[global]\n"
 		"access control = no\n"
 		"port = 1701\n"
-		"[lac l2tp]\n"
+		"debug avp = no\n"	// TEMP DEBUG
+		"debug network = no\n"	// TEMP DEBUG
+		"debug packet = no\n"	// TEMP DEBUG
+		"debug state = no\n"	// TEMP DEBUG
+		"debug tunnel = no\n"	// TEMP DEBUG
+		"[lac %s]\n"
 		"lns = %s\n"
 		"tx bps = 100000000\n"
 		"pppoptfile = %s\n"
@@ -595,12 +600,14 @@ void start_l2tp(char *prefix)
 		"tunnel rws = 8\n"
 		"ppp debug = %s\n"
 		"%s\n",
+		prefix,	// LAC name
+//		nvram_safe_get(strcat_r(prefix, "_l2tp_server_name", tmp),	//"l2tp_server_name"
 		nvram_safe_get(strcat_r(prefix, "_l2tp_server_ip", tmp)),  //"l2tp_server_ip"
 		ppp_optfile,
 		demand ? 30 : (nvram_get_int(strcat_r(prefix, "_ppp_redialperiod", tmp)) ? : 30),  //"ppp_redialperiod"
-		nvram_get_int(strcat_r(prefix, "_debug_ppp", tmp)) ? "yes" : "no",  //"debug_ppp"
+		(nvram_get_int("debug_ppp") ? "yes" : "no"), //"debug_ppp"
 		nvram_safe_get(strcat_r(prefix, "_xl2tpd_custom", tmp))); //"xl2tpd_custom"
-	
+
 	memset(xl2tp_file, 0, 256);
 	sprintf(xl2tp_file, "/etc/%s_xl2tpd.custom", prefix);
 	fappend(fp, xl2tp_file);
@@ -608,14 +615,14 @@ void start_l2tp(char *prefix)
 
 	enable_ip_forward();
 
-	eval("xl2tpd", "-c", "/etc/%s_xl2tpd.conf", prefix);
-	mwanlog(LOG_DEBUG, "MultiWAN: xl2tpd -c /etc/%s_xl2tpd.conf", prefix);
+	mwanlog(LOG_DEBUG, "start_l2tp, cmd: xl2tpd -c /etc/xl2tpd.conf");
+	eval("xl2tpd", "-c", "/etc/xl2tpd.conf");
 
 	if (demand) {
 		eval("listen", nvram_safe_get("lan_ifname"), prefix);
 	}
 	else {
-		force_to_dial(prefix);
+		force_to_dial(prefix);	// connect request
 		start_redial(prefix);
 	}
 
@@ -639,6 +646,8 @@ char *wan_gateway(char *prefix)
 void force_to_dial(char *prefix)
 {
 	char l2tp_file[256];
+	char tmp[64];
+	char connects[64];
 
 	TRACE_PT("begin\n");
 
@@ -646,8 +655,11 @@ void force_to_dial(char *prefix)
 	switch (get_wanx_proto(prefix)) {
 	case WP_L2TP:
 		memset(l2tp_file, 0, 256);
-		sprintf(l2tp_file, "/var/run/%s_l2tp-control", prefix);
-		f_write_string(l2tp_file, "c l2tp", 0, 0);
+		sprintf(l2tp_file, "/var/run/l2tp-control");
+//		sprintf(connects, "c %s", nvram_safe_get(strcat_r(prefix, "_l2tp_server_name", tmp)));	// connect control command
+		sprintf(connects, "c %s", prefix);
+		mwanlog(LOG_DEBUG, "force_to_dial, L2TP connect string = %s", connects);
+		f_write_string(l2tp_file, connects, 0, 0);
 		break;
 	case WP_PPTP:
 		eval("ping", "-c", "2", "10.112.112.112");
