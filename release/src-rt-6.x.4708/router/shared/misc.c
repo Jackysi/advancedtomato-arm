@@ -292,6 +292,9 @@ int check_wanup(char *prefix)
 		if (get_model() == MODEL_R6300v2) {
 			led(LED_WHITE,LED_OFF);
 		}
+		if (get_model() == MODEL_R8000) {
+			led(LED_WHITE,LED_OFF);
+		}
 		return 0;
 	}
 
@@ -358,6 +361,9 @@ int check_wanup(char *prefix)
 		led(LED_WHITE,up);
 	}
 	if (get_model() == MODEL_R6300v2) {
+		led(LED_WHITE,up);
+	}
+	if (get_model() == MODEL_R8000) {
 		led(LED_WHITE,up);
 	}
 
