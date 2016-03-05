@@ -36,13 +36,15 @@
 #include <sys/ioctl.h>
 
 void ppp_prefix(char *wan_device, char *prefix)
-{	
+{
+	if (!wan_device || wan_device == "") return strcpy(prefix, "wan");	// failsafe check (in case *wan_device is empty return "wan")
 	if(!strcmp(wan_device, nvram_safe_get("wan_ifnameX"))) strcpy(prefix, "wan");
 	if(!strcmp(wan_device, nvram_safe_get("wan2_ifnameX"))) strcpy(prefix, "wan2");
 #ifdef TCONFIG_MULTIWAN
 	if(!strcmp(wan_device, nvram_safe_get("wan3_ifnameX"))) strcpy(prefix, "wan3");
 	if(!strcmp(wan_device, nvram_safe_get("wan4_ifnameX"))) strcpy(prefix, "wan4");
 #endif
+	else strcpy(prefix, "wan");	// all other DEVICE="/dev/ttyUSB0" etc (will work only on primary WAN)
 }
 
 int ipup_main(int argc, char **argv)
