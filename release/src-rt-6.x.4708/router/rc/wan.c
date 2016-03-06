@@ -128,6 +128,7 @@ static int config_pppd(int wan_proto, int num, char *prefix) //static int config
 			fprintf(fp, "user '%s'\n", nvram_get(strcat_r(prefix, "_ppp_username", tmp)));// "ppp_username" -> strcat_r(prefix, "_ppp_username", tmp)
 		if (strlen(nvram_get(strcat_r(prefix, "_ppp_passwd", tmp))) >0 )
 			fprintf(fp, "password '%s'\n", nvram_get(strcat_r(prefix, "_ppp_passwd", tmp)));
+			fprintf(fp, "linkname '%s'\n", prefix);	// link name for WAN ID
 	} else {
 #endif
 #endif
@@ -135,10 +136,12 @@ static int config_pppd(int wan_proto, int num, char *prefix) //static int config
 			"unit %d\n"
 			"user '%s'\n"
 			"password '%s'\n"	// Don't rely on pap/chap secrets (useless)
+			"linkname '%s'\n"	// link name for WAN ID
 			"lcp-echo-adaptive\n",	// Suppress LCP echo-requests if traffic was received
 			num,
 			nvram_safe_get(strcat_r(prefix, "_ppp_username", tmp)), //"ppp_usrename" -> strcat_r(prefix, "_ppp_username", tmp
-			nvram_safe_get(strcat_r(prefix, "_ppp_passwd", tmp))); //"ppp_passwd" -> strcat_r(prefix, "_ppp_passwd", tmp
+			nvram_safe_get(strcat_r(prefix, "_ppp_passwd", tmp)), //"ppp_passwd" -> strcat_r(prefix, "_ppp_passwd", tmp
+			prefix);	// link name for WAN ID
 #ifdef LINUX26
 #ifdef TCONFIG_USB
 	}
