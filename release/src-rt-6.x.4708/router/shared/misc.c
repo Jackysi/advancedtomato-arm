@@ -349,6 +349,11 @@ int check_wanup(char *prefix)
 				sprintf(pppd_name, "pppd%s", prefix);
 				//syslog(LOG_INFO, "check_wanup . pppd name=%s, psname=%s", pppd_name, name);
 				if (strcmp(name, pppd_name) == 0) up = 1;
+				if (proto == WP_L2TP) {
+					sprintf(pppd_name, "pppd");
+					syslog(LOG_INFO, "### check_wanup: L2TP pppd name=%s, psname=%s", pppd_name, name);
+					if (strcmp(name, pppd_name) == 0) up = 1;
+				}
 			}
 			else {
 				_dprintf("%s: error reading %s\n", __FUNCTION__, buf2);
