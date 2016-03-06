@@ -147,7 +147,6 @@ static int config_pppd(int wan_proto, int num, char *prefix) //static int config
 	}
 #endif
 #endif
-
 	fprintf(fp,
 		"defaultroute\n"	// Add a default route to the system routing tables, using the peer as the gateway
 		"usepeerdns\n"		// Ask the peer for up to 2 DNS server addresses
@@ -181,7 +180,6 @@ static int config_pppd(int wan_proto, int num, char *prefix) //static int config
 	}
 #endif
 #endif
-
 
 	if (wan_proto != WP_L2TP) {
 		fprintf(fp,
@@ -320,7 +318,7 @@ static void stop_ppp(char *prefix)
 	TRACE_PT("begin\n");
 	char ppp_linkfile[256];
 	char pppd_name[256];
-	char tmp[100];
+	//char tmp[100];
 	
 	memset(ppp_linkfile, 0, 256);
 	sprintf(ppp_linkfile, "/tmp/ppp/%s_link", prefix);
@@ -558,38 +556,30 @@ void stop_singe_pppoe(int num, char *prefix)
 
 // -----------------------------------------------------------------------------
 
-inline void stop_l2tp(char *prefix)
-{
-	stop_ppp(prefix);
-}
-
-void start_l2tp(char *prefix)
-{
-	char tmp[100];
-
-	TRACE_PT("begin\n");
+static int config_l2tp() { // shared xl2tpd.conf for all WAN
 
 	FILE *fp;
+	int i;
 	int demand;
-	
-	char ppp_optfile[256];
-	memset(ppp_optfile, 0, 256);
-	sprintf(ppp_optfile, "/tmp/ppp/%s_options", prefix);
-	
 	char xl2tp_file[256];
-
-	stop_l2tp(prefix);
-
-	if (config_pppd(WP_L2TP, 0, prefix) != 0)
-		return;
-
-	demand = nvram_get_int(strcat_r(prefix, "_ppp_demand", tmp)); //"ppp_demand"
+	char tmp[100];
+	const char *names[] = {	// FIXME: hardcoded to 4 WANs
+		"wan",
+		"wan2",
+#ifdef TCONFIG_MULTIWAN
+		"wan3",
+		"wan4",
+#endif
+		NULL
+	};
 
 	/* Generate XL2TPD configuration file */
 	memset(xl2tp_file, 0, 256);
 	sprintf(xl2tp_file, "/etc/xl2tpd.conf");
-	if ((fp = fopen(xl2tp_file, "w")) == NULL)
-		return;
+	if ((fp = fopen(xl2tp_file, "w")) == NULL) {
+		perror(xl2tp_file);
+		return -1;
+	}
 	fprintf(fp,
 		"[global]\n"
 		"access control = no\n"
@@ -599,28 +589,63 @@ void start_l2tp(char *prefix)
 		"debug packet = no\n"	// TEMP DEBUG
 		"debug state = no\n"	// TEMP DEBUG
 		"debug tunnel = no\n"	// TEMP DEBUG
-		"[lac %s]\n"
-		"lns = %s\n"
-		"tx bps = 100000000\n"
-		"pppoptfile = %s\n"
-		"redial = yes\n"
-		"max redials = 32767\n"
-		"redial timeout = %d\n"
-		"tunnel rws = 8\n"
-		"ppp debug = %s\n"
-		"%s\n",
-		prefix,	// LAC name
-//		nvram_safe_get(strcat_r(prefix, "_l2tp_server_name", tmp),	//"l2tp_server_name"
-		nvram_safe_get(strcat_r(prefix, "_l2tp_server_ip", tmp)),  //"l2tp_server_ip"
-		ppp_optfile,
-		demand ? 30 : (nvram_get_int(strcat_r(prefix, "_ppp_redialperiod", tmp)) ? : 30),  //"ppp_redialperiod"
-		(nvram_get_int("debug_ppp") ? "yes" : "no"), //"debug_ppp"
-		nvram_safe_get(strcat_r(prefix, "_xl2tpd_custom", tmp))); //"xl2tpd_custom"
+	);
 
-	memset(xl2tp_file, 0, 256);
-	sprintf(xl2tp_file, "/etc/%s_xl2tpd.custom", prefix);
-	fappend(fp, xl2tp_file);
+	for (i = 0; names[i] != NULL; ++i) {
+		if (!strcmp(nvram_safe_get(strcat_r(names[i], "_proto", tmp)), "l2tp")) {
+		demand = nvram_get_int(strcat_r(names[i], "_ppp_demand", tmp)); //"ppp_demand"
+		char ppp_optfile[256];
+		memset(ppp_optfile, 0, 256);
+		sprintf(ppp_optfile, "/tmp/ppp/%s_options", names[i]);
+		fprintf(fp,
+			"[lac %s]\n"
+			"lns = %s\n"
+			"tx bps = 100000000\n"
+			"pppoptfile = %s\n"
+			"redial = yes\n"
+			"max redials = 32767\n"
+			"redial timeout = %d\n"
+			"tunnel rws = 8\n"
+			"ppp debug = %s\n"
+			"%s\n",
+			names[i],	// LAC name
+			nvram_safe_get(strcat_r(names[i], "_l2tp_server_ip", tmp)),  //"l2tp_server_ip"
+			ppp_optfile,
+			demand ? 30 : (nvram_get_int(strcat_r(names[i], "_ppp_redialperiod", tmp)) ? : 30),  //"ppp_redialperiod"
+			(nvram_get_int("debug_ppp") ? "yes" : "no"), //"debug_ppp"
+			nvram_safe_get(strcat_r(names[i], "_xl2tpd_custom", tmp))); //"xl2tpd_custom"
+
+		memset(xl2tp_file, 0, 256);
+		sprintf(xl2tp_file, "/etc/%s_xl2tpd.custom", names[i]);
+		fappend(fp, xl2tp_file);
+		}
+	}
 	fclose(fp);
+
+	return 0;
+}
+
+inline void stop_l2tp(char *prefix)
+{
+	stop_ppp(prefix);
+}
+
+void start_l2tp(char *prefix)
+{
+	char tmp[100];
+	int demand;
+
+	TRACE_PT("begin\n");
+
+	stop_l2tp(prefix);
+
+	if (config_l2tp != 0)	// daemon config
+		return;
+
+	if (config_pppd(WP_L2TP, 0, prefix) != 0)	// ppp options
+		return;
+
+	demand = nvram_get_int(strcat_r(prefix, "_ppp_demand", tmp)); //"ppp_demand"
 
 	enable_ip_forward();
 
@@ -655,7 +680,7 @@ char *wan_gateway(char *prefix)
 void force_to_dial(char *prefix)
 {
 	char l2tp_file[256];
-	char tmp[64];
+//	char tmp[64];
 	char connects[64];
 
 	TRACE_PT("begin\n");
@@ -714,10 +739,13 @@ static void _do_wan_routes(char *ifname, char *nvname, int metric, int add)
 		gateway = strsep(&tmp, " ");
 
 		if (gateway && *gateway) {
-			if (add)
+			if (add) {
+				mwanlog(LOG_DEBUG, "MultiWAN: route_add(ifname=%s, metric=%d, ipaddr=%s, gateway=%s, netmask=%s)", ifname, metric, ipaddr, gateway, netmask);
 				route_add(ifname, metric, ipaddr, gateway, netmask);
-			else
+			} else {
+				mwanlog(LOG_DEBUG, "MultiWAN: route_del(ifname=%s, metric=%d, ipaddr=%s, gateway=%s, netmask=%s)", ifname, metric, ipaddr, gateway, netmask);
 				route_del(ifname, metric, ipaddr, gateway, netmask);
+			}
 		}
 	}
 	free(routes);
@@ -726,6 +754,7 @@ static void _do_wan_routes(char *ifname, char *nvname, int metric, int add)
 void do_wan_routes(char *ifname, int metric, int add, char *prefix )
 {
 	if (nvram_get_int("dhcp_routes")) {
+		mwanlog(LOG_DEBUG, "MultiWAN: do_wan_routes(interface=%s, metric=%d, add=%d, prefix=%s)", ifname,  metric, add, prefix);
 		char tmp[100];
 		// Static Routes:		IP ROUTER IP2 ROUTER2 ...
 		// Classless Static Routes:	IP/MASK ROUTER IP2/MASK2 ROUTER2 ...
@@ -769,10 +798,10 @@ void start_wan_if(int mode, char *prefix)
 	char tmp[100];
 
 	TRACE_PT("begin\n");
-	
+
 	wan_unit = get_wan_unit(prefix);
-	
-	mwanlog(LOG_DEBUG, "start %s.", prefix);
+
+	mwanlog(LOG_DEBUG, "MultiWAN: IN start_wan_if (%s).", prefix);
 
 	memset(wanconn_file, 0, 256);
 	sprintf(wanconn_file, "/var/lib/misc/%s.connecting", prefix);
@@ -795,7 +824,6 @@ void start_wan_if(int mode, char *prefix)
 	}
 	*/
 	
-	//
 	// shibby fix wireless client
 	if (nvram_invmatch(strcat_r(prefix, "_sta", tmp), "")) { //wireless client as wan
 		w = nvram_safe_get(strcat_r(prefix, "_sta", tmp));
@@ -818,7 +846,7 @@ void start_wan_if(int mode, char *prefix)
 		syslog(LOG_WARNING, "%s ifname is NONE, please check you vlan settings!", prefix);
 	}
 	
-	//	
+	// defined in shared.h, misc.c
 	wan_proto = get_wanx_proto(prefix);
 
 	// set the default gateway for WAN interface
@@ -876,7 +904,6 @@ void start_wan_if(int mode, char *prefix)
 	}
 
 	//
-	
 	ifconfig(wan_ifname, IFUP, NULL, NULL);
 
 	switch (wan_proto) {
@@ -893,7 +920,6 @@ void start_wan_if(int mode, char *prefix)
 		if(!strcmp(prefix,"wan3")) start_pppoe(PPPOEWAN3, prefix);
 		if(!strcmp(prefix,"wan4")) start_pppoe(PPPOEWAN4, prefix);
 #endif
-
 		break;
 	case WP_DHCP:
 	case WP_LTE:
@@ -917,9 +943,11 @@ void start_wan_if(int mode, char *prefix)
 
 			switch (wan_proto) {
 			case WP_PPTP:
-				start_pptp(mode,prefix);
+				mwanlog(LOG_DEBUG, "MultiWAN: start_wan_if: start_pptp (%d, %s) ...", mode, prefix);
+				start_pptp(mode, prefix);
 				break;
 			case WP_L2TP:
+				mwanlog(LOG_DEBUG, "MultiWAN: start_wan_if: start_l2tp (%s) ...", prefix);
 				start_l2tp(prefix);
 				break;
 			}
@@ -928,13 +956,13 @@ void start_wan_if(int mode, char *prefix)
 	default:	// static
 		nvram_set(strcat_r(prefix, "_iface", tmp), wan_ifname);  //"wan_iface"
 		ifconfig(wan_ifname, IFUP, nvram_safe_get(strcat_r(prefix, "_ipaddr", tmp)), nvram_safe_get(strcat_r(prefix, "_netmask", tmp))); //"wan_ipaddr","wan_netmask"
-		
+		mwanlog(LOG_DEBUG, "### IN start_wan_if (default: static, %s, %s)", wan_ifname, prefix);
 		int r = 10;
 		while ((!check_wanup(prefix)) && (r-- > 0)) {
 			sleep(1);
 		}
-		
 		start_wan_done(wan_ifname,prefix);
+		mwanlog(LOG_DEBUG, "### OUT start_wan_if (default: static, %s, %s)", wan_ifname, prefix);
 		break;
 	}
 
@@ -951,6 +979,8 @@ void start_wan_if(int mode, char *prefix)
 
 	if(nvram_get_int("mwan_cktime") > 0)
 		xstart("watchdog", prefix, "add");
+
+	mwanlog(LOG_DEBUG, "MultiWAN: OUT start_wan_if (%s).", prefix);
 
 	TRACE_PT("end\n");
 }
@@ -970,6 +1000,7 @@ void start_wan(int mode)
 	for(wan_unit = 1; wan_unit <= mwan_num; ++wan_unit)
 	{
 		get_wan_prefix(wan_unit, prefix);
+		mwanlog(LOG_DEBUG, "MultiWAN: start_wan (unit: %d), mode = %d, prefix = %s", wan_unit, mode, prefix);
 		start_wan_if(mode, prefix);
 	}
 
