@@ -162,8 +162,8 @@ static int config_pppd(int wan_proto, int num, char *prefix) //static int config
 		"lcp-echo-failure %d\n"	// Tolerance to unanswered echo-requests
 		"%s",			// Debug
 		nvram_get_int(strcat_r(prefix, "_pppoe_lei", tmp)) ? : 10, //"pppoe_lei" -> strcat_r(prefix, "_pppoe_lei", tmp)
-		nvram_get_int(strcat_r(prefix, "_pppoe_lef", tmp)) ? : 5,  //"pppoe_lef" -> 
-		nvram_get_int("debug_ppp") ? "debug\n" : ""); //"debug_ppp" -> 
+		nvram_get_int(strcat_r(prefix, "_pppoe_lef", tmp)) ? : 5,  //"pppoe_lef" -> strcat_r(prefix, "_pppoe_lef", tmp)
+		nvram_get_int("debug_ppp") ? "debug\n" : ""); //"debug_ppp"
 
 #ifdef LINUX26
 #ifdef TCONFIG_USB
@@ -882,6 +882,11 @@ void start_wan_if(int mode, char *prefix)
 	switch (wan_proto) {
 	case WP_PPPOE:
 	case WP_PPP3G:
+		if (wan_proto = WP_PPPOE && using_dhcpc(prefix)) { // PPPoE with DHCP MAN
+			stop_dhcpc(prefix);
+			mwanlog(LOG_DEBUG, "MultiWAN: start_wan_if: start_dhcpc(%s) for PPPoE ...", prefix);
+			start_dhcpc(prefix);
+		}
 		if(!strcmp(prefix,"wan")) start_pppoe(PPPOEWAN, prefix);
 		if(!strcmp(prefix,"wan2")) start_pppoe(PPPOEWAN2, prefix);
 #ifdef TCONFIG_MULTIWAN

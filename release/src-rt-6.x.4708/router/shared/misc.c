@@ -167,6 +167,7 @@ int using_dhcpc(char *prefix)
 		return 1;
 	case WP_L2TP:
 	case WP_PPTP:
+	case WP_PPPOE:	// PPPoE with MAN
 		return nvram_get_int(strcat_r(prefix, "_pptp_dhcp", tmp));
 	}
 	return 0;
