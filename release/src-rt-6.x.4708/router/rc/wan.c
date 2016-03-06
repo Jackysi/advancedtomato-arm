@@ -556,7 +556,7 @@ void stop_singe_pppoe(int num, char *prefix)
 
 // -----------------------------------------------------------------------------
 
-static int config_l2tp() { // shared xl2tpd.conf for all WAN
+static int config_l2tp(void) { // shared xl2tpd.conf for all WAN
 
 	FILE *fp;
 	int i;
@@ -572,14 +572,17 @@ static int config_l2tp() { // shared xl2tpd.conf for all WAN
 #endif
 		NULL
 	};
+	mwanlog(LOG_DEBUG, "IN config_l2tp");
 
 	/* Generate XL2TPD configuration file */
 	memset(xl2tp_file, 0, 256);
 	sprintf(xl2tp_file, "/etc/xl2tpd.conf");
-	if ((fp = fopen(xl2tp_file, "w")) == NULL) {
-		perror(xl2tp_file);
-		return -1;
+ 	if ((fp = fopen(xl2tp_file, "w")) == NULL) {
+		mwanlog(LOG_DEBUG, "config_l2tp: error open /etc/xl2tpd.conf for writing.");
+ 		return -1;
 	}
+	// GLOBAL
+	mwanlog(LOG_DEBUG, "config_l2tp: GLOBAL");
 	fprintf(fp,
 		"[global]\n"
 		"access control = no\n"
@@ -589,10 +592,12 @@ static int config_l2tp() { // shared xl2tpd.conf for all WAN
 		"debug packet = no\n"	// TEMP DEBUG
 		"debug state = no\n"	// TEMP DEBUG
 		"debug tunnel = no\n"	// TEMP DEBUG
+		"\n"
 	);
-
+	// LACS
 	for (i = 0; names[i] != NULL; ++i) {
 		if (!strcmp(nvram_safe_get(strcat_r(names[i], "_proto", tmp)), "l2tp")) {
+		mwanlog(LOG_DEBUG, "config_l2tp: create LAC for %s", names[i]);
 		demand = nvram_get_int(strcat_r(names[i], "_ppp_demand", tmp)); //"ppp_demand"
 		char ppp_optfile[256];
 		memset(ppp_optfile, 0, 256);
@@ -622,6 +627,7 @@ static int config_l2tp() { // shared xl2tpd.conf for all WAN
 	}
 	fclose(fp);
 
+	mwanlog(LOG_DEBUG, "OUT config_l2tp");
 	return 0;
 }
 
@@ -634,13 +640,18 @@ void start_l2tp(char *prefix)
 {
 	char tmp[100];
 	int demand;
+	int config;
 
 	TRACE_PT("begin\n");
 
 	stop_l2tp(prefix);
 
-	if (config_l2tp != 0)	// daemon config
+	config = config_l2tp();	// L2TP daemon config
+
+	if (config != 0) {
+		mwanlog(LOG_DEBUG, "start_l2tp: ERR:%d in config_l2tp()", config);
 		return;
+	}
 
 	if (config_pppd(WP_L2TP, 0, prefix) != 0)	// ppp options
 		return;
