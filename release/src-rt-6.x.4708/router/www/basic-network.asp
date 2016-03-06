@@ -760,19 +760,19 @@ function verifyFields(focused, quiet)
 
 	if (E('_mwan_cktime').value == 0)
 	{
-		elem.display(PR('_f_mwan_ckmtd'), 0);
+		elem.display(PR('_mwan_ckmtd'), 0);
 		elem.display(PR('_f_mwan_ckdst_1'), 0);
 		elem.display(PR('_f_mwan_ckdst_2'), 0);
-		E('_f_mwan_ckmtd').disabled = 1;
+		E('_mwan_ckmtd').disabled = 1;
 		E('_f_mwan_ckdst_1').disabled = 1;
 		E('_f_mwan_ckdst_2').disabled = 1;
 	}
 	else
 	{
-		elem.display(PR('_f_mwan_ckmtd'), 1);
+		elem.display(PR('_mwan_ckmtd'), 1);
 		elem.display(PR('_f_mwan_ckdst_1'), 1);
 		elem.display(PR('_f_mwan_ckdst_2'), 1);
-		E('_f_mwan_ckmtd').disabled = 0;
+		E('_mwan_ckmtd').disabled = 0;
 		E('_f_mwan_ckdst_1').disabled = 0;
 		E('_f_mwan_ckdst_2').disabled = 0;
 	}
@@ -1955,7 +1955,6 @@ W('<input type=\'hidden\' id=\'dhcpd' + j + '_endip\' name=\'dhcpd' + j + '_endi
 /* REMOVE-END */
 <div class='section-title' id='mwan-title'>MultiWAN</div>
 <div class='section' id='mwan-section'>
-<input type='hidden' name='mwan_ckmtd'>
 <input type='hidden' name='mwan_ckdst'>
 <script type='text/javascript'>
 function refreshWanSection()
@@ -1978,7 +1977,7 @@ createFieldTable('', [
 		['600','10 minutes'],['900','15 minutes'],['1800','30 minutes'],['3600','1 hour']],
 		suffix: ' <small>(when the network conditionsis poor, try use long detection period)</small>',
 		value: nvram.mwan_cktime },
-	{ title: 'Method', indent: 2, name: 'f_mwan_ckmtd', type: 'select', options: [['1','Ping'],['2','Traceroute']], value: nvram.mwan_chmtd },
+	{ title: 'Method', indent: 2, name: 'mwan_ckmtd', type: 'select', options: [['1','Ping'],['2','Traceroute']], value: nvram.mwan_chmtd },
 	{ title: 'Target 1', indent: 2, name: 'f_mwan_ckdst_1', type: 'text', maxlen: 30, size: 30, value: ckdst[0] || ''},
 	{ title: 'Target 2', indent: 2, name: 'f_mwan_ckdst_2', type: 'text', maxlen: 30, size: 30, value: ckdst[1] || ''}
 ]);
