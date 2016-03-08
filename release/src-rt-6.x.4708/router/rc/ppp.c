@@ -59,6 +59,7 @@ void ppp_prefix(char *wan_device, char *prefix)
 int ipup_main(int argc, char **argv)
 {
 	char *wan_ifname;
+	int wan_proto;
 	char *value;
 	char buf[256];
 	const char *p;
@@ -95,12 +96,18 @@ int ipup_main(int argc, char **argv)
 	if ((value = getenv("IPLOCAL"))) {
 		_dprintf("IPLOCAL=%s\n", value);
 
-		switch (get_wanx_proto(prefix)) {
+		wan_proto = get_wanx_proto(prefix);
+
+		switch (wan_proto) {	// store last ip address for Web UI
 		case WP_PPPOE:
 		case WP_PPP3G:
-			nvram_set(strcat_r(prefix, "_ipaddr_buf", tmp), nvram_safe_get(strcat_r(prefix, "_ipaddr", tmp)));		// store last ip address
-			nvram_set(strcat_r(prefix, "_ipaddr", tmp), value);
-			nvram_set(strcat_r(prefix, "_netmask", tmp), "255.255.255.255");
+			if (wan_proto = WP_PPPOE && using_dhcpc(prefix)) { // PPPoE with DHCP MAN
+				nvram_set(strcat_r(prefix, "_ipaddr_buf", tmp), nvram_safe_get(strcat_r(prefix, "_ppp_get_ip", tmp)));
+			} else {	// PPPoE / 3G
+				nvram_set(strcat_r(prefix, "_ipaddr_buf", tmp), nvram_safe_get(strcat_r(prefix, "_ipaddr", tmp)));
+				nvram_set(strcat_r(prefix, "_ipaddr", tmp), value);
+				nvram_set(strcat_r(prefix, "_netmask", tmp), "255.255.255.255");
+			}
 			break;
 		case WP_PPTP:
 		case WP_L2TP:
