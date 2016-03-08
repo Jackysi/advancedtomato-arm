@@ -183,17 +183,16 @@ int ipdown_main(int argc, char **argv)
 		route_add(nvram_safe_get(strcat_r(prefix, "_ifname", tmp)), 0, "0.0.0.0", nvram_safe_get(strcat_r(prefix, "_gateway", tmp)), "0.0.0.0");
 	}
 
-	/* clear active interface from nvram on disconnect - !!! need to check mwan_load_balance !!! */
-	nvram_set(strcat_r(prefix, "_iface", tmp),"");	// ppp#
-	nvram_set(strcat_r(prefix, "_pppd_pid", tmp),"");
-
-
 	if (nvram_get_int(strcat_r(prefix, "_ppp_demand", tmp))) {
 		killall("listen", SIGKILL);
 		eval("listen", nvram_safe_get("lan_ifname"),prefix);
 	}
 
 	mwan_load_balance();
+
+	/* clear active interface from nvram on disconnect - !!! need to check mwan_load_balance !!! */
+	nvram_set(strcat_r(prefix, "_iface", tmp),"");	// ppp#
+	nvram_set(strcat_r(prefix, "_pppd_pid", tmp),"");
 
 	return 1;
 }
