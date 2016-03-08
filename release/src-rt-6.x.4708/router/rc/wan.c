@@ -640,18 +640,13 @@ void start_l2tp(char *prefix)
 {
 	char tmp[100];
 	int demand;
-	int config;
 
 	TRACE_PT("begin\n");
 
 	stop_l2tp(prefix);
 
-	config = config_l2tp();	// L2TP daemon config
-
-	if (config != 0) {
-		mwanlog(LOG_DEBUG, "start_l2tp: ERR:%d in config_l2tp()", config);
+	if (config_l2tp() != 0)	// generate L2TP daemon config
 		return;
-	}
 
 	if (config_pppd(WP_L2TP, 0, prefix) != 0)	// ppp options
 		return;
@@ -762,7 +757,7 @@ static void _do_wan_routes(char *ifname, char *nvname, int metric, int add)
 	free(routes);
 }
 
-void do_wan_routes(char *ifname, int metric, int add, char *prefix )
+void do_wan_routes(char *ifname, int metric, int add, char *prefix)
 {
 	if (nvram_get_int("dhcp_routes")) {
 		mwanlog(LOG_DEBUG, "MultiWAN: do_wan_routes(interface=%s, metric=%d, add=%d, prefix=%s)", ifname,  metric, add, prefix);
@@ -1283,8 +1278,8 @@ void stop_wan_if(char *prefix)
 	stop_qos(prefix);
 	/* Kill any WAN client daemons or callbacks */
 	stop_redial(prefix);
-	stop_pppoe(prefix);
-	// stop_ppp(prefix);
+	//stop_pppoe(prefix);
+	stop_ppp(prefix);	// one for all
 	stop_dhcpc(prefix);
 	nvram_set(strcat_r(prefix, "_get_dns", tmp), ""); //"wan_get_dns"
 
