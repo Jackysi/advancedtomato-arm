@@ -1293,6 +1293,9 @@ void stop_wan_if(char *prefix)
 	foreach(name, nvram_safe_get(strcat_r(prefix, "_ifnames", tmp)), next)  //"wan_ifnames"
 		ifconfig(name, 0, "0.0.0.0", NULL);
 
+	/* clear old gateway from nvram - !!! need to check mwan_load_balance !!! */
+	nvram_set(strcat_r(prefix, "_gateway_get", tmp), "");
+
 	//notice_set(prefix, "");
 	memset(wannotice_file, 0, 256);
 	sprintf(wannotice_file, "/var/notice/%s", prefix);
