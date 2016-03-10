@@ -1965,7 +1965,8 @@ static void start_samba(void)
 		return;
 
 #ifdef TCONFIG_GROCTRL
-	enable_gro(2);
+// shibby - gro control may broke files transmitted between hosts. Disable it for now.
+//	enable_gro(2);
 #endif
 
 	fprintf(fp, "[global]\n"
