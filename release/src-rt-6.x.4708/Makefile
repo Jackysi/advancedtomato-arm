@@ -425,9 +425,11 @@ define RouterOptions
 		sed -i "/TCONFIG_NGINX/d" $(1); \
 		echo "TCONFIG_NGINX=y" >>$(1); \
 	fi; \
-	if [ "$(MULTIWAN)" = "y" ]; then \
-		sed -i "/TCONFIG_MULTIWAN/d" $(1); \
+	sed -i "/TCONFIG_MULTIWAN/d" $(1); \
+	if [ "$(NVRAM_SIZE)" = "60" ] || [ "$(NVRAM_SIZE)" = "64" ] || [ "$(NVRAM_64K)" = "y" ]; then \
 		echo "TCONFIG_MULTIWAN=y" >>$(1); \
+	else \
+		echo "# TCONFIG_MULTIWAN is not set" >>$(1); \
 	fi; \
 	if [ "$(OPENVPN)" = "y" ]; then \
 		sed -i "/TCONFIG_LZO/d" $(1); \
