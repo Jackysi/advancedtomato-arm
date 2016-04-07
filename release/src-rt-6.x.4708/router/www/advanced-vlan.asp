@@ -977,7 +977,7 @@ if(port_vlan_supported) vlg.setup();
 <div class='section-title'>Notes <small><i><a href='javascript:toggleVisibility("notes");'><span id='sesdiv_notes_showhide'>(Click here to hide)</span></a></i></small></div>
 <div class='section' id='sesdiv_notes' style='display:none'>
 <ul>
-<li>If you notice that the order of the Lan Ports are incorrectly mapped, <a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'> <b>Please Follow this Link for Instructions to get it corrected.</</b></a></li>
+<li>If you notice that the order of the Lan Ports are incorrectly mapped, <a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'> <b>Please Follow this Link for Instructions to get it corrected.</b></a></li>
 <br>
 <li><b>VLAN</b> - Unique identifier of a VLAN.</li>
 <li><b>VID</b> - Allows overriding 'traditional' VLAN/VID mapping with arbitrary VIDs for each VLAN (set to '0' to use 'regular' VLAN/VID mappings instead).</li>
