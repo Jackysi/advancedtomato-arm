@@ -504,7 +504,7 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "wan_pptp_server_ip",		""				, 0 },	// as same as WAN gateway
 	{ "wan_ppp_get_ip",		""				, 0 },	// IP Address assigned by PPTP/L2TP server
-	{ "wan_pptp_dhcp",		"1"				, 0 },
+	{ "wan_pptp_dhcp",		"0"				, 0 },
 
 	// for firewall
 	{ "wan_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
@@ -512,20 +512,20 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "wan_l2tp_server_ip",		""				, 0 },	// L2TP auth server (IP Address)
 	{ "wan2_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
-	{ "wan2_pptp_dhcp",		"1"				, 0 },
+	{ "wan2_pptp_dhcp",		"0"				, 0 },
 	{ "wan2_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan2_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 	{ "wan2_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
 
 #ifdef TCONFIG_MULTIWAN
 	{ "wan3_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
-	{ "wan3_pptp_dhcp",		"1"				, 0 },
+	{ "wan3_pptp_dhcp",		"0"				, 0 },
 	{ "wan3_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan3_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 	{ "wan3_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
 
 	{ "wan4_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
-	{ "wan4_pptp_dhcp",		"1"				, 0 },
+	{ "wan4_pptp_dhcp",		"0"				, 0 },
 	{ "wan4_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan4_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 	{ "wan4_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
