@@ -49,7 +49,7 @@
 		        ((len) == 2) ? *((uint16 *)(var)) : \
 		        *((uint32 *)(var)))
 
-#define VID_MAP_DBG
+//#define VID_MAP_DBG
 
 /*
  * Switch can be programmed through SPI interface, which
