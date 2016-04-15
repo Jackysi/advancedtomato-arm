@@ -72,7 +72,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_gateway_get",		"0.0.0.0"			, 0 },	// default gateway for PPP
 	{ "wan_dns",			""				, 0 },	// x.x.x.x x.x.x.x ...
 	{ "wan_weight",			"1"				, 0 },
-	{ "wan_ckmtd",			"1"				, 0 },
+	{ "wan_ckmtd",			"2"				, 0 },
 
 	{ "wan2_proto",			"dhcp"				, 0 },	// [static|dhcp|pppoe|disabled]
 	{ "wan2_ipaddr",		"0.0.0.0"			, 0 },	// WAN IP address
@@ -83,7 +83,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan2_hwname",		""				, 0 },	// WAN driver name (e.g. et1)
 	{ "wan2_hwaddr",		""				, 0 },	// WAN interface MAC address
 	{ "wan2_ifnameX",		NULL				, 0 },	// real wan if; see wan.c:start_wan
-	{ "wan2_ckmtd",			"1"				, 0 },
+	{ "wan2_ckmtd",			"2"				, 0 },
 
 #ifdef TCONFIG_MULTIWAN
 	{ "wan3_proto",			"dhcp"				, 0 },	// [static|dhcp|pppoe|disabled]
@@ -95,7 +95,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan3_hwname",		""				, 0 },	// WAN driver name (e.g. et1)
 	{ "wan3_hwaddr",		""				, 0 },	// WAN interface MAC address
 	{ "wan3_ifnameX",		NULL				, 0 },	// real wan if; see wan.c:start_wan
-	{ "wan3_ckmtd",			"1"				, 0 },
+	{ "wan3_ckmtd",			"2"				, 0 },
 
 	{ "wan4_proto",			"dhcp"				, 0 },	// [static|dhcp|pppoe|disabled]
 	{ "wan4_ipaddr",		"0.0.0.0"			, 0 },	// WAN IP address
@@ -106,7 +106,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan4_hwname"			""				, 0 },	// WAN driver name (e.g. et1)
 	{ "wan4_hwaddr",		""				, 0 },	// WAN interface MAC address
 	{ "wan4_ifnameX",		NULL				, 0 },	// real wan if; see wan.c:start_wan
-	{ "wan4_ckmtd",			"1"				, 0 },
+	{ "wan4_ckmtd",			"2"				, 0 },
 #endif
 
 #ifdef TCONFIG_DNSSEC
@@ -444,7 +444,7 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "wan_pptp_server_ip",		""				, 0 },	// as same as WAN gateway
 	{ "wan_ppp_get_ip",		""				, 0 },	// IP Address assigned by PPTP/L2TP server
-	{ "wan_pptp_dhcp",		"1"				, 0 },
+	{ "wan_pptp_dhcp",		"0"				, 0 },
 
 	// for firewall
 	{ "wan_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
@@ -452,20 +452,20 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "wan_l2tp_server_ip",		""				, 0 },	// L2TP auth server (IP Address)
 	{ "wan2_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
-	{ "wan2_pptp_dhcp",		"1"				, 0 },
+	{ "wan2_pptp_dhcp",		"0"				, 0 },
 	{ "wan2_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan2_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 	{ "wan2_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
 
 #ifdef TCONFIG_MULTIWAN
 	{ "wan3_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
-	{ "wan3_pptp_dhcp",		"1"				, 0 },
+	{ "wan3_pptp_dhcp",		"0"				, 0 },
 	{ "wan3_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan3_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 	{ "wan3_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
 
 	{ "wan4_pptp_server_ip",	""				, 0 },	// as same as WAN gateway
-	{ "wan4_pptp_dhcp",		"1"				, 0 },
+	{ "wan4_pptp_dhcp",		"0"				, 0 },
 	{ "wan4_mtu_enable",		"0"				, 0 },	// WAN MTU [1|0]
 	{ "wan4_mtu",			"1500"				, 0 },	// Negotiate MTU to the smaller of this value or the peer MRU
 	{ "wan4_l2tp_server_ip",	""				, 0 },	// L2TP auth server (IP Address)
