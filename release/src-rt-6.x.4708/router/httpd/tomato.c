@@ -305,6 +305,12 @@ const struct mime_handler mime_handlers[] = {
 	{ "**.js",			mime_javascript,			2,	wi_generic_noid,	do_file,		1 },
 	{ "**.jsx",			mime_javascript,			0,	wi_generic,			wo_asp,			1 },
 	{ "**.svg",			"image/svg+xml",			2,	wi_generic_noid,	do_file,		1 },
+		
+// Required mimetype for fonts & icons
+	{ "**.woff",		"application/font-woff",		2,	wi_generic_noid,do_file,		1 },
+	{ "**.eot",			"application/vnd.ms-fontobject",2,	wi_generic_noid,do_file,		1 },
+	{ "**.ttf",			"application/octet-stream",	2,	wi_generic_noid,	do_file,		1 },
+		
 	{ "**.txt",			mime_plain,					2,	wi_generic_noid,	do_file,		1 },
 	{ "**.bin",			mime_binary,				0,	wi_generic_noid,	do_file,		1 },
 	{ "**.bino",		mime_octetstream,			0,	wi_generic_noid,	do_file,		1 },
@@ -1226,6 +1232,11 @@ static const nvset_t nvset_list[] = {
 	{ "tomatoanon_cru",		V_RANGE(1, 12)			},
 	{ "tomatoanon_id",		V_LENGTH(0, 32)			},
 	{ "tomatoanon_notify",		V_01				},
+		
+// AdvancedTomato
+	{ "at_update",      V_LENGTH(0,32)    },
+	{ "at_navi",        V_LENGTH(0,32)    },
+	{ "web_nav",        V_TEXT(0, 4096)   },
 
 // nas-usb - !!TB
 #ifdef TCONFIG_USB
