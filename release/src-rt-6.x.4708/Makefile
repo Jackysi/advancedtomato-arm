@@ -599,10 +599,6 @@ define BusyboxOptions
 	fi; \
 	if [ "$(USB)" = "USB" ]; then \
 		if [ "$(USBEXTRAS)" = "y" ]; then \
-			sed -i "/CONFIG_E2FSCK/d" $(1); \
-			echo "CONFIG_E2FSCK=y" >>$(1); \
-			sed -i "/CONFIG_MKE2FS/d" $(1); \
-			echo "CONFIG_MKE2FS=y" >>$(1); \
 			sed -i "/CONFIG_FDISK/d" $(1); \
 			echo "CONFIG_FDISK=y" >>$(1); \
 			sed -i "/CONFIG_FEATURE_FDISK_WRITABLE/d" $(1); \

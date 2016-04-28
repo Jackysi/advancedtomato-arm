@@ -94,6 +94,9 @@ endif
 ifneq ($(TCONFIG_NGINX)$(TCONFIG_NANO),)
 obj-y += libncurses
 endif
+ifneq ($(TCONFIG_USB)$(TCONFIG_NFS),)
+obj-y += e2fsprogs
+endif
 
 obj-$(TCONFIG_TOR) += tor
 obj-$(TCONFIG_DNSCRYPT) += libsodium
@@ -107,7 +110,6 @@ obj-y += mdu
 obj-$(TCONFIG_RAID) += mdadm
 
 obj-$(TCONFIG_NFS) += portmap
-obj-$(TCONFIG_NFS) += e2fsprogs
 obj-$(TCONFIG_NFS) += libnfsidmap
 obj-$(TCONFIG_NFS) += nfs-utils
 
@@ -2477,6 +2479,21 @@ e2fsprogs/stamp-h1:
 e2fsprogs: e2fsprogs/stamp-h1
 	@$(SEP)
 	$(MAKE) -C e2fsprogs $(PARALLEL_BUILD)
+
+e2fsprogs-install: e2fsprogs
+	cp e2fsprogs/misc/mke2fs.conf $(INSTALLDIR)/rom/rom/etc/mke2fs.conf
+	install -d $(INSTALLDIR)/e2fsprogs/sbin
+	install -D e2fsprogs/e2fsck/e2fsck $(INSTALLDIR)/e2fsprogs/sbin/e2fsck
+	install -D e2fsprogs/misc/mke2fs $(INSTALLDIR)/e2fsprogs/sbin/mke2fs
+	$(STRIP) -s $(INSTALLDIR)/e2fsprogs/sbin/e2fsck
+	$(STRIP) -s $(INSTALLDIR)/e2fsprogs/sbin/mke2fs
+	cd $(INSTALLDIR)/e2fsprogs/sbin/ && \
+		ln -sf e2fsck fsck.ext2 && \
+		ln -sf e2fsck fsck.ext3 && \
+		ln -sf e2fsck fsck.ext4 && \
+		ln -sf mke2fs mkfs.ext2 && \
+		ln -sf mke2fs mkfs.ext3 && \
+		ln -sf mke2fs mkfs.ext4
 
 e2fsprogs-clean:
 	-@$(MAKE) -C e2fsprogs clean
