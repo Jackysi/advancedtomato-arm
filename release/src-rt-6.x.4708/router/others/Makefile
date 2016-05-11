@@ -30,6 +30,9 @@ endif
 #TomatoAnon project
 	install -m 0700 tomatoanon $(INSTALLDIR)/usr/sbin
 
+#Adblock
+	install -m 0700 adblock $(INSTALLDIR)/usr/sbin
+
 #TTB project
 	install -m 0700 ttb $(INSTALLDIR)/usr/sbin
 
@@ -46,7 +49,7 @@ endif
 	install -m 0700 sysinfo-helper $(INSTALLDIR)/usr/sbin
 
 #Link Aggregation
-	install -m 0700 LinkAgg $(INSTALLDIR)/usr/sbin
+	install -m 0700 linkagg $(INSTALLDIR)/usr/sbin
 
 #Web Monitor Backup Script
 	install -m 0700 webmon_bkp $(INSTALLDIR)/usr/sbin
