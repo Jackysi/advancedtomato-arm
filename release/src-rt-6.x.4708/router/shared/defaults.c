@@ -531,6 +531,12 @@ struct nvram_tuple router_defaults[] = {
 	{ "nf_h323",			"1"				, 0 },
 	{ "nf_ftp",			"1"				, 0 },
 
+// advanced-adblock
+	{ "adblock_enable",		"0"				, 0 },
+	{ "adblock_blacklist",		"1<http://winhelp2002.mvps.org/hosts.txt<>1<http://adaway.org/hosts.txt<>1<http://hosts-file.net/ad_servers.txt<>1<http://someonewhocares.org/hosts/zero/hosts<>1<https://raw.githubusercontent.com/WindowsLies/BlockWindows/master/hosts<Windows 10>1<http://www.malwaredomainlist.com/hostslist/hosts.txt<>1<http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext<>1<http://sysctl.org/cameleon/hosts<>1<http://adblock.gjtech.net/?format=hostfile<>0<http://hostsfile.mine.nu/Hosts<very large list>0<https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt<very large list>" , 0 },
+	{ "adblock_blacklist_custom",	""				, 0 },
+	{ "adblock_whitelist",		""				, 0 },
+
 // advanced-mac
 	{ "wan_mac",			""				, 0 },
 	{ "wl_macaddr",			""				, 0 },
@@ -749,6 +755,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "cstats_bak",			"0"				, 0 },
 
 // advanced-buttons
+	{ "stealth_mode",		"0"				, 0 },
+	{ "stealth_iled",		"0"				, 0 },
 	{ "sesx_led",			"0"				, 0 },
 	{ "sesx_b0",			"1"				, 0 },
 	{ "sesx_b1",			"4"				, 0 },

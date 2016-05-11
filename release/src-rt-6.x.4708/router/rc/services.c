@@ -401,6 +401,10 @@ void start_dnsmasq()
 		fprintf(f, "dhcp-authoritative\n");
 	}
 
+	if ((nvram_get_int("adblock_enable")) && (f_exists("/etc/dnsmasq.adblock"))) {
+		fprintf(f, "conf-file=/etc/dnsmasq.adblock\n");
+	}
+
 #ifdef TCONFIG_DNSSEC
 	if (nvram_match("dnssec_enable", "1")) {
 		fprintf(f, "conf-file=/etc/trust-anchors.conf\n"
@@ -477,7 +481,6 @@ void start_dnsmasq()
 
 	fappend(f, "/etc/dnsmasq.custom");
 	fappend(f, "/etc/dnsmasq.ipset");
-
 	//
 
 	fclose(f);
@@ -598,6 +601,15 @@ void stop_phy_tempsense()
 }
 #endif
 
+void start_adblock()
+{
+	xstart("adblock");
+}
+
+void stop_adblock()
+{
+	xstart("adblock", "stop");
+}
 
 #ifdef TCONFIG_IPV6
 static int write_ipv6_dns_servers(FILE *f, const char *prefix, char *dns, const char *suffix, int once)
@@ -2593,6 +2605,12 @@ TOP:
 			dns_to_resolv();
 			start_dnsmasq();
 		}
+		goto CLEAR;
+	}
+
+	if (strcmp(service, "adblock") == 0) {
+		if (action & A_STOP) stop_adblock();
+		if (action & A_START) start_adblock();
 		goto CLEAR;
 	}
 
