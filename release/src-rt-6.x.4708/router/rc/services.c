@@ -603,12 +603,12 @@ void stop_phy_tempsense()
 
 void start_adblock()
 {
-	xstart("adblock");
+	xstart("/usr/sbin/adblock");
 }
 
 void stop_adblock()
 {
-	xstart("adblock", "stop");
+	xstart("/usr/sbin/adblock", "stop");
 }
 
 #ifdef TCONFIG_IPV6
@@ -2471,12 +2471,16 @@ void start_services(void)
 #endif
 
 
-	if (get_model() == MODEL_R7000) {
+	if ((get_model() == MODEL_R7000) || (get_model() == MODEL_R8000)) {
 		//enable WAN port led
 		system("/usr/sbin/et robowr 0x0 0x10 0x3000");
 		system("/usr/sbin/et robowr 0x0 0x12 0x78");
-		system("/usr/sbin/et robowr 0x0 0x14 0x01");
-		system("gpio disable 9");
+		if (get_model() == MODEL_R8000) {
+			system("/usr/sbin/et robowr 0x0 0x14 0x10");
+		} else {
+			system("/usr/sbin/et robowr 0x0 0x14 0x01");
+			system("gpio disable 9");
+		}
 	}
 }
 
