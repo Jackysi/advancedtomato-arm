@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# set -x
+#set -x
 set -e
 
 ipset=${IPSET_BIN:-../src/ipset}
@@ -103,7 +103,7 @@ case "$2" in
     	;;
 esac
 $ipset l test | grep ^$ip | while read x y z; do
-    if [ $z -lt 10 -o $z -gt 99 ]; then
+    if [ $z -lt 10 -o $z -gt 100 ]; then
     	exit 1
     fi
 done

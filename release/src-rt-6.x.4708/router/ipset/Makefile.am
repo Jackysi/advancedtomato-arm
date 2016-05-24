@@ -15,7 +15,8 @@ else
 IP_SET_MAX=$(MAXSETS)
 endif
 
-SUBDIRS		= include/libipset lib src
+SUBDIRS		= include/libipset lib src utils
+INSTALL_MOD_PATH = /
 
 sparse:
 	$(MAKE) -C lib sparse-check
@@ -57,11 +58,22 @@ otherwise the ipset kernel modules in the extra subdir will be ignored.
 endef
 export DEPMOD_WARNING
 
+define MODULE_WARNING
+
+!!! WARNING !!! WARNING !!! WARNING !!!
+
+Your running system has got ipset related kernel modules loaded in.
+You MUST rmmod the ip_set* kernel modules in order to make possible
+for the system to load in the newly installed ones.
+endef
+export MODULE_WARNING
+
 modules_install:
 if WITH_KMOD
 	${MAKE} -C $(KBUILD_OUTPUT) M=$$PWD/kernel/net \
 			KDIR=$$PWD/kernel modules_install
-	@modinfo ip_set_hash_ip | ${GREP} /extra/ >/dev/null || echo "$$DEPMOD_WARNING"
+	@modinfo -b ${INSTALL_MOD_PATH} ip_set_hash_ip | ${GREP} /extra/ >/dev/null || echo "$$DEPMOD_WARNING"
+	@lsmod | ${GREP} '^ip_set' >/dev/null && echo "$$MODULE_WARNING"
 else
 	@echo Skipping kernel modules due to --with-kmod=no
 endif

@@ -114,6 +114,8 @@
 0 ipset destroy test
 # Check CIDR book-keeping
 0 ./check_cidrs.sh
+# Check all possible CIDR values
+0 ./cidr.sh net
 # Timeout: Check that resizing keeps timeout values
 0 ./resizet.sh -4 net
 # Nomatch: Check that resizing keeps the nomatch flag
