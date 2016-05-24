@@ -2,6 +2,10 @@
 # Written By KAD, modified by Shibby
 # Dynamic Link Aggregation Setup
 
+ADD1=$1
+ADD2=$2
+BR=$3
+
 Help()
 {
 	echo -e "----  Link Aggregation Help Menu ----\n"
@@ -28,14 +32,14 @@ Create_Bond()
 	# LACPDUs every 1 sec
 	echo fast > /sys/class/net/bond0/bonding/lacp_rate
 	# Bring up bond
-	ip link set ${1} up
+	ip link set bond0 up
 	# 50msec MII link monitoring
 	echo 50 > /sys/class/net/bond0/bonding/miimon
 	# enslave vlans to bond
-	echo +$1 > /sys/class/net/bond0/bonding/slaves
-	echo +$2 > /sys/class/net/bond0/bonding/slaves
+	echo +${ADD1} > /sys/class/net/bond0/bonding/slaves
+	echo +${ADD2} > /sys/class/net/bond0/bonding/slaves
 	# Bridge the bond allowing AP access
-	brctl addif $3 bond0
+	brctl addif $BR bond0
 	echo -e "\nBond Created Successfully\n"
 }
 
@@ -109,14 +113,14 @@ if [[ "$1" = "-s" -o "$1" = "--status" ]]; then
 elif [[ "$1" = "-h" -o "$1" = "--help" ]]; then
 	Help
 
-# Number of ports must equal 2
-elif [[ "$#" -lt "2" -o "$#" -gt "2" ]]; then
-	echo -e "\nError : Incorrect Number of Ports\n"
+# We need equal 3 arguments (2 VLANs and bridge)
+elif [[ "$#" -lt "3" -o "$#" -gt "3" ]]; then
+	echo -e "\nError : Incorrect Number of Arguments\n"
 	Help
 
 # The Ports Must not be the same
 elif [ "$1" = "$2" ]; then
-	echo -e "\nError : Port Entries Must Be Unique\n"
+	echo -e "\nError : VLAN Entries Must Be Unique\n"
 	Help
 else
 # Create Bond
