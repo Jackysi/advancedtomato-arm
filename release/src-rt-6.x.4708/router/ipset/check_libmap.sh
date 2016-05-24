@@ -5,7 +5,7 @@ for file in include/libipset/*.h; do
     esac
     grep ^extern $file | sed -r -e 's/\(.*//' -e 's/.* \*?//' | egrep -v '\[|\;'
 done | while read symbol; do
-    if [ -z "$symbol" ]; then
+    if [ -z "$symbol" -o "$symbol" = '{' ]; then
     	continue
     fi
     if [ -z "`grep \" $symbol\;\" lib/libipset.map`" ]; then

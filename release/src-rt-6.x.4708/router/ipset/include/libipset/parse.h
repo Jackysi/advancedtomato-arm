@@ -24,6 +24,10 @@ struct ipset_arg;
 typedef int (*ipset_parsefn)(struct ipset_session *s,
 			     enum ipset_opt opt, const char *str);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int ipset_parse_ether(struct ipset_session *session,
 			     enum ipset_opt opt, const char *str);
 extern int ipset_parse_port(struct ipset_session *session,
@@ -115,5 +119,9 @@ extern int ipset_parse_iptimeout(struct ipset_session *session,
 				 enum ipset_opt opt, const char *str);
 extern int ipset_parse_name_compat(struct ipset_session *session,
 				   enum ipset_opt opt, const char *str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBIPSET_PARSE_H */

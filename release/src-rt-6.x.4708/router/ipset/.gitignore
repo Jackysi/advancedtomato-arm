@@ -20,6 +20,7 @@ kernel/include/linux/netfilter/ipset/ip_set_compat.h
 
 /aclocal.m4
 /autom4te.cache/
+/build-aux/
 /config.*
 /configure
 /libtool

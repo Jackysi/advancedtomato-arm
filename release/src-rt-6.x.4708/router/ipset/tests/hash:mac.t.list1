@@ -1,8 +1,9 @@
 Name: test
 Type: hash:mac
 Header: hashsize 1024 maxelem 65536 skbinfo
-Size in memory: 17304
+Size in memory: 1088
 References: 0
+Number of entries: 6
 Members:
 01:02:03:04:05:06 skbmark 0x123456
 01:02:03:04:05:07 skbmark 0x1234ab/0xffff

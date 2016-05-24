@@ -113,9 +113,6 @@ void start_dnsmasq()
 	fprintf(f,
 		"pid-file=/var/run/dnsmasq.pid\n");
 	
-	fprintf(f,
-		"cache-size=4096\n");
-	
 	if (((nv = nvram_get("wan_domain")) != NULL) || ((nv = nvram_get("wan_get_domain")) != NULL)) {
 		if (*nv) fprintf(f, "domain=%s\n", nv);
 	}
@@ -401,6 +398,10 @@ void start_dnsmasq()
 		fprintf(f, "dhcp-authoritative\n");
 	}
 
+	if (nvram_match("dnsmasq_debug", "1")) {
+		fprintf(f, "log-queries\n");
+	}
+
 	if ((nvram_get_int("adblock_enable")) && (f_exists("/etc/dnsmasq.adblock"))) {
 		fprintf(f, "conf-file=/etc/dnsmasq.adblock\n");
 	}
@@ -493,7 +494,7 @@ void start_dnsmasq()
 	TRACE_PT("run dnsmasq\n");
 
 	// Default to some values we like, but allow the user to override them.
-	eval("dnsmasq", "-c", "1500", "--log-async");
+	eval("dnsmasq", "-c", "4096", "--log-async");
 
 	if (!nvram_contains_word("debug_norestart", "dnsmasq")) {
 		pid_dnsmasq = -2;
@@ -603,12 +604,12 @@ void stop_phy_tempsense()
 
 void start_adblock()
 {
-	xstart("adblock");
+	xstart("/usr/sbin/adblock");
 }
 
 void stop_adblock()
 {
-	xstart("adblock", "stop");
+	xstart("/usr/sbin/adblock", "stop");
 }
 
 #ifdef TCONFIG_IPV6

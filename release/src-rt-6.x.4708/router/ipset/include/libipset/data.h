@@ -131,6 +131,10 @@ enum ipset_opt {
 
 struct ipset_data;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void ipset_strlcpy(char *dst, const char *src, size_t len);
 extern void ipset_strlcat(char *dst, const char *src, size_t len);
 extern bool ipset_data_flags_test(const struct ipset_data *data,
@@ -163,5 +167,9 @@ extern struct ipset_data *ipset_data_init(void);
 extern void ipset_data_fini(struct ipset_data *data);
 
 extern size_t ipset_data_sizeof(enum ipset_opt opt, uint8_t family);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBIPSET_DATA_H */

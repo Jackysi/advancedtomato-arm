@@ -624,6 +624,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "dhcpc_minpkt",		"1"				, 0 },
 	{ "dhcpc_custom",		""				, 0 },
 	{ "dns_norebind",		"1"				, 0 },
+	{ "dnsmasq_debug",		"0"				, 0 },
 	{ "dnsmasq_custom",		""				, 0 },
 	{ "dnsmasq_static_only",	"0"				, 0 },
 	{ "dnsmasq_q",			"0"				, 0 }, 	//Bit0=quiet-dhcp, 1=dhcp6, 2=ra
