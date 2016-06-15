@@ -112,12 +112,8 @@ static int em_ipset_match(struct sk_buff *skb, struct tcf_ematch *em,
 
 	rcu_read_lock();
 
-	if (skb->skb_iif)
-#ifdef HAVE_TCF_EMATCH_STRUCT_NET
-		indev = dev_get_by_index_rcu(em->net, skb->skb_iif);
-#else
+	if (dev && skb->skb_iif)
 		indev = dev_get_by_index_rcu(dev_net(dev), skb->skb_iif);
-#endif
 
 	acpar.in      = indev ? indev : dev;
 	acpar.out     = dev;
