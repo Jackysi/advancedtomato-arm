@@ -8,6 +8,9 @@
 /* Get Layer-4 data from the packets */
 
 #include <linux/version.h>
+#ifdef HAVE_EXPORT_H
+#include <linux/export.h>
+#endif
 #include <linux/ip.h>
 #include <linux/skbuff.h>
 #include <linux/icmp.h>
@@ -31,7 +34,7 @@ get_port(const struct sk_buff *skb, int protocol, unsigned int protooff,
 		const struct tcphdr *th;
 
 		th = skb_header_pointer(skb, protooff, sizeof(_tcph), &_tcph);
-		if (!th)
+		if (th == NULL)
 			/* No choice either */
 			return false;
 
@@ -43,7 +46,7 @@ get_port(const struct sk_buff *skb, int protocol, unsigned int protooff,
 		const sctp_sctphdr_t *sh;
 
 		sh = skb_header_pointer(skb, protooff, sizeof(_sh), &_sh);
-		if (!sh)
+		if (sh == NULL)
 			/* No choice either */
 			return false;
 
@@ -56,7 +59,7 @@ get_port(const struct sk_buff *skb, int protocol, unsigned int protooff,
 		const struct udphdr *uh;
 
 		uh = skb_header_pointer(skb, protooff, sizeof(_udph), &_udph);
-		if (!uh)
+		if (uh == NULL)
 			/* No choice either */
 			return false;
 
@@ -68,7 +71,7 @@ get_port(const struct sk_buff *skb, int protocol, unsigned int protooff,
 		const struct icmphdr *ic;
 
 		ic = skb_header_pointer(skb, protooff, sizeof(_ich), &_ich);
-		if (!ic)
+		if (ic == NULL)
 			return false;
 
 		*port = (__force __be16)htons((ic->type << 8) | ic->code);
@@ -79,7 +82,7 @@ get_port(const struct sk_buff *skb, int protocol, unsigned int protooff,
 		const struct icmp6hdr *ic;
 
 		ic = skb_header_pointer(skb, protooff, sizeof(_ich), &_ich);
-		if (!ic)
+		if (ic == NULL)
 			return false;
 
 		*port = (__force __be16)
@@ -99,7 +102,7 @@ ip_set_get_ip4_port(const struct sk_buff *skb, bool src,
 		    __be16 *port, u8 *proto)
 {
 	const struct iphdr *iph = ip_hdr(skb);
-	unsigned int protooff = skb_network_offset(skb) + ip_hdrlen(skb);
+	unsigned int protooff = ip_hdrlen(skb);
 	int protocol = iph->protocol;
 
 	/* See comments at tcp_match in ip_tables.c */
@@ -117,8 +120,7 @@ ip_set_get_ip4_port(const struct sk_buff *skb, bool src,
 			return false;
 		default:
 			/* Other protocols doesn't have ports,
-			 * so we can match fragments.
-			 */
+			   so we can match fragments */
 			*proto = protocol;
 			return true;
 		}
@@ -137,10 +139,12 @@ ip_set_get_ip6_port(const struct sk_buff *skb, bool src,
 	__be16 frag_off = 0;
 
 	nexthdr = ipv6_hdr(skb)->nexthdr;
-	protoff = ipv6_skip_exthdr(skb,
-				   skb_network_offset(skb) +
-					sizeof(struct ipv6hdr), &nexthdr,
+#if HAVE_IPV6_SKIP_EXTHDR_ARGS == 4
+	protoff = ipv6_skip_exthdr(skb, sizeof(struct ipv6hdr), &nexthdr,
 				   &frag_off);
+#else
+	protoff = ipv6_skip_exthdr(skb, sizeof(struct ipv6hdr), &nexthdr);
+#endif
 	if (protoff < 0 || (frag_off & htons(~0x7)) != 0)
 		return false;
 

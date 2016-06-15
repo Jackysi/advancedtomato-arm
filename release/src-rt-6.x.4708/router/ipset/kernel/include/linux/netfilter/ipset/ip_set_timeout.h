@@ -40,9 +40,23 @@ ip_set_timeout_uget(struct nlattr *tb)
 }
 
 static inline bool
-ip_set_timeout_expired(const unsigned long *t)
+__ip_set_timeout_expired(unsigned long t)
 {
-	return *t != IPSET_ELEM_PERMANENT && time_is_before_jiffies(*t);
+	return t != IPSET_ELEM_PERMANENT && time_is_before_jiffies(t);
+}
+
+static inline bool
+ip_set_timeout_expired_rcu(unsigned long *timeout)
+{
+	unsigned long t = ip_set_rcu_deref(*timeout);
+
+	return __ip_set_timeout_expired(t);
+}
+
+static inline bool
+ip_set_timeout_expired(unsigned long *timeout)
+{
+	return __ip_set_timeout_expired(*timeout);
 }
 
 static inline void
@@ -50,23 +64,23 @@ ip_set_timeout_set(unsigned long *timeout, u32 value)
 {
 	unsigned long t;
 
-	if (!value) {
-		*timeout = IPSET_ELEM_PERMANENT;
-		return;
-	}
+	if (!value)
+		return ip_set_rcu_assign_ulong(timeout, IPSET_ELEM_PERMANENT);
 
-	t = msecs_to_jiffies(value * MSEC_PER_SEC) + jiffies;
+	t = msecs_to_jiffies(value * 1000) + jiffies;
 	if (t == IPSET_ELEM_PERMANENT)
 		/* Bingo! :-) */
 		t--;
-	*timeout = t;
+	ip_set_rcu_assign_ulong(timeout, t);
 }
 
 static inline u32
-ip_set_timeout_get(const unsigned long *timeout)
+ip_set_timeout_get(unsigned long *timeout)
 {
-	return *timeout == IPSET_ELEM_PERMANENT ? 0 :
-		jiffies_to_msecs(*timeout - jiffies)/MSEC_PER_SEC;
+	unsigned long t = ip_set_rcu_deref(*timeout);
+
+	return t == IPSET_ELEM_PERMANENT ? 0 :
+		jiffies_to_msecs(t - jiffies)/1000;
 }
 
 #endif	/* __KERNEL__ */

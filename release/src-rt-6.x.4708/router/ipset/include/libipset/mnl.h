@@ -22,15 +22,8 @@ struct nfgenmsg {
 };
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern int ipset_get_nlmsg_type(const struct nlmsghdr *nlh);
-extern const struct ipset_transport ipset_mnl_transport;
 
-#ifdef __cplusplus
-}
-#endif
+extern const struct ipset_transport ipset_mnl_transport;
 
 #endif /* LIBIPSET_MNL_H */

@@ -126,8 +126,8 @@
 0 ipset list test | grep -v Revision: | sed 's/timeout ./timeout x/' > .foo0 && ./sort.sh .foo0
 # Hash comment: Check listing
 0 diff -u -I 'Size in memory.*' .foo comment.t.list21
-# Sleep 6s so that entries can time out
-0 sleep 6s
+# Sleep 5s so that entries can time out
+0 sleep 5s
 # Hash comment: List set
 0 ipset list test | grep -v Revision: | sed 's/timeout ./timeout x/' > .foo0 && ./sort.sh .foo0
 # Hash comment: Check listing
