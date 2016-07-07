@@ -879,6 +879,7 @@ static const nvset_t nvset_list[] = {
 	{ "dhcpc_minpkt",		V_01				},
 	{ "dhcpc_custom",		V_LENGTH(0, 80)			},
 	{ "dns_norebind",		V_01				},
+	{ "dnsmasq_debug",		V_01				},
 	{ "dnsmasq_custom",		V_TEXT(0, 2048)			},
 	{ "dnsmasq_q",			V_RANGE(0,7)			}, //bitfield quiet bit0=dhcp, 1=dhcp6, 2=ra
 //	{ "dnsmasq_norw",		V_01				},
@@ -909,6 +910,12 @@ static const nvset_t nvset_list[] = {
 	{ "emf_rtport_entry",		V_NONE				},
 	{ "emf_enable",			V_01				},
 #endif
+
+// advanced-adblock
+	{ "adblock_enable",		V_01				},
+	{ "adblock_blacklist",		V_LENGTH(0, 4096)		},
+	{ "adblock_blacklist_custom",	V_LENGTH(0, 4096)		},
+	{ "adblock_whitelist",		V_LENGTH(0, 4096)		},
 
 // advanced-misc
 	{ "wait_time",			V_RANGE(3, 20)		},
@@ -1140,6 +1147,8 @@ static const nvset_t nvset_list[] = {
 // admin-buttons
 	{ "sesx_led",			V_RANGE(0, 255)		},	// amber, white, aoss
 	{ "btn_led_mode",		V_01			},	// Asus RT-AC68 Turbo Mode
+	{ "stealth_mode",		V_01			},
+	{ "stealth_iled",		V_01			},
 	{ "sesx_b0",			V_RANGE(0, 5)		},	// 0-5: toggle wireless, reboot, shutdown, script, usb unmount
 	{ "sesx_b1",			V_RANGE(0, 5)		},	// "
 	{ "sesx_b2",			V_RANGE(0, 5)		},	// "

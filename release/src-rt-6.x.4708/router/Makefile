@@ -78,9 +78,27 @@ obj-y += ntpc
 obj-y += rstats
 obj-y += cstats
 obj-y += udpxy
+
+ifneq ($(TCONFIG_TOR)$(TCONFIG_MEDIA_SERVER)$(TCONFIG_BBT),)
+obj-y += zlib
+endif
+ifneq ($(TCONFIG_HTTPS)$(TCONFIG_BBT)$(TCONFIG_NGINX),)
+obj-y += openssl
+endif
+ifneq ($(TCONFIG_TOR)$(TCONFIG_NFS)$(TCONFIG_BBT),)
+obj-y += libevent
+endif
+ifneq ($(TCONFIG_MEDIA_SERVER)$(TCONFIG_NGINX),)
+obj-y += sqlite
+endif
+ifneq ($(TCONFIG_NGINX)$(TCONFIG_NANO),)
+obj-y += libncurses
+endif
+ifneq ($(TCONFIG_USB)$(TCONFIG_NFS),)
+obj-y += e2fsprogs
+endif
+
 obj-$(TCONFIG_TOR) += tor
-obj-$(TCONFIG_TOR) += libevent
-obj-$(TCONFIG_TOR) += zlib
 obj-$(TCONFIG_DNSCRYPT) += libsodium
 obj-$(TCONFIG_DNSCRYPT) += dnscrypt
 obj-$(TCONFIG_SNMP) += snmp
@@ -92,8 +110,6 @@ obj-y += mdu
 obj-$(TCONFIG_RAID) += mdadm
 
 obj-$(TCONFIG_NFS) += portmap
-obj-$(TCONFIG_NFS) += e2fsprogs
-obj-$(TCONFIG_NFS) += libevent
 obj-$(TCONFIG_NFS) += libnfsidmap
 obj-$(TCONFIG_NFS) += nfs-utils
 
@@ -184,8 +200,6 @@ obj-$(TCONFIG_EBTABLES) += ebtables
 #obj-$(TCONFIG_IPV6) += radvd
 obj-$(TCONFIG_IPV6) += dhcpv6
 
-obj-$(TCONFIG_MEDIA_SERVER) += zlib
-obj-$(TCONFIG_MEDIA_SERVER) += sqlite
 obj-$(TCONFIG_MEDIA_SERVER) += ffmpeg
 obj-$(TCONFIG_MEDIA_SERVER) += libiconv
 obj-$(TCONFIG_MEDIA_SERVER) += libogg
@@ -211,7 +225,6 @@ obj-$(CONFIG_LINUX26) += ipset
 obj-$(TCONFIG_L2TP) += xl2tpd
 obj-$(TCONFIG_PPTP) += accel-pptp
 obj-$(TCONFIG_PPTPD) += pptpd
-obj-$(TCONFIG_HTTPS) += openssl
 obj-$(TCONFIG_SSH) += dropbear
 #obj-$(TCONFIG_ZEBRA) += zebra
 #	obj-$(TCONFIG_IPP2P) += ipp2p
@@ -233,12 +246,9 @@ ADDITIONAL_MODULES += --with-ipv6
 endif
 endif
 endif
-obj-$(TCONFIG_NGINX) += libncurses
 obj-$(TCONFIG_NGINX) += mysql
-obj-$(TCONFIG_NGINX) += openssl
 obj-$(TCONFIG_NGINX) += spawn-fcgi
 obj-$(TCONFIG_NGINX) += pcre
-obj-$(TCONFIG_NGINX) += sqlite
 obj-$(TCONFIG_NGINX) += libiconv
 obj-$(TCONFIG_NGINX) += libxml2
 obj-$(TCONFIG_NGINX) += libpng
@@ -246,44 +256,19 @@ obj-$(TCONFIG_NGINX) += jpeg
 obj-$(TCONFIG_NGINX) += php
 obj-$(TCONFIG_NGINX) += nginx
 
-obj-$(TCONFIG_NANO) += libncurses
 obj-$(TCONFIG_NANO) += nano
 
-obj-$(TCONFIG_BBT) += openssl
-obj-$(TCONFIG_BBT) += libevent
 obj-$(TCONFIG_BBT) += libcurl
 obj-$(TCONFIG_BBT) += transmission
 obj-$(TCONFIG_BT) += btgui
-obj-$(TCONFIG_BBT) += zlib
-#obj-$(TCONFIG_BBT) += libiconv
 
 obj-$(CONFIG_LINUX26) += hotplug2
 obj-$(CONFIG_LINUX26) += udevtrigger
 
-ifeq ($(TCONFIG_OPENVPN),y)
-  export FULL_OPENSSL := y
-else
-  ifeq ($(TCONFIG_FTP_SSL),y)
+ifneq ($(TCONFIG_OPENVPN)$(TCONFIG_FTP_SSL)$(TCONFIG_BBT)$(TCONFIG_TOR)$(TCONFIG_TINC),)
     export FULL_OPENSSL := y
-  else
-    ifeq ($(TCONFIG_BBT),y)
-      export FULL_OPENSSL := y
-    else
-      ifeq ($(TCONFIG_TOR),y)
-        export FULL_OPENSSL := y
-      else
-        ifeq ($(TCONFIG_TOR),y)
-          export FULL_OPENSSL := y
-        else
-          ifeq ($(TCONFIG_TINC),y)
-            export FULL_OPENSSL := y
-          else
-            FULL_OPENSSL :=
-          endif
-        endif
-      endif
-    endif
-  endif
+else
+    FULL_OPENSSL :=
 endif
 
 obj-y += wanuptime
@@ -2494,6 +2479,21 @@ e2fsprogs/stamp-h1:
 e2fsprogs: e2fsprogs/stamp-h1
 	@$(SEP)
 	$(MAKE) -C e2fsprogs $(PARALLEL_BUILD)
+
+e2fsprogs-install: e2fsprogs
+	cp e2fsprogs/misc/mke2fs.conf $(INSTALLDIR)/rom/rom/etc/mke2fs.conf
+	install -d $(INSTALLDIR)/e2fsprogs/sbin
+	install -D e2fsprogs/e2fsck/e2fsck $(INSTALLDIR)/e2fsprogs/sbin/e2fsck
+	install -D e2fsprogs/misc/mke2fs $(INSTALLDIR)/e2fsprogs/sbin/mke2fs
+	$(STRIP) -s $(INSTALLDIR)/e2fsprogs/sbin/e2fsck
+	$(STRIP) -s $(INSTALLDIR)/e2fsprogs/sbin/mke2fs
+	cd $(INSTALLDIR)/e2fsprogs/sbin/ && \
+		ln -sf e2fsck fsck.ext2 && \
+		ln -sf e2fsck fsck.ext3 && \
+		ln -sf e2fsck fsck.ext4 && \
+		ln -sf mke2fs mkfs.ext2 && \
+		ln -sf mke2fs mkfs.ext3 && \
+		ln -sf mke2fs mkfs.ext4
 
 e2fsprogs-clean:
 	-@$(MAKE) -C e2fsprogs clean

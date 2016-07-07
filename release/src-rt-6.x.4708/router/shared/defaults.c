@@ -531,6 +531,12 @@ struct nvram_tuple router_defaults[] = {
 	{ "nf_h323",			"1"				, 0 },
 	{ "nf_ftp",			"1"				, 0 },
 
+// advanced-adblock
+	{ "adblock_enable",		"0"				, 0 },
+	{ "adblock_blacklist",		"1<http://winhelp2002.mvps.org/hosts.txt<>1<http://adaway.org/hosts.txt<>1<http://hosts-file.net/ad_servers.txt<>1<http://www.malwaredomainlist.com/hostslist/hosts.txt<>1<http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext<>0<http://someonewhocares.org/hosts/zero/hosts<>0<https://raw.githubusercontent.com/WindowsLies/BlockWindows/master/hosts<Windows 10>0<http://sysctl.org/cameleon/hosts<>0<http://adblock.gjtech.net/?format=hostfile<>0<http://hostsfile.mine.nu/Hosts<very large list>0<https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt<very large list>" , 0 },
+	{ "adblock_blacklist_custom",	""				, 0 },
+	{ "adblock_whitelist",		""				, 0 },
+
 // advanced-mac
 	{ "wan_mac",			""				, 0 },
 	{ "wl_macaddr",			""				, 0 },
@@ -558,6 +564,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "dhcpc_minpkt",		"1"				, 0 },
 	{ "dhcpc_custom",		""				, 0 },
 	{ "dns_norebind",		"1"				, 0 },
+	{ "dnsmasq_debug",		"0"				, 0 },
 	{ "dnsmasq_custom",		""				, 0 },
 	{ "dnsmasq_static_only",	"0"				, 0 },
 	{ "dnsmasq_q",			"0"				, 0 }, 	//Bit0=quiet-dhcp, 1=dhcp6, 2=ra
@@ -749,6 +756,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "cstats_bak",			"0"				, 0 },
 
 // advanced-buttons
+	{ "stealth_mode",		"0"				, 0 },
+	{ "stealth_iled",		"0"				, 0 },
 	{ "sesx_led",			"0"				, 0 },
 	{ "sesx_b0",			"1"				, 0 },
 	{ "sesx_b1",			"4"				, 0 },
@@ -1064,6 +1073,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_client1_key",      ""              , 0 },
 	{ "vpn_client1_br",       "br0"           , 0 },
 	{ "vpn_client1_nopull",   "0"             , 0 },
+	{ "vpn_client1_nobind",   "1"             , 0 },
 	{ "vpn_client1_route",    "0"             , 0 },
 	{ "vpn_client1_routing_val", ""           , 0 },
 	{ "vpn_client2_poll",     "0"             , 0 },
@@ -1094,6 +1104,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_client2_key",      ""              , 0 },
 	{ "vpn_client2_br",       "br0"           , 0 },
 	{ "vpn_client2_nopull",   "0"             , 0 },
+	{ "vpn_client2_nobind",   "1"             , 0 },
 	{ "vpn_client2_route",    "0"             , 0 },
 	{ "vpn_client2_routing_val", ""           , 0 },
 #endif	// vpn
