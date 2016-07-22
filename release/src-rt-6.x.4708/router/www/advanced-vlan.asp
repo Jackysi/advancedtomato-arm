@@ -101,6 +101,7 @@ switch(nvram['t_model_name']) { //Added by Tvlz, June 2014, ARM March 2015
 	case 'Asus RT-AC68P/U B1':
 	case 'Huawei WS880':
 	case 'Linksys EA6900':
+	case 'Netgear R6400':
 	case 'Netgear R7000': // newer versions
 		COL_P0N = '1';
 		COL_P1N = '2';
