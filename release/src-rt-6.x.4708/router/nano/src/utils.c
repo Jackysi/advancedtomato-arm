@@ -1,9 +1,9 @@
-/* $Id: utils.c 4453 2009-12-02 03:36:22Z astyanax $ */
+/* $Id: utils.c 5580 2016-01-22 16:10:36Z bens $ */
 /**************************************************************************
  *   utils.c                                                              *
  *                                                                        *
  *   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,  *
- *   2008, 2009 Free Software Foundation, Inc.                            *
+ *   2008, 2009, 2010, 2011, 2013, 2014 Free Software Foundation, Inc.    *
  *   This program is free software; you can redistribute it and/or modify *
  *   it under the terms of the GNU General Public License as published by *
  *   the Free Software Foundation; either version 3, or (at your option)  *
@@ -30,21 +30,6 @@
 #include <ctype.h>
 #include <errno.h>
 
-/* Return the number of decimal digits in n. */
-int digits(size_t n)
-{
-    int i;
-
-    if (n == 0)
-	i = 1;
-    else {
-	for (i = 0; n != 0; n /= 10, i++)
-	    ;
-    }
-
-    return i;
-}
-
 /* Return the user's home directory.  We use $HOME, and if that fails,
  * we fall back on the home directory of the effective user ID. */
 void get_homedir(void)
@@ -52,13 +37,19 @@ void get_homedir(void)
     if (homedir == NULL) {
 	const char *homenv = getenv("HOME");
 
-	if (homenv == NULL) {
+	/* When HOME isn't set, or when we're root, get the home directory
+	 * from the password file instead. */
+	if (homenv == NULL || geteuid() == 0) {
 	    const struct passwd *userage = getpwuid(geteuid());
 
 	    if (userage != NULL)
 		homenv = userage->pw_dir;
 	}
-	homedir = mallocstrcpy(NULL, homenv);
+
+	/* Only set homedir if some home directory could be determined,
+	 * otherwise keep homedir NULL. */
+	if (homenv != NULL && strcmp(homenv, "") != 0)
+	    homedir = mallocstrcpy(NULL, homenv);
     }
 }
 
@@ -71,6 +62,10 @@ bool parse_num(const char *str, ssize_t *val)
     ssize_t j;
 
     assert(str != NULL);
+
+    /* The manual page for strtol() says this is required, and
+     * it looks like it is! */
+    errno = 0;
 
     j = (ssize_t)strtol(str, &first_error, 10);
 
@@ -183,7 +178,7 @@ void sunder(char *str)
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301, USA. */
 
-#ifdef ENABLE_NANORC
+#ifndef DISABLE_NANORC
 
 #ifndef HAVE_GETDELIM
 /* This function is equivalent to getdelim(). */
@@ -243,21 +238,13 @@ ssize_t ngetline(char **lineptr, size_t *n, FILE *stream)
     return getdelim(lineptr, n, '\n', stream);
 }
 #endif
-#endif /* ENABLE_NANORC */
+#endif /* !DISABLE_NANORC */
 
 #ifdef HAVE_REGEX_H
-/* Do the compiled regex in preg and the regex in string match the
- * beginning or end of a line? */
-bool regexp_bol_or_eol(const regex_t *preg, const char *string)
+/* Fix the regex if we're on platforms which require an adjustment
+ * from GNU-style to BSD-style word boundaries. */
+const char *fixbounds(const char *r)
 {
-    return (regexec(preg, string, 0, NULL, 0) == 0 &&
-	regexec(preg, string, 0, NULL, REG_NOTBOL | REG_NOTEOL) ==
-	REG_NOMATCH);
-}
-
-/* Fix the regex if we're on platforms which requires an adjustment
- * from GNU-style to BSD-style word boundaries.  */
-const char *fixbounds(const char *r) {
 #ifndef GNU_WORDBOUNDS
     int i, j = 0;
     char *r2 = charalloc(strlen(r) * 5);
@@ -268,15 +255,15 @@ const char *fixbounds(const char *r) {
 #endif
 
     for (i = 0; i < strlen(r); i++) {
-        if (r[i] != '\0' && r[i] == '\\' && (r[i+1] == '>' || r[i+1] == '<')) {
-            strcpy(&r2[j], "[[:");
-            r2[j+3] = r[i+1];
-            strcpy(&r2[j+4], ":]]");
-            i++;
-            j += 6;
-        } else
-            r2[j] = r[i];
-        j++;
+	if (r[i] != '\0' && r[i] == '\\' && (r[i + 1] == '>' || r[i + 1] == '<')) {
+	    strcpy(&r2[j], "[[:");
+	    r2[j + 3] = r[i + 1];
+	    strcpy(&r2[j + 4], ":]]");
+	    i++;
+	    j += 6;
+	} else
+	    r2[j] = r[i];
+	j++;
     }
     r2[j] = '\0';
     r3 = mallocstrcpy(NULL, r2);
@@ -285,12 +272,11 @@ const char *fixbounds(const char *r) {
     fprintf(stderr, "fixbounds(): Ending string = \"%s\"\n", r3);
 #endif
     return (const char *) r3;
-#endif
+#endif /* !GNU_WORDBOUNDS */
 
     return r;
 }
-
-#endif
+#endif /* HAVE_REGEX_H */
 
 #ifndef DISABLE_SPELLER
 /* Is the word starting at position pos in buf a whole word? */
@@ -420,8 +406,7 @@ void *nrealloc(void *ptr, size_t howmuch)
 }
 
 /* Copy the first n characters of one malloc()ed string to another
- * pointer.  Should be used as: "dest = mallocstrncpy(dest, src,
- * n);". */
+ * pointer.  Should be used as: "dest = mallocstrncpy(dest, src, n);". */
 char *mallocstrncpy(char *dest, const char *src, size_t n)
 {
     if (src == NULL)
@@ -440,8 +425,7 @@ char *mallocstrncpy(char *dest, const char *src, size_t n)
  * "dest = mallocstrcpy(dest, src);". */
 char *mallocstrcpy(char *dest, const char *src)
 {
-    return mallocstrncpy(dest, src, (src == NULL) ? 1 :
-	strlen(src) + 1);
+    return mallocstrncpy(dest, src, (src == NULL) ? 1 : strlen(src) + 1);
 }
 
 /* Free the malloc()ed string at dest and return the malloc()ed string
@@ -472,7 +456,10 @@ size_t get_page_start(size_t column)
  * current_x. */
 size_t xplustabs(void)
 {
-    return strnlenpt(openfile->current->data, openfile->current_x);
+    if (openfile->current)
+	return strnlenpt(openfile->current->data, openfile->current_x);
+    else
+	return 0;
 }
 
 /* Return the index in s of the character displayed at the given column,
@@ -542,7 +529,7 @@ void new_magicline(void)
     openfile->filebot->next->prev = openfile->filebot;
     openfile->filebot->next->next = NULL;
     openfile->filebot->next->lineno = openfile->filebot->lineno + 1;
-#ifdef ENABLE_COLOR
+#ifndef DISABLE_COLOR
     openfile->filebot->next->multidata = NULL;
 #endif
     openfile->filebot = openfile->filebot->next;
@@ -594,7 +581,7 @@ void mark_order(const filestruct **top, size_t *top_x, const filestruct
 	    *right_side_up = FALSE;
     }
 }
-#endif
+#endif /* !NANO_TINY */
 
 /* Calculate the number of characters between begin and end, and return
  * it. */
@@ -626,7 +613,7 @@ size_t get_totsize(const filestruct *begin, const filestruct *end)
     return totsize;
 }
 
-/* Get back a pointer given a line number in the current openfilestruct */
+/* Get back a pointer given a line number in the current openfilestruct. */
 filestruct *fsfromline(ssize_t lineno)
 {
     filestruct *f = openfile->current;
@@ -635,7 +622,7 @@ filestruct *fsfromline(ssize_t lineno)
 	for (; f->lineno != lineno && f != openfile->fileage; f = f->prev)
 	   ;
     else
-        for (; f->lineno != lineno && f->next != NULL; f = f->next)
+	for (; f->lineno != lineno && f->next != NULL; f = f->next)
 	    ;
 
     if (f->lineno != lineno)

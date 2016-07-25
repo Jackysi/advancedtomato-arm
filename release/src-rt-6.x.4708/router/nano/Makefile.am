@@ -1,11 +1,8 @@
-## $Id: Makefile.am 4227 2008-03-15 23:14:34Z astyanax $
+## $Id: Makefile.am 5026 2014-06-27 20:20:14Z bens $
 AUTOMAKE_OPTIONS = gnu no-dependencies
 
 SUBDIRS = m4 po src
 
-EXTRA_DIST = ABOUT-NLS AUTHORS BUGS COPYING COPYING.DOC ChangeLog \
-		ChangeLog.pre-2.1 INSTALL NEWS README README.SVN \
-		THANKS TODO UPGRADE config.rpath install-sh missing \
-		mkinstalldirs nano.spec
+EXTRA_DIST = ChangeLog.pre-2.1 README.SVN UPGRADE nano.spec
 
 ACLOCAL_AMFLAGS = -I m4
