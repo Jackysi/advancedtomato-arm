@@ -1,4 +1,3 @@
-/* $Id: global.c 5659 2016-02-22 09:34:33Z bens $ */
 /**************************************************************************
  *   global.c                                                             *
  *                                                                        *
@@ -38,8 +37,11 @@ bool meta_key;
 	/* Whether the current keystroke is a Meta key. */
 bool func_key;
 	/* Whether the current keystroke is an extended keypad value. */
-bool focusing = FALSE;
+bool focusing = TRUE;
 	/* Whether an update of the edit window should center the cursor. */
+
+message_type lastmessage = HUSH;
+	/* Messages of type HUSH should not overwrite type MILD nor ALERT. */
 
 #ifndef NANO_TINY
 int controlleft = CONTROL_LEFT;
@@ -57,8 +59,9 @@ ssize_t wrap_at = -CHARS_FROM_EOL;
 
 char *last_search = NULL;
 	/* The last string we searched for. */
-char *last_replace = NULL;
-	/* The last replacement string we searched for. */
+
+char *present_path = NULL;
+	/* The current browser directory when trying to do tab completion. */
 
 unsigned flags[4] = {0, 0, 0, 0};
 	/* Our flag containing the states of all global options. */
@@ -160,12 +163,12 @@ char *syntaxstr = NULL;
 	/* The color syntax name specified on the command line. */
 #endif
 
-bool edit_refresh_needed = FALSE;
-	/* Did a command mangle enough of the buffer refresh that we
-	 * should repaint the screen? */
+bool refresh_needed = FALSE;
+	/* Did a command mangle enough of the buffer that we should
+	 * repaint the screen? */
 
-int currmenu;
-	/* The currently loaded menu. */
+int currmenu = MMOST;
+	/* The currently active menu, initialized to a dummy value. */
 sc *sclist = NULL;
 	/* Pointer to the start of the shortcuts list. */
 subnfunc *allfuncs = NULL;
@@ -527,8 +530,10 @@ void shortcut_init(void)
     const char *nano_whereis_msg =
 	N_("Search for a string or a regular expression");
 #ifndef DISABLE_BROWSER
-    const char *nano_browser_whereis_msg =
-	N_("Search for a string");
+    const char *nano_browser_whereis_msg = N_("Search for a string");
+    const char *nano_browser_refresh_msg = N_("Refresh the file list");
+    const char *nano_browser_lefthand_msg = N_("Go to lefthand column");
+    const char *nano_browser_righthand_msg = N_("Go to righthand column");
 #endif
     const char *nano_prevpage_msg = N_("Go one screenful up");
     const char *nano_nextpage_msg = N_("Go one screenful down");
@@ -549,6 +554,9 @@ void shortcut_init(void)
 	N_("Copy the current line and store it in the cutbuffer");
     const char *nano_indent_msg = N_("Indent the current line");
     const char *nano_unindent_msg = N_("Unindent the current line");
+#ifdef ENABLE_COMMENT
+    const char *nano_comment_msg = N_("Comment/uncomment the current line or marked lines");
+#endif
     const char *nano_undo_msg = N_("Undo the last operation");
     const char *nano_redo_msg = N_("Redo the last undone operation");
 #endif
@@ -671,7 +679,7 @@ void shortcut_init(void)
 	N_("Get Help"), IFSCHELP(nano_help_msg), TOGETHER, VIEW);
 
     add_to_funcs(do_cancel, ((MMOST & ~MMAIN & ~MBROWSER) | MYESNO),
-	N_("Cancel"), IFSCHELP(nano_cancel_msg), TOGETHER, VIEW);
+	N_("Cancel"), IFSCHELP(nano_cancel_msg), BLANKAFTER, VIEW);
 
     add_to_funcs(do_exit, MMAIN,
 	exit_tag, IFSCHELP(nano_exit_msg), TOGETHER, VIEW);
@@ -778,10 +786,10 @@ void shortcut_init(void)
 #endif
 
     add_to_funcs(flip_replace_void, MWHEREIS,
-	replace_tag, IFSCHELP(nano_replace_msg), TOGETHER, VIEW);
+	replace_tag, IFSCHELP(nano_replace_msg), BLANKAFTER, VIEW);
 
     add_to_funcs(flip_replace_void, MREPLACE,
-	N_("No Replace"), IFSCHELP(nano_whereis_msg), TOGETHER, VIEW);
+	N_("No Replace"), IFSCHELP(nano_whereis_msg), BLANKAFTER, VIEW);
 
 #ifndef DISABLE_JUSTIFY
     add_to_funcs(do_full_justify, MWHEREIS,
@@ -791,7 +799,7 @@ void shortcut_init(void)
     add_to_funcs(do_cursorpos_void, MMAIN,
 	N_("Cur Pos"), IFSCHELP(nano_cursorpos_msg), TOGETHER, VIEW);
 
-#if !defined(NANO_TINY) || defined(DISABLE_COLOR)
+#if defined(DISABLE_COLOR) || !defined(DISABLE_JUSTIFY)
     /* Conditionally placing this one here or further on, to keep the
      * help items nicely paired in most conditions. */
     add_to_funcs(do_gotolinecolumn_void, MMAIN|MWHEREIS,
@@ -882,8 +890,8 @@ void shortcut_init(void)
 	N_("Next File"), IFSCHELP(nano_nextfile_msg), BLANKAFTER, VIEW);
 #endif
 
-#if defined(NANO_TINY) && !defined(DISABLE_COLOR)
-    add_to_funcs(do_gotolinecolumn_void, MMAIN|MWHEREIS,
+#if !defined(DISABLE_COLOR) && defined(DISABLE_JUSTIFY)
+    add_to_funcs(do_gotolinecolumn_void, MMAIN,
 	gotoline_tag, IFSCHELP(nano_gotoline_msg), BLANKAFTER, VIEW);
 #endif
 
@@ -932,6 +940,10 @@ void shortcut_init(void)
     add_to_funcs(do_suspend_void, MMAIN,
 	N_("Suspend"), IFSCHELP(nano_suspend_msg), BLANKAFTER, VIEW);
 
+#ifdef ENABLE_COMMENT
+    add_to_funcs(do_comment, MMAIN,
+	N_("Comment Lines"), IFSCHELP(nano_comment_msg), BLANKAFTER, NOVIEW);
+#endif
 #ifndef NANO_TINY
     add_to_funcs(do_savefile, MMAIN,
 	N_("Save"), IFSCHELP(nano_savefile_msg), BLANKAFTER, NOVIEW);
@@ -948,16 +960,21 @@ void shortcut_init(void)
 	N_("PrevHstory"), IFSCHELP(nano_prev_history_msg), TOGETHER, VIEW);
     add_to_funcs(get_history_newer_void,
 	(MWHEREIS|MREPLACE|MREPLACEWITH|MWHEREISFILE),
-	N_("NextHstory"), IFSCHELP(nano_next_history_msg), TOGETHER, VIEW);
+	N_("NextHstory"), IFSCHELP(nano_next_history_msg), BLANKAFTER, VIEW);
+#endif
+
+#if !defined(DISABLE_COLOR) && defined(DISABLE_JUSTIFY)
+    add_to_funcs(do_gotolinecolumn_void, MWHEREIS,
+	gotoline_tag, IFSCHELP(nano_gotoline_msg), BLANKAFTER, VIEW);
 #endif
 
     add_to_funcs(gototext_void, MGOTOLINE,
 	N_("Go To Text"), IFSCHELP(nano_whereis_msg), BLANKAFTER, VIEW);
 
 #ifndef NANO_TINY
-     add_to_funcs(dos_format_void, MWRITEFILE,
+    add_to_funcs(dos_format_void, MWRITEFILE,
 	N_("DOS Format"), IFSCHELP(nano_dos_msg), TOGETHER, NOVIEW);
-     add_to_funcs(mac_format_void, MWRITEFILE,
+    add_to_funcs(mac_format_void, MWRITEFILE,
 	N_("Mac Format"), IFSCHELP(nano_mac_msg), TOGETHER, NOVIEW);
 
     /* If we're using restricted mode, the Append, Prepend, and Backup toggles
@@ -971,7 +988,7 @@ void shortcut_init(void)
 	    N_("Prepend"), IFSCHELP(nano_prepend_msg), TOGETHER, NOVIEW);
 
 	add_to_funcs(backup_file_void, MWRITEFILE,
-	    N_("Backup File"), IFSCHELP(nano_backup_msg), TOGETHER, NOVIEW);
+	    N_("Backup File"), IFSCHELP(nano_backup_msg), BLANKAFTER, NOVIEW);
     }
 
     /* If we're using restricted mode, file insertion is disabled, and
@@ -1012,6 +1029,16 @@ void shortcut_init(void)
 #if !defined(NANO_TINY) && !defined(DISABLE_BROWSER)
     add_to_funcs(do_research, MBROWSER,
 	whereis_next_tag, IFSCHELP(nano_whereis_next_msg), TOGETHER, VIEW);
+#endif
+#ifndef DISABLE_BROWSER
+    add_to_funcs(total_refresh, MBROWSER,
+	refresh_tag, IFSCHELP(nano_browser_refresh_msg), BLANKAFTER, VIEW);
+#ifndef NANO_TINY
+    add_to_funcs(do_prev_word_void, MBROWSER,
+	N_("Left Column"), IFSCHELP(nano_browser_lefthand_msg), TOGETHER, VIEW);
+    add_to_funcs(do_next_word_void, MBROWSER,
+	N_("Right Column"), IFSCHELP(nano_browser_righthand_msg), BLANKAFTER, VIEW);
+#endif
 #endif
 
 #ifndef DISABLE_COLOR
@@ -1083,6 +1110,9 @@ void shortcut_init(void)
     add_to_sclist(MMAIN, "M-{", do_unindent, 0);
     add_to_sclist(MMAIN, "M-U", do_undo, 0);
     add_to_sclist(MMAIN, "M-E", do_redo, 0);
+#endif
+#ifdef ENABLE_COMMENT
+    add_to_sclist(MMAIN, "M-3", do_comment, 0);
 #endif
     add_to_sclist(MMOST, "^B", do_left, 0);
     add_to_sclist(MMOST, "Left", do_left, 0);
@@ -1199,6 +1229,7 @@ void shortcut_init(void)
     add_to_sclist(MBROWSER, "^_", goto_dir_void, 0);
     add_to_sclist(MBROWSER, "M-G", goto_dir_void, 0);
     add_to_sclist(MBROWSER, "F13", goto_dir_void, 0);
+    add_to_sclist(MBROWSER, "^L", total_refresh, 0);
 #endif
     if (ISSET(TEMP_FILE))
 	add_to_sclist(MWRITEFILE, "^Q", discard_buffer, 0);
@@ -1397,6 +1428,10 @@ sc *strtosc(const char *input)
 	s->scfunc = do_para_begin_void;
     else if (!strcasecmp(input, "endpara"))
 	s->scfunc = do_para_end_void;
+#endif
+#ifdef ENABLE_COMMENT
+    else if (!strcasecmp(input, "comment"))
+	s->scfunc = do_comment;
 #endif
 #ifndef NANO_TINY
     else if (!strcasecmp(input, "indent"))
@@ -1623,17 +1658,6 @@ int strtomenu(const char *input)
 
 
 #ifdef DEBUG
-#ifndef DISABLE_COLOR
-void free_list_item(regexlisttype *dropit)
-{
-    free(dropit->ext_regex);
-    if (dropit->ext != NULL)
-	regfree(dropit->ext);
-    free(dropit->ext);
-    free(dropit);
-}
-#endif
-
 /* This function is used to gracefully return all the memory we've used.
  * It should be called just before calling exit().  Practically, the
  * only effect is to cause a segmentation fault if the various data
@@ -1661,7 +1685,7 @@ void thanks_for_all_the_fish(void)
 #endif
     free(answer);
     free(last_search);
-    free(last_replace);
+    free(present_path);
 #ifndef DISABLE_SPELLER
     free(alt_speller);
 #endif
@@ -1678,45 +1702,49 @@ void thanks_for_all_the_fish(void)
 #ifndef DISABLE_COLOR
     free(syntaxstr);
     while (syntaxes != NULL) {
-	syntaxtype *bill = syntaxes;
-
-	free(syntaxes->desc);
-	free(syntaxes->linter);
-	free(syntaxes->formatter);
-
-	while (syntaxes->extensions != NULL) {
-	    regexlisttype *bob = syntaxes->extensions;
-	    syntaxes->extensions = bob->next;
-	    free_list_item(bob);
-	}
-	while (syntaxes->headers != NULL) {
-	    regexlisttype *bob = syntaxes->headers;
-	    syntaxes->headers = bob->next;
-	    free_list_item(bob);
-	}
-	while (syntaxes->magics != NULL) {
-	    regexlisttype *bob = syntaxes->magics;
-	    syntaxes->magics = bob->next;
-	    free_list_item(bob);
-	}
-
-	while (syntaxes->color != NULL) {
-	    colortype *bob = syntaxes->color;
-	    syntaxes->color = bob->next;
-	    free(bob->start_regex);
-	    if (bob->start != NULL) {
-		regfree(bob->start);
-		free(bob->start);
-	    }
-	    free(bob->end_regex);
-	    if (bob->end != NULL) {
-		regfree(bob->end);
-		free(bob->end);
-	    }
-	    free(bob);
-	}
+	syntaxtype *sint = syntaxes;
 	syntaxes = syntaxes->next;
-	free(bill);
+
+	free(sint->name);
+	free(sint->linter);
+	free(sint->formatter);
+
+	while (sint->extensions != NULL) {
+	    regexlisttype *item = sint->extensions;
+	    sint->extensions = sint->extensions->next;
+	    free(item->full_regex);
+	    free(item);
+	}
+	while (sint->headers != NULL) {
+	    regexlisttype *item = sint->headers;
+	    sint->headers = sint->headers->next;
+	    free(item->full_regex);
+	    free(item);
+	}
+	while (sint->magics != NULL) {
+	    regexlisttype *item = sint->magics;
+	    sint->magics = sint->magics->next;
+	    free(item->full_regex);
+	    free(item);
+	}
+
+	while (sint->color != NULL) {
+	    colortype *ink = sint->color;
+	    sint->color = sint->color->next;
+	    free(ink->start_regex);
+	    if (ink->start != NULL) {
+		regfree(ink->start);
+		free(ink->start);
+	    }
+	    free(ink->end_regex);
+	    if (ink->end != NULL) {
+		regfree(ink->end);
+		free(ink->end);
+	    }
+	    free(ink);
+	}
+
+	free(sint);
     }
 #endif /* !DISABLE_COLOR */
 #ifndef DISABLE_HISTORIES

@@ -1,4 +1,3 @@
-/* $Id: move.c 5661 2016-02-22 12:49:08Z bens $ */
 /**************************************************************************
  *   move.c                                                               *
  *                                                                        *
@@ -33,7 +32,7 @@ void do_first_line(void)
     openfile->current_x = 0;
     openfile->placewewant = 0;
 
-    edit_refresh_needed = TRUE;
+    refresh_needed = TRUE;
 }
 
 /* Move to the last line of the file. */
@@ -44,7 +43,8 @@ void do_last_line(void)
     openfile->placewewant = xplustabs();
     openfile->current_y = editwinrows - 1;
 
-    edit_refresh_needed = TRUE;
+    refresh_needed = TRUE;
+    focusing = FALSE;
 }
 
 /* Move up one page. */
@@ -89,7 +89,7 @@ void do_page_up(void)
     }
 
     openfile->current_x = actual_x(openfile->current->data,
-	openfile->placewewant);
+					openfile->placewewant);
 
 #ifdef DEBUG
     fprintf(stderr, "do_page_up: openfile->current->lineno = %lu, skipped = %d\n",
@@ -97,7 +97,8 @@ void do_page_up(void)
 #endif
 
     /* Scroll the edit window up a page. */
-    edit_update(NONE);
+    edit_update(STATIONARY);
+    refresh_needed = TRUE;
 }
 
 /* Move down one page. */
@@ -107,8 +108,7 @@ void do_page_down(void)
 
     /* If the cursor is less than a page away from the bottom of the file,
      * put it at the end of the last line. */
-    if (openfile->current->lineno + maxrows - 2 >=
-	openfile->filebot->lineno) {
+    if (openfile->current->lineno + maxrows - 2 >= openfile->filebot->lineno) {
 	do_last_line();
 	return;
     }
@@ -134,10 +134,11 @@ void do_page_down(void)
     }
 
     openfile->current_x = actual_x(openfile->current->data,
-	openfile->placewewant);
+					openfile->placewewant);
 
     /* Scroll the edit window down a page. */
-    edit_update(NONE);
+    edit_update(STATIONARY);
+    refresh_needed = TRUE;
 }
 
 #ifndef DISABLE_JUSTIFY
@@ -147,7 +148,6 @@ void do_page_down(void)
 void do_para_begin(bool allow_update)
 {
     filestruct *current_save = openfile->current;
-    const size_t pww_save = openfile->placewewant;
 
     if (openfile->current != openfile->fileage) {
 	do {
@@ -157,10 +157,9 @@ void do_para_begin(bool allow_update)
     }
 
     openfile->current_x = 0;
-    openfile->placewewant = 0;
 
     if (allow_update)
-	edit_redraw(current_save, pww_save);
+	edit_redraw(current_save);
 }
 
 /* Move up to the beginning of the last beginning-of-paragraph line
@@ -179,15 +178,14 @@ void do_para_begin_void(void)
 void do_para_end(bool allow_update)
 {
     filestruct *const current_save = openfile->current;
-    const size_t pww_save = openfile->placewewant;
 
     while (openfile->current != openfile->filebot &&
-	!inpar(openfile->current))
+		!inpar(openfile->current))
 	openfile->current = openfile->current->next;
 
     while (openfile->current != openfile->filebot &&
-	inpar(openfile->current->next) &&
-	!begpar(openfile->current->next)) {
+		inpar(openfile->current->next) &&
+		!begpar(openfile->current->next)) {
 	openfile->current = openfile->current->next;
 	openfile->current_y++;
     }
@@ -195,14 +193,11 @@ void do_para_end(bool allow_update)
     if (openfile->current != openfile->filebot) {
 	openfile->current = openfile->current->next;
 	openfile->current_x = 0;
-	openfile->placewewant = 0;
-    } else {
+    } else
 	openfile->current_x = strlen(openfile->current->data);
-	openfile->placewewant = xplustabs();
-    }
 
     if (allow_update)
-	edit_redraw(current_save, pww_save);
+	edit_redraw(current_save);
 }
 
 /* Move down to the beginning of the last line of the current paragraph.
@@ -220,7 +215,6 @@ void do_para_end_void(void)
  * screen afterwards. */
 void do_prev_word(bool allow_punct, bool allow_update)
 {
-    size_t pww_save = openfile->placewewant;
     filestruct *current_save = openfile->current;
     bool seen_a_word = FALSE, step_forward = FALSE;
 
@@ -257,11 +251,12 @@ void do_prev_word(bool allow_punct, bool allow_update)
 	/* Move one character forward again to sit on the start of the word. */
 	openfile->current_x = move_mbright(openfile->current->data,
 						openfile->current_x);
-    openfile->placewewant = xplustabs();
 
     /* If allow_update is TRUE, update the screen. */
-    if (allow_update)
-	edit_redraw(current_save, pww_save);
+    if (allow_update) {
+	focusing = FALSE;
+	edit_redraw(current_save);
+    }
 }
 
 /* Move to the previous word in the file, treating punctuation as part of a
@@ -277,7 +272,6 @@ void do_prev_word_void(void)
  * otherwise. */
 bool do_next_word(bool allow_punct, bool allow_update)
 {
-    size_t pww_save = openfile->placewewant;
     filestruct *current_save = openfile->current;
     bool started_on_word = is_word_mbchar(openfile->current->data +
 				openfile->current_x, allow_punct);
@@ -310,11 +304,11 @@ bool do_next_word(bool allow_punct, bool allow_update)
 	    break;
     }
 
-    openfile->placewewant = xplustabs();
-
     /* If allow_update is TRUE, update the screen. */
-    if (allow_update)
-	edit_redraw(current_save, pww_save);
+    if (allow_update) {
+	focusing = FALSE;
+	edit_redraw(current_save);
+    }
 
     /* Return whether we started on a word. */
     return started_on_word;
@@ -345,15 +339,11 @@ void do_home(void)
 	if (openfile->current_x == current_x_save ||
 		openfile->current->data[openfile->current_x] == '\0')
 	    openfile->current_x = 0;
-
-	openfile->placewewant = xplustabs();
-    } else {
+    } else
 #endif
 	openfile->current_x = 0;
-	openfile->placewewant = 0;
-#ifndef NANO_TINY
-    }
-#endif
+
+    openfile->placewewant = xplustabs();
 
     if (need_screen_update(pww_save))
 	update_line(openfile->current, openfile->current_x);
@@ -395,7 +385,7 @@ void do_up(
     /* Move the current line of the edit window up. */
     openfile->current = openfile->current->prev;
     openfile->current_x = actual_x(openfile->current->data,
-	openfile->placewewant);
+					openfile->placewewant);
 
     /* If scroll_only is FALSE and if we're on the first line of the
      * edit window, scroll the edit window up one line if we're in
@@ -413,13 +403,11 @@ void do_up(
 #endif
 		editwinrows / 2 + 1);
 
-    /* If we're below the first line of the edit window, update the
-     * line we were on before and the line we're on now.  The former
-     * needs to be redrawn if we're not on the first page, and the
-     * latter needs to be drawn unconditionally. */
-    if (openfile->current_y > 0) {
-	if (need_screen_update(0))
-	    update_line(openfile->current->next, 0);
+    /* If we're not on the first line of the edit window, and the target
+     * column is beyond the screen or the mark is on, redraw the prior
+     * and current lines. */
+    if (openfile->current_y > 0 && need_screen_update(0)) {
+	update_line(openfile->current->next, 0);
 	update_line(openfile->current, openfile->current_x);
     }
 }
@@ -465,16 +453,12 @@ void do_down(
 		openfile->current->lineno - openfile->edittop->lineno);
     assert(openfile->current->next != NULL);
 
-    /* Move the current line of the edit window down. */
-    openfile->current = openfile->current->next;
-    openfile->current_x = actual_x(openfile->current->data,
-	openfile->placewewant);
-
 #ifndef NANO_TINY
     if (ISSET(SOFTWRAP)) {
-	/* Compute the amount to scroll. */
-	amount = (strlenpt(openfile->current->data) / COLS + openfile->current_y + 2
-		 + strlenpt(openfile->current->prev->data) / COLS - editwinrows);
+	/* Compute the number of lines to scroll. */
+	amount = strlenpt(openfile->current->data) / COLS - xplustabs() / COLS +
+			strlenpt(openfile->current->next->data) / COLS +
+			openfile->current_y - editwinrows + 2;
 	topline = openfile->edittop;
 	/* Reduce the amount when there are overlong lines at the top. */
 	for (enough = 1; enough < amount; enough++) {
@@ -487,6 +471,11 @@ void do_down(
 	}
     }
 #endif
+
+    /* Move to the next line in the file. */
+    openfile->current = openfile->current->next;
+    openfile->current_x = actual_x(openfile->current->data,
+					openfile->placewewant);
 
     /* If scroll_only is FALSE and if we're on the last line of the
      * edit window, scroll the edit window down one line if we're in
@@ -507,19 +496,18 @@ void do_down(
 		(ISSET(SMOOTH_SCROLL) || scroll_only) ? amount :
 #endif
 		editwinrows / 2 + 1);
-	edit_refresh_needed = TRUE;
+
+	if (ISSET(SOFTWRAP)) {
+	    refresh_needed = TRUE;
+	    return;
+	}
     }
-    /* If we're above the last line of the edit window, update the line
-     * we were on before and the line we're on now.  The former needs to
-     * be redrawn if we're not on the first page, and the latter needs
-     * to be drawn unconditionally. */
-    if (openfile->current_y < editwinrows - 1
-#ifndef NANO_TINY
-	|| ISSET(SOFTWRAP)
-#endif
-	) {
-	if (need_screen_update(0))
-	    update_line(openfile->current->prev, 0);
+
+    /* If we're not on the last line of the edit window, and the target
+     * column is beyond the screen or the mark is on, redraw the prior
+     * and current lines. */
+    if (openfile->current_y < editwinrows - 1 && need_screen_update(0)) {
+	update_line(openfile->current->prev, 0);
 	update_line(openfile->current, openfile->current_x);
     }
 }
@@ -549,7 +537,7 @@ void do_left(void)
 
     if (openfile->current_x > 0)
 	openfile->current_x = move_mbleft(openfile->current->data,
-		openfile->current_x);
+						openfile->current_x);
     else if (openfile->current != openfile->fileage) {
 	do_up_void();
 	openfile->current_x = strlen(openfile->current->data);
@@ -570,7 +558,7 @@ void do_right(void)
 
     if (openfile->current->data[openfile->current_x] != '\0')
 	openfile->current_x = move_mbright(openfile->current->data,
-		openfile->current_x);
+						openfile->current_x);
     else if (openfile->current != openfile->filebot) {
 	do_down_void();
 	openfile->current_x = 0;

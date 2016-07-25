@@ -1,5 +1,5 @@
-<!-- Creator     : groff version 1.22.2 -->
-<!-- CreationDate: Thu Feb 25 16:05:38 2016 -->
+<!-- Creator     : groff version 1.22.3 -->
+<!-- CreationDate: Mon Jun 27 11:54:11 2016 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -38,7 +38,7 @@
 
 
 <p style="margin-left:11%; margin-top: 1em">nanorc &minus;
-GNU nano&rsquo;s rcfile</p>
+nano&rsquo;s rcfile</p>
 
 <h2>DESCRIPTION
 <a name="DESCRIPTION"></a>
@@ -180,7 +180,7 @@ search/replace strings.</p>
 <p style="margin-left:11%;"><b>set justifytrim</b></p>
 
 <p style="margin-left:15%;">When justifying text, trailing
-newlines will automatically be removed.</p>
+whitespace will automatically be removed.</p>
 
 <p style="margin-left:11%;"><b>set keycolor</b>
 <i>fgcolor</i>,<i>bgcolor</i></p>
@@ -479,6 +479,22 @@ This functionality only works when <b>libmagic</b> is
 installed on the system and will be silently ignored
 otherwise.</p>
 
+<p style="margin-left:11%;"><b>comment</b>
+<i>string</i></p>
+
+<p style="margin-left:22%;">Use the given string for
+commenting and uncommenting lines. A vertical bar or pipe
+character (|) designates bracket-style comments; for
+example, &quot;/*|*/&quot; for CSS files. The characters
+before the pipe are prepended to the line and the characters
+after the pipe are appended at the end of the line. If no
+pipe character is present, the entire string is prepended;
+for example, &quot;#&quot; for Python files. If empty double
+quotes are specified, the comment/uncomment function is
+disabled; for example, &quot;&quot; for JSON. Double quotes
+or backslashes may be escaped with a backslash; for example,
+&quot;.\&quot;&quot; for man page source.</p>
+
 <p style="margin-left:11%;"><b>color</b>
 <i>fgcolor</i>,<i>bgcolor</i> &quot;<i>regex</i>&quot;
 ...</p>
@@ -538,10 +554,10 @@ directive</i> [<i>arg</i> ...]</p>
 <p style="margin-left:22%;">Extend the syntax previously
 defined as <i>str</i> to include new information. This
 allows you to add a new <b>color</b>, <b>icolor</b>,
-<b>header</b>, <b>magic</b>, <b>linter</b>, or
-<b>formatter</b> directive to an already defined syntax --
-useful when you want to slightly improve a syntax defined in
-one of the system-installed files (which are normally not
+<b>header</b>, <b>magic</b>, <b>comment</b>, <b>linter</b>,
+or <b>formatter</b> directive to an already defined syntax
+-- useful when you want to slightly improve a syntax defined
+in one of the system-installed files (which are normally not
 writable)</p>
 
 <h2>REBINDING KEYS
@@ -744,6 +760,12 @@ the currently marked text.</p>
 <p style="margin-left:18%;">Unindents (shifts to the left)
 the currently marked text.</p>
 
+<p style="margin-left:15%;"><b>comment</b></p>
+
+<p style="margin-left:18%;">Comments or uncomments the
+current line or marked lines, using the comment style
+specified in the active syntax.</p>
+
 <p style="margin-left:15%;"><b>left</b></p>
 
 <p style="margin-left:18%;">Goes left one position (in the
@@ -825,7 +847,8 @@ file.</p>
 <p style="margin-left:15%;"><b>gotoline</b></p>
 
 <p style="margin-left:18%;">Goes to a specific line (and
-column if specified).</p>
+column if specified). Negative numbers count from the end of
+the file (and end of the line).</p>
 
 <p style="margin-left:15%;"><b>gototext</b></p>
 
@@ -850,7 +873,7 @@ next buffer when multiple buffers are open.</p>
 
 <p style="margin-left:15%;"><b>verbatim</b></p>
 
-<p style="margin-left:18%;">Inserts the next character
+<p style="margin-left:18%;">Inserts the next keystroke
 verbatim into the file.</p>
 
 <p style="margin-left:15%;"><b>tab</b></p>

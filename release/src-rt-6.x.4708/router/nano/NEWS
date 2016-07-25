@@ -1,11 +1,32 @@
+2016.06.27 - nano 2.6.1 "Stampede" is chiefly a translation update, but also
+		adds one little feature (the ability to use negative numbers
+		with Go To Line: -1 meaning the first line from the bottom),
+		includes syntax highlighting for Rust, and fixes three tiny
+		bugs (but in such far corners of the editor that they aren't
+		even worth mentioning).
+
+2016.06.17 - nano 2.6.0 "Rubicon" fixes more than fifty little bugs -- and
+		some of them not so little.  It improves moving about in
+		the file browser, corrects failings of the internal spell
+		checker, adds a new feature (comment/uncomment lines, with
+		default binding M-3), makes some error messages clearer,
+		shows more of a file when positionlog is used and the cursor
+		is near the end, displays all error messages at startup if
+		there are multiple ones, does not misinterpret keystrokes
+		when typing very fast, is less eager to trim the filename
+		on narrow terminals, speeds up case-insensitive searches,
+		and allows to abort re-searches.  Among bunches of other
+		things.  It is worth the trouble to upgrade.
+
+
 2016.02.25 - GNU nano 2.5.3 "Alphys" is released.  This release
 		contains fixes for bugs like: stray cursor positioning
-		errors, many many memory leaks including file reading, 
+		errors, many many memory leaks including file reading,
 		using the file browser, searching for multi-byte characters,
 		history completion, and many other places.
 			New features include the ability to trim whitespace
 		from the ends of lines when justifying text, see nanorc(5)
-		option justifytrim for deets. As always thank you for your
+		option justifytrim for deets.  As always thank you for your
 		continued support of nano, and keep sparing.
 
 2016.02.12 - GNU nano 2.5.2 is carrying too many dogs.  This release includes
@@ -13,7 +34,7 @@
 		size growth, and a long standing issue with using
 		nano under sudo creating root-owned files.  There are also
 		the usual bevy of documentation and other miscellaneous
-		fixes and touch ups.  Upgrade today while supplies last,
+		fixes and touchups.  Upgrade today while supplies last,
 		operators are standing by!
 
 2016.01.11 - GNU nano 2.5.1 "Salzburg" is released.  It includes fixes
@@ -35,6 +56,7 @@
 		2.4.3, as well as color syntax highlighting improvements,
 		undo fixes, and many more improvements!  Thank you for
 		using nano!
+
 
 2015.11.18 - GNU nano 2.4.3 "Apocalypse" is now available for your
 		downloading pleasure.  This release includes a myriad
@@ -107,7 +129,7 @@
 2014.07.17 - GNU nano 2.3.6 "Columbo" is released.  This release
 		contains a fix for installing internationalization
 		files.  Also included are scattered documentation
-		(in particular man page) fixes, and a few touch ups
+		(in particular man page) fixes, and a few touchups
 		to syntax highlighting definitions.  Oh, just one
 		more thing, thanks for using nano!
 
@@ -177,6 +199,7 @@
 		writing the backup file, which should reduce the need
 		for the "set allow_insecure_backup" nanorc option.
 		Don't stop, get it get it, don't stop, get it get it.
+
 
 2010.11.22 - GNU nano 2.2.6 "Pimp my BBS" wants you to go to
 		www.desertbus.org and donate a few bucks for the great
@@ -272,6 +295,7 @@
 		submitted bug reports recently in support of our new
 		stable release, and apologies for all those bugs we
 		didn't yet find :-) Peace to all.
+
 
 2009.11.21 - GNU nano 2.1.99pre2 is available for a special pre-Black
 		Friday discount.  Included are some (hopefully
@@ -439,6 +463,7 @@
 		https://savannah.gnu.org/bugs/?group=nano and
 		thanks for sticking with us!
 
+
 2007.12.20- GNU nano 2.0.7 keeps its balance.  This release fixes
 		several bugs, among others: a segfault and several
 		cursor positioning problems when uncutting text or
@@ -526,6 +551,7 @@
 		translation updates and new translations, as well as new
 		color syntaxes.  See the UPGRADE file for more
 		information, and enjoy the new stable release.
+
 
 2006.10.25 - GNU nano 1.9.99pre3 learns to appreciate life.  This
 		release fixes a bug where the screen sometimes wouldn't
@@ -785,6 +811,7 @@
 		display routines to make them behave more intuitively.
 		It also includes the usual load of bugfixes.  Enjoy.
 
+
 2003.08.11 - GNU nano 1.2.2 is released, only four months since the
 		last version :-).  This release includes fixes for
 		broken regex detection, search history recall, and
@@ -811,6 +838,7 @@
 		multiple file buffers, search/replace history and much
 		much more.  Please read the UPGRADE file for details,
 		and enjoy GNU nano 1.2.0.
+
 
 2003.02.13 - GNU nano 1.1.99pre3 "The last testing version, no
 		really!" is released.  This release includes fixes for
@@ -1063,6 +1091,7 @@
 		introduce lots of bugs ;-)  Have fun with it, but be
 		careful, unstable means unstable.
 
+
 2001.07.01 - GNU nano 1.0.3 is the "mutt" release.  This release
 		features oodles of bug fixes with cutting text,
 		especially with the -k (cut to end) option.  There is
@@ -1102,6 +1131,7 @@
 		addressed in subsequent releases.  We hope you enjoy
 		this first stable release of nano, and as always,
 		feedback is welcome! nano@nano-editor.org.
+
 
 2001.02.19 - Nano 0.9.99pre3 brings a lot of changes!  The most
 		important being that nano is now officially a GNU

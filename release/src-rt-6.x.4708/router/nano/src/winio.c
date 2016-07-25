@@ -1,4 +1,3 @@
-/* $Id: winio.c 5673 2016-02-23 12:37:10Z bens $ */
 /**************************************************************************
  *   winio.c                                                              *
  *                                                                        *
@@ -35,16 +34,25 @@ static int *key_buffer = NULL;
 static size_t key_buffer_len = 0;
 	/* The length of the keystroke buffer. */
 static int statusblank = 0;
-	/* The number of keystrokes left after we call statusbar(),
-	 * before we actually blank the statusbar. */
-static bool disable_cursorpos = FALSE;
-	/* Should we temporarily disable constant cursor position
-	 * display? */
+	/* The number of keystrokes left before we blank the statusbar. */
+static bool suppress_cursorpos = FALSE;
+	/* Should we skip constant position display for one keystroke? */
 static bool seen_wide = FALSE;
 	/* Whether we've seen a multicolumn character in the current line. */
 
 #ifndef NANO_TINY
-static sig_atomic_t sigwinch_counter_save = 0;
+static sig_atomic_t last_sigwinch_counter = 0;
+
+/* Did we receive a SIGWINCH since we were last called? */
+bool the_window_resized(void)
+{
+    if (sigwinch_counter == last_sigwinch_counter)
+	return FALSE;
+
+    last_sigwinch_counter = sigwinch_counter;
+    regenerate_screen();
+    return TRUE;
+}
 #endif
 
 /* Control character compatibility:
@@ -112,7 +120,7 @@ static sig_atomic_t sigwinch_counter_save = 0;
 void get_key_buffer(WINDOW *win)
 {
     int input;
-    size_t errcount;
+    size_t errcount = 0;
 
     /* If the keystroke buffer isn't empty, get out. */
     if (key_buffer != NULL)
@@ -123,31 +131,31 @@ void get_key_buffer(WINDOW *win)
     doupdate();
 
     /* Read in the first character using whatever mode we're in. */
-    errcount = 0;
-    if (nodelay_mode) {
-	if ((input = wgetch(win)) == ERR)
-	    return;
-    } else {
-	while ((input = wgetch(win)) == ERR) {
-#ifndef NANO_TINY
-	    /* Did we get SIGWINCH since we were last here? */
-	    if (sigwinch_counter != sigwinch_counter_save) {
-		sigwinch_counter_save = sigwinch_counter;
-		regenerate_screen();
-		input = KEY_WINCH;
-		break;
-	    } else
-#endif
-	    errcount++;
+    input = wgetch(win);
 
-	    /* If we've failed to get a character MAX_BUF_SIZE times in a
-	     * row, assume that the input source we were using is gone and
-	     * die gracefully.  We could check if errno is set to EIO
-	     * ("Input/output error") and die gracefully in that case, but
-	     * it's not always set properly.  Argh. */
-	    if (errcount == MAX_BUF_SIZE)
-		handle_hupterm(0);
+#ifndef NANO_TINY
+    if (the_window_resized())
+	input = KEY_WINCH;
+#endif
+
+    if (input == ERR && nodelay_mode)
+	return;
+
+    while (input == ERR) {
+	/* If we've failed to get a character MAX_BUF_SIZE times in a row,
+	 * assume our input source is gone and die gracefully.  We could
+	 * check if errno is set to EIO ("Input/output error") and die in
+	 * that case, but it's not always set properly.  Argh. */
+	if (++errcount == MAX_BUF_SIZE)
+	    handle_hupterm(0);
+
+#ifndef NANO_TINY
+	if (the_window_resized()) {
+	    input = KEY_WINCH;
+	    break;
 	}
+#endif
+	input = wgetch(win);
     }
 
     /* Increment the length of the keystroke buffer, and save the value
@@ -181,8 +189,9 @@ void get_key_buffer(WINDOW *win)
 	key_buffer[key_buffer_len - 1] = input;
     }
 
-    /* Switch back to waiting mode for input. */
-    nodelay(win, FALSE);
+    /* Restore waiting mode if it was on. */
+    if (!nodelay_mode)
+	nodelay(win, FALSE);
 
 #ifdef DEBUG
     {
@@ -251,21 +260,16 @@ void unget_kbinput(int kbinput, bool metakey, bool funckey)
 /* Try to read input_len characters from the keystroke buffer.  If the
  * keystroke buffer is empty and win isn't NULL, try to read in more
  * characters from win and add them to the keystroke buffer before doing
- * anything else.  If the keystroke buffer is empty and win is NULL,
- * return NULL. */
+ * anything else.  If the keystroke buffer is (still) empty, return NULL. */
 int *get_input(WINDOW *win, size_t input_len)
 {
     int *input;
 
-    if (key_buffer_len == 0) {
-	if (win != NULL) {
-	    get_key_buffer(win);
+    if (key_buffer_len == 0 && win != NULL)
+	get_key_buffer(win);
 
-	    if (key_buffer_len == 0)
-		return NULL;
-	} else
-	    return NULL;
-    }
+    if (key_buffer_len == 0)
+	return NULL;
 
     /* If input_len is greater than the length of the keystroke buffer,
      * only read the number of characters in the keystroke buffer. */
@@ -299,51 +303,46 @@ int *get_input(WINDOW *win, size_t input_len)
     return input;
 }
 
-/* Read in a single character.  If it's ignored, swallow it and go on.
- * Otherwise, try to translate it from ASCII, meta key sequences, escape
- * sequences, and/or extended keypad values.  Supported extended keypad
- * values consist of
- * [arrow key], Ctrl-[arrow key], Shift-[arrow key], Enter, Backspace,
- * the editing keypad (Insert, Delete, Home, End, PageUp, and PageDown),
- * the function keypad (F1-F16), and the numeric keypad with NumLock
- * off. */
+/* Read in a single keystroke, ignoring any that are invalid. */
 int get_kbinput(WINDOW *win)
 {
     int kbinput;
 
-    /* Read in a character and interpret it.  Continue doing this until
-     * we get a recognized value or sequence. */
+    /* Extract one keystroke from the input stream. */
     while ((kbinput = parse_kbinput(win)) == ERR)
 	;
 
-    /* If we read from the edit window, blank the statusbar if we need
-     * to. */
+    /* If we read from the edit window, blank the statusbar if needed. */
     if (win == edit)
 	check_statusblank();
 
     return kbinput;
 }
 
-/* Translate ASCII characters, extended keypad values, and escape
- * sequences into their corresponding key values.  Set meta_key to TRUE
- * when we get a meta key sequence, and set func_key to TRUE when we get
- * a function key. */
+/* Extract a single keystroke from the input stream.  Translate escape
+ * sequences and extended keypad codes into their corresponding values.
+ * Set meta_key to TRUE when we get a meta key sequence, and set func_key
+ * to TRUE when we get a function key.  Supported extended keypad values
+ * are: [arrow key], Ctrl-[arrow key], Shift-[arrow key], Enter, Backspace,
+ * the editing keypad (Insert, Delete, Home, End, PageUp, and PageDown),
+ * the function keys (F1-F16), and the numeric keypad with NumLock off. */
 int parse_kbinput(WINDOW *win)
 {
     static int escapes = 0, byte_digits = 0;
+    static bool double_esc = FALSE;
     int *kbinput, retval = ERR;
 
     meta_key = FALSE;
     func_key = FALSE;
 
     /* Read in a character. */
-    if (nodelay_mode) {
+    kbinput = get_input(win, 1);
+
+    if (kbinput == NULL && nodelay_mode)
+	return 0;
+
+    while (kbinput == NULL)
 	kbinput = get_input(win, 1);
-	if (kbinput == 0)
-	    return 0;
-    } else
-	while ((kbinput = get_input(win, 1)) == NULL)
-	    ;
 
     switch (*kbinput) {
 	case ERR:
@@ -351,75 +350,77 @@ int parse_kbinput(WINDOW *win)
 	case NANO_CONTROL_3:
 	    /* Increment the escape counter. */
 	    escapes++;
-	    switch (escapes) {
-		case 1:
-		    /* One escape: wait for more input. */
-		case 2:
-		    /* Two escapes: wait for more input. */
-		case 3:
-		    /* Three escapes: wait for more input. */
-		    break;
-		default:
-		    /* More than three escapes: limit the escape counter
-		     * to no more than two, and wait for more input. */
-		    escapes %= 3;
-	    }
+	    /* If there are four consecutive escapes, discard three of them. */
+	    if (escapes > 3)
+		escapes = 1;
+	    /* Wait for more input. */
 	    break;
 	default:
 	    switch (escapes) {
 		case 0:
-		    /* One non-escape: normal input mode.  Save the
-		     * non-escape character as the result. */
+		    /* One non-escape: normal input mode. */
 		    retval = *kbinput;
 		    break;
 		case 1:
 		    /* Reset the escape counter. */
 		    escapes = 0;
-		    if (get_key_buffer_len() == 0) {
-			/* One escape followed by a non-escape, and
-			 * there aren't any other keystrokes waiting:
-			 * meta key sequence mode.  Set meta_key to
-			 * TRUE, and save the lowercase version of the
-			 * non-escape character as the result. */
+		    if (get_key_buffer_len() == 0 || key_buffer[0] == 0x1b) {
+			/* One escape followed by a single non-escape:
+			 * meta key sequence mode. */
 			meta_key = TRUE;
 			retval = tolower(*kbinput);
 		    } else
-			/* One escape followed by a non-escape, and
-			 * there are other keystrokes waiting: escape
-			 * sequence mode.  Interpret the escape
-			 * sequence. */
+			/* One escape followed by a non-escape, and there
+			 * are more codes waiting: escape sequence mode. */
 			retval = parse_escape_sequence(win, *kbinput);
 		    break;
 		case 2:
-		    if (get_key_buffer_len() == 0) {
+		    if (double_esc) {
+			/* An "ESC ESC [ X" sequence from Option+arrow. */
+			switch (*kbinput) {
+			    case 'A':
+				retval = KEY_HOME;
+				break;
+			    case 'B':
+				retval = KEY_END;
+				break;
+#ifndef NANO_TINY
+			    case 'C':
+				retval = controlright;
+				break;
+			    case 'D':
+				retval = controlleft;
+				break;
+#endif
+			    default:
+				retval = ERR;
+				break;
+			}
+			double_esc = FALSE;
+			escapes = 0;
+		    } else if (get_key_buffer_len() == 0) {
 			if (('0' <= *kbinput && *kbinput <= '2' &&
 				byte_digits == 0) || ('0' <= *kbinput &&
 				*kbinput <= '9' && byte_digits > 0)) {
-			    /* Two escapes followed by one or more
-			     * decimal digits, and there aren't any
-			     * other keystrokes waiting: byte sequence
-			     * mode.  If the byte sequence's range is
-			     * limited to 2XX (the first digit is in the
-			     * '0' to '2' range and it's the first
-			     * digit, or it's in the '0' to '9' range
-			     * and it's not the first digit), increment
-			     * the byte sequence counter and interpret
-			     * the digit.  If the byte sequence's range
-			     * is not limited to 2XX, fall through. */
+			    /* Two escapes followed by one or more decimal
+			     * digits, and there aren't any other codes
+			     * waiting: byte sequence mode.  If the range
+			     * of the byte sequence is limited to 2XX (the
+			     * first digit is between '0' and '2' and the
+			     * others between '0' and '9', interpret it. */
 			    int byte;
 
 			    byte_digits++;
 			    byte = get_byte_kbinput(*kbinput);
 
+			    /* If we've read in a complete byte sequence,
+			     * reset the escape counter and the byte sequence
+			     * counter, and put the obtained byte value back
+			     * into the key buffer. */
 			    if (byte != ERR) {
 				char *byte_mb;
 				int byte_mb_len, *seq, i;
 
-				/* If we've read in a complete byte
-				 * sequence, reset the escape counter
-				 * and the byte sequence counter, and
-				 * put back the corresponding byte
-				 * value. */
 				escapes = 0;
 				byte_digits = 0;
 
@@ -444,31 +445,26 @@ int parse_kbinput(WINDOW *win)
 			    escapes = 0;
 			    if (byte_digits == 0)
 				/* Two escapes followed by a non-decimal
-				 * digit or a decimal digit that would
-				 * create a byte sequence greater than
-				 * 2XX, we're not in the middle of a
-				 * byte sequence, and there aren't any
-				 * other keystrokes waiting: control
-				 * character sequence mode.  Interpret
-				 * the control sequence and save the
-				 * corresponding control character as
-				 * the result. */
+				 * digit (or a decimal digit that would
+				 * create a byte sequence greater than 2XX)
+				 * and there aren't any other codes waiting:
+				 * control character sequence mode. */
 				retval = get_control_kbinput(*kbinput);
 			    else {
-				/* If we're in the middle of a byte
-				 * sequence, reset the byte sequence
-				 * counter and save the character we got
-				 * as the result. */
+				/* An invalid digit in the middle of a byte
+				 * sequence: reset the byte sequence counter
+				 * and save the code we got as the result. */
 				byte_digits = 0;
 				retval = *kbinput;
 			    }
 			}
+		    } else if (*kbinput=='[') {
+			/* This is an iTerm2 sequence: ^[ ^[ [ X. */
+			double_esc = TRUE;
 		    } else {
-			/* Two escapes followed by a non-escape, and
-			 * there are other keystrokes waiting: combined
-			 * meta and escape sequence mode.  Reset the
-			 * escape counter, set meta_key to TRUE, and
-			 * interpret the escape sequence. */
+			/* Two escapes followed by a non-escape, and there
+			 * are more codes waiting: combined meta and escape
+			 * sequence mode. */
 			escapes = 0;
 			meta_key = TRUE;
 			retval = parse_escape_sequence(win, *kbinput);
@@ -478,17 +474,14 @@ int parse_kbinput(WINDOW *win)
 		    /* Reset the escape counter. */
 		    escapes = 0;
 		    if (get_key_buffer_len() == 0)
-			/* Three escapes followed by a non-escape, and
-			 * there aren't any other keystrokes waiting:
-			 * normal input mode.  Save the non-escape
-			 * character as the result. */
+			/* Three escapes followed by a non-escape, and no
+			 * other codes are waiting: normal input mode. */
 			retval = *kbinput;
 		    else
-			/* Three escapes followed by a non-escape, and
-			 * there are other keystrokes waiting: combined
-			 * control character and escape sequence mode.
-			 * Interpret the escape sequence, and interpret
-			 * the result as a control sequence. */
+			/* Three escapes followed by a non-escape, and more
+			 * codes are waiting: combined control character and
+			 * escape sequence mode.  First interpret the escape
+			 * sequence, then the result as a control sequence. */
 			retval = get_control_kbinput(
 				parse_escape_sequence(win, *kbinput));
 		    break;
@@ -631,11 +624,6 @@ int parse_kbinput(WINDOW *win)
 	     * KEY_RESIZE. */
 	    case KEY_RESIZE:
 		retval = ERR;
-		break;
-#endif
-#ifndef NANO_TINY
-	    case KEY_WINCH:
-		retval = KEY_WINCH;
 		break;
 #endif
 	}
@@ -1122,9 +1110,15 @@ int parse_escape_sequence(WINDOW *win, int kbinput)
     /* If we got an unrecognized escape sequence, notify the user. */
     if (retval == ERR) {
 	if (win == edit) {
-	    statusbar(_("Unknown Command"));
-	    curs_set(1);
-	    beep();
+	    /* TRANSLATORS: This refers to a sequence of escape codes
+	     * (from the keyboard) that nano does not know about. */
+	    statusline(ALERT, _("Unknown sequence"));
+	    suppress_cursorpos = FALSE;
+	    lastmessage = HUSH;
+	    if (currmenu == MMAIN) {
+		reset_cursor();
+		curs_set(1);
+	    }
 	}
     }
 
@@ -1209,21 +1203,18 @@ int get_byte_kbinput(int kbinput)
 
 #ifdef ENABLE_UTF8
 /* If the character in kbinput is a valid hexadecimal digit, multiply it
- * by factor and add the result to uni. */
+ * by factor and add the result to uni, and return ERR to signify okay. */
 long add_unicode_digit(int kbinput, long factor, long *uni)
 {
-    long retval = ERR;
-
     if ('0' <= kbinput && kbinput <= '9')
 	*uni += (kbinput - '0') * factor;
     else if ('a' <= tolower(kbinput) && tolower(kbinput) <= 'f')
 	*uni += (tolower(kbinput) - 'a' + 10) * factor;
     else
-	/* If this character isn't a valid hexadecimal value, save it as
-	 * the result. */
-	retval = kbinput;
+	/* The character isn't hexadecimal; give it as the result. */
+	return (long)kbinput;
 
-    return retval;
+    return ERR;
 }
 
 /* Translate a Unicode sequence: turn a six-digit hexadecimal number
@@ -1287,12 +1278,6 @@ long get_unicode_kbinput(int kbinput)
 	    if (retval == ERR)
 		retval = uni;
 	    break;
-	default:
-	    /* If there are more than six digits, return this character
-	     * as the result.  (Maybe we should produce an error
-	     * instead?) */
-	    retval = kbinput;
-	    break;
     }
 
     /* If we have a result, reset the Unicode digit counter and the
@@ -1316,7 +1301,7 @@ int get_control_kbinput(int kbinput)
 {
     int retval;
 
-     /* Ctrl-Space (Ctrl-2, Ctrl-@, Ctrl-`) */
+    /* Ctrl-Space (Ctrl-2, Ctrl-@, Ctrl-`) */
     if (kbinput == ' ' || kbinput == '2')
 	retval = NANO_CONTROL_SPACE;
     /* Ctrl-/ (Ctrl-7, Ctrl-_) */
@@ -1643,7 +1628,7 @@ const sc *get_shortcut(int *kbinput)
 		&& meta_key == (s->type == META)) {
 #ifdef DEBUG
 	    fprintf (stderr, "matched seq \"%s\", and btw meta was %d (menu is %x from %x)\n",
-			     s->keystr, meta_key, currmenu, s->menus);
+				s->keystr, meta_key, currmenu, s->menus);
 #endif
 	    return s;
 	}
@@ -1707,18 +1692,23 @@ void blank_bottombars(void)
 
 /* Check if the number of keystrokes needed to blank the statusbar has
  * been pressed.  If so, blank the statusbar, unless constant cursor
- * position display is on. */
+ * position display is on and we are in the editing screen. */
 void check_statusblank(void)
 {
-    if (statusblank > 0) {
-	statusblank--;
+    if (statusblank == 0)
+	return;
 
-	if (statusblank == 0 && !ISSET(CONST_UPDATE)) {
-	    blank_statusbar();
-	    wnoutrefresh(bottomwin);
-	    reset_cursor();
-	    wnoutrefresh(edit);
-	}
+    statusblank--;
+
+    /* When editing and 'constantshow' is active, skip the blanking. */
+    if (currmenu == MMAIN && ISSET(CONST_UPDATE))
+	return;
+
+    if (statusblank == 0) {
+	blank_statusbar();
+	wnoutrefresh(bottomwin);
+	reset_cursor();
+	wnoutrefresh(edit);
     }
 }
 
@@ -1787,18 +1777,17 @@ char *display_string(const char *buf, size_t start_col, size_t len, bool
 
 	if (is_cntrl_mbchar(buf_mb)) {
 	    if (column < start_col) {
-		char *ctrl_buf_mb = charalloc(mb_cur_max());
-		int ctrl_buf_mb_len, i;
+		char *character = charalloc(mb_cur_max());
+		int charlen, i;
 
-		ctrl_buf_mb = control_mbrep(buf_mb, ctrl_buf_mb,
-			&ctrl_buf_mb_len);
+		character = control_mbrep(buf_mb, character, &charlen);
 
-		for (i = 0; i < ctrl_buf_mb_len; i++)
-		    converted[index++] = ctrl_buf_mb[i];
+		for (i = 0; i < charlen; i++)
+		    converted[index++] = character[i];
 
-		start_col += mbwidth(ctrl_buf_mb);
+		start_col += mbwidth(character);
 
-		free(ctrl_buf_mb);
+		free(character);
 
 		start_index += buf_mb_len;
 	    }
@@ -1832,57 +1821,56 @@ char *display_string(const char *buf, size_t start_col, size_t len, bool
 	    converted = charealloc(converted, alloc_len);
 	}
 
-	/* If buf contains a tab character, interpret it. */
-	if (*buf_mb == '\t') {
+	if (*buf_mb == ' ') {
+	    /* Show a space as a visible character, or as a space. */
 #ifndef NANO_TINY
 	    if (ISSET(WHITESPACE_DISPLAY)) {
-		int i;
+		int i = whitespace_len[0];
 
-		for (i = 0; i < whitespace_len[0]; i++)
-		    converted[index++] = whitespace[i];
+		while (i < whitespace_len[0] + whitespace_len[1])
+		    converted[index++] = whitespace[i++];
 	    } else
 #endif
 		converted[index++] = ' ';
 	    start_col++;
+	} else if (*buf_mb == '\t') {
+	    /* Show a tab as a visible character, or as as a space. */
+#ifndef NANO_TINY
+	    if (ISSET(WHITESPACE_DISPLAY)) {
+		int i = 0;
+
+		while (i < whitespace_len[0])
+		    converted[index++] = whitespace[i++];
+	    } else
+#endif
+		converted[index++] = ' ';
+	    start_col++;
+	    /* Fill the tab up with the required number of spaces. */
 	    while (start_col % tabsize != 0) {
 		converted[index++] = ' ';
 		start_col++;
 	    }
 	/* If buf contains a control character, interpret it. */
 	} else if (is_cntrl_mbchar(buf_mb)) {
-	    char *ctrl_buf_mb = charalloc(mb_cur_max());
-	    int ctrl_buf_mb_len, i;
+	    char *character = charalloc(mb_cur_max());
+	    int charlen, i;
 
 	    converted[index++] = '^';
 	    start_col++;
 
-	    ctrl_buf_mb = control_mbrep(buf_mb, ctrl_buf_mb,
-		&ctrl_buf_mb_len);
+	    character = control_mbrep(buf_mb, character, &charlen);
 
-	    for (i = 0; i < ctrl_buf_mb_len; i++)
-		converted[index++] = ctrl_buf_mb[i];
+	    for (i = 0; i < charlen; i++)
+		converted[index++] = character[i];
 
-	    start_col += mbwidth(ctrl_buf_mb);
+	    start_col += mbwidth(character);
 
-	    free(ctrl_buf_mb);
-	/* If buf contains a space character, interpret it. */
-	} else if (*buf_mb == ' ') {
-#ifndef NANO_TINY
-	    if (ISSET(WHITESPACE_DISPLAY)) {
-		int i;
-
-		for (i = whitespace_len[0]; i < whitespace_len[0] +
-			whitespace_len[1]; i++)
-		    converted[index++] = whitespace[i];
-	    } else
-#endif
-		converted[index++] = ' ';
-	    start_col++;
+	    free(character);
 	/* If buf contains a non-control character, interpret it.  If buf
 	 * contains an invalid multibyte sequence, display it as such. */
 	} else {
-	    char *nctrl_buf_mb = charalloc(mb_cur_max());
-	    int nctrl_buf_mb_len, i;
+	    char *character = charalloc(mb_cur_max());
+	    int charlen, i;
 
 #ifdef ENABLE_UTF8
 	    /* Make sure an invalid sequence-starter byte is properly
@@ -1891,16 +1879,14 @@ char *display_string(const char *buf, size_t start_col, size_t len, bool
 	    if (using_utf8() && buf_mb_len == 1)
 		buf_mb[1] = '\0';
 #endif
+	    character = mbrep(buf_mb, character, &charlen);
 
-	    nctrl_buf_mb = mbrep(buf_mb, nctrl_buf_mb,
-		&nctrl_buf_mb_len);
+	    for (i = 0; i < charlen; i++)
+		converted[index++] = character[i];
 
-	    for (i = 0; i < nctrl_buf_mb_len; i++)
-		converted[index++] = nctrl_buf_mb[i];
+	    start_col += mbwidth(character);
 
-	    start_col += mbwidth(nctrl_buf_mb);
-
-	    free(nctrl_buf_mb);
+	    free(character);
 	}
 
 	start_index += buf_mb_len;
@@ -1928,28 +1914,18 @@ char *display_string(const char *buf, size_t start_col, size_t len, bool
  * of path on the titlebar. */
 void titlebar(const char *path)
 {
-    int space = COLS;
-	/* The space we have available for display. */
-    size_t verlen = strlenpt(PACKAGE_STRING) + 1;
-	/* The length of the version message in columns, plus one for
-	 * padding. */
-    const char *prefix;
-	/* "DIR:", "File:", or "New Buffer".  Goes before filename. */
-    size_t prefixlen;
-	/* The length of the prefix in columns, plus one for padding. */
-    const char *state;
-	/* "Modified", "View", or "".  Shows the state of this
-	 * buffer. */
-    size_t statelen = 0;
-	/* The length of the state in columns, or the length of
-	 * "Modified" if the state is blank and we're not in the file
-	 * browser. */
-    char *exppath = NULL;
-	/* The filename, expanded for display. */
-    bool newfie = FALSE;
-	/* Do we say "New Buffer"? */
-    bool dots = FALSE;
-	/* Do we put an ellipsis before the path? */
+    size_t verlen, prefixlen, pathlen, statelen;
+	/* The width of the different titlebar elements, in columns. */
+    size_t pluglen = 0;
+	/* The width that "Modified" would take up. */
+    size_t offset = 0;
+	/* The position at which the center part of the titlebar starts. */
+    const char *prefix = "";
+	/* What is shown before the path -- "File:", "DIR:", or "". */
+    const char *state = "";
+	/* The state of the current buffer -- "Modified", "View", or "". */
+    char *fragment;
+	/* The tail part of the pathname when dottified. */
 
     assert(path != NULL || openfile->filename != NULL);
 
@@ -1959,132 +1935,88 @@ void titlebar(const char *path)
 
     blank_titlebar();
 
-    /* space has to be at least 4: two spaces before the version message,
-     * at least one character of the version message, and one space
-     * after the version message. */
-    if (space < 4)
-	space = 0;
-    else {
-	/* Limit verlen to 1/3 the length of the screen in columns,
-	 * minus three columns for spaces. */
-	if (verlen > (COLS / 3) - 3)
-	    verlen = (COLS / 3) - 3;
-    }
+    /* Do as Pico: if there is not enough width available for all items,
+     * first sacrifice the version string, then eat up the side spaces,
+     * then sacrifice the prefix, and only then start dottifying. */
 
-    if (space >= 4) {
-	/* Add a space after the version message, and account for both
-	 * it and the two spaces before it. */
-	mvwaddnstr(topwin, 0, 2, PACKAGE_STRING,
-		actual_x(PACKAGE_STRING, verlen));
-	verlen += 3;
-
-	/* Account for the full length of the version message. */
-	space -= verlen;
-    }
-
+    /* Figure out the path, prefix and state strings. */
 #ifndef DISABLE_BROWSER
-    /* Don't display the state if we're in the file browser. */
-    if (path != NULL)
-	state = "";
-    else
-#endif
-	state = openfile->modified ? _("Modified") : ISSET(VIEW_MODE) ?
-		_("View") : "";
-
-    statelen = strlenpt((*state == '\0' && path == NULL) ?
-	_("Modified") : state);
-
-    /* If possible, add a space before state. */
-    if (space > 0 && statelen < space)
-	statelen++;
-    else
-	goto the_end;
-
-#ifndef DISABLE_BROWSER
-    /* path should be a directory if we're in the file browser. */
     if (path != NULL)
 	prefix = _("DIR:");
     else
 #endif
-    if (openfile->filename[0] == '\0') {
-	prefix = _("New Buffer");
-	newfie = TRUE;
-    } else
-	prefix = _("File:");
-
-    prefixlen = strnlenpt(prefix, space - statelen) + 1;
-
-    /* If newfie is FALSE, add a space after prefix. */
-    if (!newfie && prefixlen + statelen < space)
-	prefixlen++;
-
-    /* If we're not in the file browser, set path to the current
-     * filename. */
-    if (path == NULL)
-	path = openfile->filename;
-
-    /* Account for the full lengths of the prefix and the state. */
-    if (space >= prefixlen + statelen)
-	space -= prefixlen + statelen;
-    else
-	space = 0;
-	/* space is now the room we have for the filename. */
-
-    if (!newfie) {
-	size_t lenpt = strlenpt(path), start_col;
-
-	/* Don't set dots to TRUE if we have fewer than eight columns
-	 * (i.e. one column for padding, plus seven columns for a
-	 * filename). */
-	dots = (space >= 8 && lenpt >= space);
-
-	if (dots) {
-	    start_col = lenpt - space + 3;
-	    space -= 3;
-	} else
-	    start_col = 0;
-
-	exppath = display_string(path, start_col, space, FALSE);
-    }
-
-    /* If dots is TRUE, we will display something like "File:
-     * ...ename". */
-    if (dots) {
-	mvwaddnstr(topwin, 0, verlen - 1, prefix, actual_x(prefix,
-		prefixlen));
-	if (space <= -3 || newfie)
-	    goto the_end;
-	waddch(topwin, ' ');
-	waddnstr(topwin, "...", space + 3);
-	if (space <= 0)
-	    goto the_end;
-	waddstr(topwin, exppath);
-    } else {
-	size_t exppathlen = newfie ? 0 : strlenpt(exppath);
-	    /* The length of the expanded filename. */
-
-	/* There is room for the whole filename, so we center it. */
-	mvwaddnstr(topwin, 0, verlen + ((space - exppathlen) / 3),
-		prefix, actual_x(prefix, prefixlen));
-	if (!newfie) {
-	    waddch(topwin, ' ');
-	    waddstr(topwin, exppath);
-	}
-    }
-
-  the_end:
-    free(exppath);
-
-    if (state[0] != '\0') {
-	if (statelen >= COLS - 1)
-	    mvwaddnstr(topwin, 0, 0, state, actual_x(state, COLS));
+    {
+	if (openfile->filename[0] == '\0')
+	    path = _("New Buffer");
 	else {
-	    assert(COLS - statelen - 1 >= 0);
+	    path = openfile->filename;
+	    prefix = _("File:");
+	}
 
-	    mvwaddnstr(topwin, 0, COLS - statelen - 1, state,
-		actual_x(state, statelen));
+	if (openfile->modified)
+	    state = _("Modified");
+	else if (ISSET(VIEW_MODE))
+	    state = _("View");
+
+	pluglen = strlenpt(_("Modified")) + 1;
+    }
+
+    /* Determine the widths of the four elements, including their padding. */
+    verlen = strlenpt(BRANDING) + 3;
+    prefixlen = strlenpt(prefix);
+    if (prefixlen > 0)
+	prefixlen++;
+    pathlen= strlenpt(path);
+    statelen = strlenpt(state) + 2;
+    if (statelen > 2) {
+	pathlen++;
+	pluglen = 0;
+    }
+
+    /* Only print the version message when there is room for it. */
+    if (verlen + prefixlen + pathlen + pluglen + statelen <= COLS)
+	mvwaddstr(topwin, 0, 2, BRANDING);
+    else {
+	verlen = 2;
+	/* If things don't fit yet, give up the placeholder. */
+	if (verlen + prefixlen + pathlen + pluglen + statelen > COLS)
+	    pluglen = 0;
+	/* If things still don't fit, give up the side spaces. */
+	if (verlen + prefixlen + pathlen + pluglen + statelen > COLS) {
+	    verlen = 0;
+	    statelen -= 2;
 	}
     }
+
+    /* If we have side spaces left, center the path name. */
+    if (verlen > 0)
+	offset = verlen + (COLS - (verlen + pluglen + statelen) -
+					(prefixlen + pathlen)) / 2;
+
+    /* Only print the prefix when there is room for it. */
+    if (verlen + prefixlen + pathlen + pluglen + statelen <= COLS) {
+	mvwaddstr(topwin, 0, offset, prefix);
+	if (prefixlen > 0)
+	    waddstr(topwin, " ");
+    } else
+	wmove(topwin, 0, offset);
+
+    /* Print the full path if there's room; otherwise, dottify it. */
+    if (pathlen + pluglen + statelen <= COLS)
+	waddstr(topwin, path);
+    else if (5 + statelen <= COLS) {
+	waddstr(topwin, "...");
+	fragment = display_string(path, 3 + pathlen - COLS + statelen,
+					COLS - statelen, FALSE);
+	waddstr(topwin, fragment);
+	free(fragment);
+    }
+
+    /* Right-align the state if there's room; otherwise, trim it. */
+    if (statelen > 0 && statelen <= COLS)
+	mvwaddstr(topwin, 0, COLS - statelen, state);
+    else if (statelen > 0)
+	mvwaddnstr(topwin, 0, 0, state, actual_x(state, COLS));
 
     wattroff(topwin, A_BOLD);
     wattroff(topwin, interface_color_pair[TITLE_BAR].pairnum);
@@ -2094,10 +2026,16 @@ void titlebar(const char *path)
     wnoutrefresh(edit);
 }
 
-/* Display a message on the statusbar, and set disable_cursorpos to
+/* Display a normal message on the statusbar, quietly. */
+void statusbar(const char *msg)
+{
+    statusline(HUSH, msg);
+}
+
+/* Display a message on the statusbar, and set suppress_cursorpos to
  * TRUE, so that the message won't be immediately overwritten if
  * constant cursor position display is on. */
-void statusbar(const char *msg, ...)
+void statusline(message_type importance, const char *msg, ...)
 {
     va_list ap;
     char *bar, *foo;
@@ -2117,6 +2055,20 @@ void statusbar(const char *msg, ...)
 	va_end(ap);
 	return;
     }
+
+    /* If there already was an alert message, ignore lesser ones. */
+    if ((lastmessage == ALERT && importance != ALERT) ||
+		(lastmessage == MILD && importance == HUSH))
+	return;
+
+    /* Delay another alert message, to allow an earlier one to be noticed. */
+    if (lastmessage == ALERT)
+	napms(1200);
+
+    if (importance == ALERT)
+	beep();
+
+    lastmessage = importance;
 
     /* Turn the cursor off while fiddling in the statusbar. */
     curs_set(0);
@@ -2146,25 +2098,21 @@ void statusbar(const char *msg, ...)
     wattroff(bottomwin, A_BOLD);
     wattroff(bottomwin, interface_color_pair[STATUS_BAR].pairnum);
 
-    wnoutrefresh(bottomwin);
-   /* Leave the cursor in the edit window, not in the statusbar. */
-    reset_cursor();
-    wnoutrefresh(edit);
-
-    disable_cursorpos = TRUE;
-
     /* Push the message to the screen straightaway. */
+    wnoutrefresh(bottomwin);
     doupdate();
 
-    /* If we're doing quick statusbar blanking, and constant cursor
-     * position display is off, blank the statusbar after only one
+    suppress_cursorpos = TRUE;
+
+    /* If we're doing quick statusbar blanking, blank it after just one
      * keystroke.  Otherwise, blank it after twenty-six keystrokes, as
      * Pico does. */
-    statusblank =
 #ifndef NANO_TINY
-	ISSET(QUICK_BLANK) && !ISSET(CONST_UPDATE) ? 1 :
+    if (ISSET(QUICK_BLANK))
+	statusblank = 1;
+    else
 #endif
-	26;
+	statusblank = 26;
 }
 
 /* Display the shortcut list corresponding to menu on the last two rows
@@ -2238,68 +2186,57 @@ void bottombars(int menu)
 
 /* Write a shortcut key to the help area at the bottom of the window.
  * keystroke is e.g. "^G" and desc is e.g. "Get Help".  We are careful
- * to write at most len characters, even if len is very small and
+ * to write at most length characters, even if length is very small and
  * keystroke and desc are long.  Note that waddnstr(,,(size_t)-1) adds
  * the whole string!  We do not bother padding the entry with blanks. */
-void onekey(const char *keystroke, const char *desc, size_t len)
+void onekey(const char *keystroke, const char *desc, int length)
 {
-    size_t keystroke_len = strlenpt(keystroke) + 1;
-
     assert(keystroke != NULL && desc != NULL);
 
     if (interface_color_pair[KEY_COMBO].bright)
 	wattron(bottomwin, A_BOLD);
     wattron(bottomwin, interface_color_pair[KEY_COMBO].pairnum);
-    waddnstr(bottomwin, keystroke, actual_x(keystroke, len));
+    waddnstr(bottomwin, keystroke, actual_x(keystroke, length));
     wattroff(bottomwin, A_BOLD);
     wattroff(bottomwin, interface_color_pair[KEY_COMBO].pairnum);
 
-    if (len > keystroke_len)
-	len -= keystroke_len;
-    else
-	len = 0;
+    length -= strlenpt(keystroke) + 1;
 
-    if (len > 0) {
+    if (length > 0) {
 	waddch(bottomwin, ' ');
 	if (interface_color_pair[FUNCTION_TAG].bright)
 	    wattron(bottomwin, A_BOLD);
 	wattron(bottomwin, interface_color_pair[FUNCTION_TAG].pairnum);
-	waddnstr(bottomwin, desc, actual_x(desc, len));
+	waddnstr(bottomwin, desc, actual_x(desc, length));
 	wattroff(bottomwin, A_BOLD);
 	wattroff(bottomwin, interface_color_pair[FUNCTION_TAG].pairnum);
     }
 }
 
-/* Reset current_y, based on the position of current, and put the cursor
- * in the edit window at (current_y, current_x). */
+/* Redetermine current_y from the position of current relative to edittop,
+ * and put the cursor in the edit window at (current_y, current_x). */
 void reset_cursor(void)
 {
-    size_t xpt;
-    /* If we haven't opened any files yet, put the cursor in the top
-     * left corner of the edit window and get out. */
-    if (openfile == NULL) {
-	wmove(edit, 0, 0);
-	return;
-    }
-
-    xpt = xplustabs();
+    size_t xpt = xplustabs();
 
 #ifndef NANO_TINY
     if (ISSET(SOFTWRAP)) {
-	filestruct *tmp;
+	filestruct *line = openfile->edittop;
 	openfile->current_y = 0;
 
-	for (tmp = openfile->edittop; tmp && tmp != openfile->current; tmp = tmp->next)
-	    openfile->current_y += (strlenpt(tmp->data) / COLS) + 1;
+	while (line != NULL && line != openfile->current) {
+	    openfile->current_y += strlenpt(line->data) / COLS + 1;
+	    line = line->next;
+	}
+	openfile->current_y += xpt / COLS;
 
-	openfile->current_y += xplustabs() / COLS;
 	if (openfile->current_y < editwinrows)
 	    wmove(edit, openfile->current_y, xpt % COLS);
     } else
 #endif
     {
 	openfile->current_y = openfile->current->lineno -
-	    openfile->edittop->lineno;
+				openfile->edittop->lineno;
 
 	if (openfile->current_y < editwinrows)
 	    wmove(edit, openfile->current_y, xpt - get_page_start(xpt));
@@ -2348,13 +2285,13 @@ void edit_draw(filestruct *fileptr, const char *converted, int
     /* If color syntaxes are available and turned on, we need to display
      * them. */
     if (openfile->colorstrings != NULL && !ISSET(NO_COLOR_SYNTAX)) {
-	const colortype *tmpcolor = openfile->colorstrings;
+	const colortype *varnish = openfile->colorstrings;
 
 	/* If there are multiline regexes, make sure there is a cache. */
 	if (openfile->syntax->nmultis > 0)
 	    alloc_multidata_if_needed(fileptr);
 
-	for (; tmpcolor != NULL; tmpcolor = tmpcolor->next) {
+	for (; varnish != NULL; varnish = varnish->next) {
 	    int x_start;
 		/* Starting column for mvwaddnstr.  Zero-based. */
 	    int paintlen = 0;
@@ -2367,15 +2304,15 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 	    regmatch_t endmatch;
 		/* Match position for end_regex. */
 
-	    if (tmpcolor->bright)
+	    if (varnish->bright)
 		wattron(edit, A_BOLD);
-	    wattron(edit, COLOR_PAIR(tmpcolor->pairnum));
+	    wattron(edit, COLOR_PAIR(varnish->pairnum));
 	    /* Two notes about regexec().  A return value of zero means
 	     * that there is a match.  Also, rm_eo is the first
 	     * non-matching character after the match. */
 
-	    /* First case, tmpcolor is a single-line expression. */
-	    if (tmpcolor->end == NULL) {
+	    /* First case: varnish is a single-line expression. */
+	    if (varnish->end == NULL) {
 		size_t k = 0;
 
 		/* We increment k by rm_eo, to move past the end of the
@@ -2388,7 +2325,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		     * unless k is zero.  If regexec() returns
 		     * REG_NOMATCH, there are no more matches in the
 		     * line. */
-		    if (regexec(tmpcolor->start, &fileptr->data[k], 1,
+		    if (regexec(varnish->start, &fileptr->data[k], 1,
 			&startmatch, (k == 0) ? 0 : REG_NOTBOL) ==
 			REG_NOMATCH)
 			break;
@@ -2419,22 +2356,22 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		    }
 		    k = startmatch.rm_eo;
 		}
-	    } else {	/* This is a multiline expression. */
+	    } else {	/* Second case: varnish is a multiline expression. */
 		const filestruct *start_line = fileptr->prev;
 		    /* The first line before fileptr that matches 'start'. */
-		regoff_t start_col;
+		size_t start_col;
 		    /* Where the match starts in that line. */
 		const filestruct *end_line;
 		    /* The line that matches 'end'. */
 
 		/* First see if the multidata was maybe already calculated. */
-		if (fileptr->multidata[tmpcolor->id] == CNONE)
+		if (fileptr->multidata[varnish->id] == CNONE)
 		    goto tail_of_loop;
-		else if (fileptr->multidata[tmpcolor->id] == CWHOLELINE) {
+		else if (fileptr->multidata[varnish->id] == CWHOLELINE) {
 		    mvwaddnstr(edit, line, 0, converted, -1);
 		    goto tail_of_loop;
-		} else if (fileptr->multidata[tmpcolor->id] == CBEGINBEFORE) {
-		    regexec(tmpcolor->end, fileptr->data, 1, &endmatch, 0);
+		} else if (fileptr->multidata[varnish->id] == CBEGINBEFORE) {
+		    regexec(varnish->end, fileptr->data, 1, &endmatch, 0);
 		    /* If the coloured part is scrolled off, skip it. */
 		    if (endmatch.rm_eo <= startpos)
 			goto tail_of_loop;
@@ -2442,9 +2379,9 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 			endmatch.rm_eo) - start);
 		    mvwaddnstr(edit, line, 0, converted, paintlen);
 		    goto tail_of_loop;
-		} if (fileptr->multidata[tmpcolor->id] == -1)
+		} if (fileptr->multidata[varnish->id] == -1)
 		    /* Assume this until proven otherwise below. */
-		    fileptr->multidata[tmpcolor->id] = CNONE;
+		    fileptr->multidata[varnish->id] = CNONE;
 
 		/* There is no precalculated multidata, so find it out now.
 		 * First check if the beginning of the line is colored by a
@@ -2456,11 +2393,11 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		 * matches the end.  If that line is not before fileptr, then
 		 * paint the beginning of this line. */
 
-		while (start_line != NULL && regexec(tmpcolor->start,
+		while (start_line != NULL && regexec(varnish->start,
 			start_line->data, 1, &startmatch, 0) == REG_NOMATCH) {
 		    /* There is no start; but if there is an end on this line,
 		     * there is no need to look for starts on earlier lines. */
-		    if (regexec(tmpcolor->end, start_line->data, 0, NULL, 0) == 0)
+		    if (regexec(varnish->end, start_line->data, 0, NULL, 0) == 0)
 			goto step_two;
 		    start_line = start_line->prev;
 		}
@@ -2472,8 +2409,8 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		/* If a found start has been qualified as an end earlier,
 		 * believe it and skip to the next step. */
 		if (start_line->multidata != NULL &&
-			(start_line->multidata[tmpcolor->id] == CBEGINBEFORE ||
-			start_line->multidata[tmpcolor->id] == CSTARTENDHERE))
+			(start_line->multidata[varnish->id] == CBEGINBEFORE ||
+			start_line->multidata[varnish->id] == CSTARTENDHERE))
 		    goto step_two;
 
 		/* Skip over a zero-length regex match. */
@@ -2487,16 +2424,15 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		while (TRUE) {
 		    start_col += startmatch.rm_so;
 		    startmatch.rm_eo -= startmatch.rm_so;
-		    if (regexec(tmpcolor->end, start_line->data +
+		    if (regexec(varnish->end, start_line->data +
 				start_col + startmatch.rm_eo, 0, NULL,
 				(start_col + startmatch.rm_eo == 0) ?
 				0 : REG_NOTBOL) == REG_NOMATCH)
 			/* No end found after this start. */
 			break;
 		    start_col++;
-		    if (regexec(tmpcolor->start, start_line->data +
-				start_col, 1, &startmatch,
-				REG_NOTBOL) == REG_NOMATCH)
+		    if (regexec(varnish->start, start_line->data + start_col,
+				1, &startmatch, REG_NOTBOL) == REG_NOMATCH)
 			/* No later start on this line. */
 			goto step_two;
 		}
@@ -2506,7 +2442,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		 * and after the start.  But is there an end after the start
 		 * at all?  We don't paint unterminated starts. */
 		end_line = fileptr;
-		while (end_line != NULL && regexec(tmpcolor->end,
+		while (end_line != NULL && regexec(varnish->end,
 			end_line->data, 1, &endmatch, 0) == REG_NOMATCH)
 		    end_line = end_line->next;
 
@@ -2514,7 +2450,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		if (end_line == NULL)
 		    goto step_two;
 		if (end_line == fileptr && endmatch.rm_eo <= startpos) {
-		    fileptr->multidata[tmpcolor->id] = CBEGINBEFORE;
+		    fileptr->multidata[varnish->id] = CBEGINBEFORE;
 		    goto step_two;
 		}
 
@@ -2525,16 +2461,16 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		 * minus the expanded location of the beginning of the page. */
 		if (end_line != fileptr) {
 		    paintlen = -1;
-		    fileptr->multidata[tmpcolor->id] = CWHOLELINE;
+		    fileptr->multidata[varnish->id] = CWHOLELINE;
 #ifdef DEBUG
-    fprintf(stderr, "  Marking for id %i  line %i as CWHOLELINE\n", tmpcolor->id, line);
+    fprintf(stderr, "  Marking for id %i  line %i as CWHOLELINE\n", varnish->id, line);
 #endif
 		} else {
 		    paintlen = actual_x(converted, strnlenpt(fileptr->data,
 						endmatch.rm_eo) - start);
-		    fileptr->multidata[tmpcolor->id] = CBEGINBEFORE;
+		    fileptr->multidata[varnish->id] = CBEGINBEFORE;
 #ifdef DEBUG
-    fprintf(stderr, "  Marking for id %i  line %i as CBEGINBEFORE\n", tmpcolor->id, line);
+    fprintf(stderr, "  Marking for id %i  line %i as CBEGINBEFORE\n", varnish->id, line);
 #endif
 		}
 		mvwaddnstr(edit, line, 0, converted, paintlen);
@@ -2548,7 +2484,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		start_col = (paintlen == 0) ? 0 : endmatch.rm_eo;
 
 		while (start_col < endpos) {
-		    if (regexec(tmpcolor->start, fileptr->data + start_col,
+		    if (regexec(varnish->start, fileptr->data + start_col,
 				1, &startmatch, (start_col == 0) ?
 				0 : REG_NOTBOL) == REG_NOMATCH ||
 				start_col + startmatch.rm_so >= endpos)
@@ -2566,7 +2502,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 
 		    index = actual_x(converted, x_start);
 
-		    if (regexec(tmpcolor->end, fileptr->data +
+		    if (regexec(varnish->end, fileptr->data +
 				startmatch.rm_eo, 1, &endmatch,
 				(startmatch.rm_eo == 0) ?
 				0 : REG_NOTBOL) == 0) {
@@ -2588,9 +2524,9 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 			    mvwaddnstr(edit, line, x_start,
 					converted + index, paintlen);
 			    if (paintlen > 0) {
-				fileptr->multidata[tmpcolor->id] = CSTARTENDHERE;
+				fileptr->multidata[varnish->id] = CSTARTENDHERE;
 #ifdef DEBUG
-    fprintf(stderr, "  Marking for id %i  line %i as CSTARTENDHERE\n", tmpcolor->id, line);
+    fprintf(stderr, "  Marking for id %i  line %i as CSTARTENDHERE\n", varnish->id, line);
 #endif
 			    }
 			}
@@ -2604,7 +2540,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 			end_line = fileptr->next;
 
 			while (end_line != NULL &&
-				regexec(tmpcolor->end, end_line->data,
+				regexec(varnish->end, end_line->data,
 				0, NULL, 0) == REG_NOMATCH)
 			    end_line = end_line->next;
 
@@ -2616,9 +2552,9 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 
 			/* Paint the rest of the line. */
 			mvwaddnstr(edit, line, x_start, converted + index, -1);
-			fileptr->multidata[tmpcolor->id] = CENDAFTER;
+			fileptr->multidata[varnish->id] = CENDAFTER;
 #ifdef DEBUG
-    fprintf(stderr, "  Marking for id %i  line %i as CENDAFTER\n", tmpcolor->id, line);
+    fprintf(stderr, "  Marking for id %i  line %i as CENDAFTER\n", varnish->id, line);
 #endif
 			/* We've painted to the end of the line, so don't
 			 * bother checking for any more starts. */
@@ -2628,27 +2564,25 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 	    }
   tail_of_loop:
 	    wattroff(edit, A_BOLD);
-	    wattroff(edit, COLOR_PAIR(tmpcolor->pairnum));
+	    wattroff(edit, COLOR_PAIR(varnish->pairnum));
 	}
     }
 #endif /* !DISABLE_COLOR */
 
 #ifndef NANO_TINY
-    /* If the mark is on, we need to display it. */
-    if (openfile->mark_set && (fileptr->lineno <=
-	openfile->mark_begin->lineno || fileptr->lineno <=
-	openfile->current->lineno) && (fileptr->lineno >=
-	openfile->mark_begin->lineno || fileptr->lineno >=
-	openfile->current->lineno)) {
-	/* fileptr is at least partially selected. */
-	const filestruct *top;
-	    /* Either current or mark_begin, whichever is first. */
-	size_t top_x;
-	    /* current_x or mark_begin_x, corresponding to top. */
-	const filestruct *bot;
-	size_t bot_x;
+    /* If the mark is on, and fileptr is at least partially selected, we
+     * need to paint it. */
+    if (openfile->mark_set &&
+		(fileptr->lineno <= openfile->mark_begin->lineno ||
+		fileptr->lineno <= openfile->current->lineno) &&
+		(fileptr->lineno >= openfile->mark_begin->lineno ||
+		fileptr->lineno >= openfile->current->lineno)) {
+	const filestruct *top, *bot;
+	    /* The lines where the marked region begins and ends. */
+	size_t top_x, bot_x;
+	    /* The x positions where the marked region begins and ends. */
 	int x_start;
-	    /* Starting column for mvwaddnstr().  Zero-based. */
+	    /* The starting column for mvwaddnstr().  Zero-based. */
 	int paintlen;
 	    /* Number of characters to paint on this line.  There are
 	     * COLS characters on a whole line. */
@@ -2662,7 +2596,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 	if (bot->lineno > fileptr->lineno || bot_x > endpos)
 	    bot_x = endpos;
 
-	/* The selected bit of fileptr is on this page. */
+	/* Only paint if the marked bit of fileptr is on this page. */
 	if (top_x < endpos && bot_x > startpos) {
 	    assert(startpos <= top_x);
 
@@ -2678,8 +2612,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 	    if (bot_x >= endpos)
 		paintlen = -1;
 	    else
-		paintlen = strnlenpt(fileptr->data, bot_x) - (x_start +
-			start);
+		paintlen = strnlenpt(fileptr->data, bot_x) - (x_start + start);
 
 	    /* If x_start is before the beginning of the page, shift
 	     * paintlen x_start characters to compensate, and put
@@ -2697,8 +2630,7 @@ void edit_draw(filestruct *fileptr, const char *converted, int
 		paintlen = actual_x(converted + index, paintlen);
 
 	    wattron(edit, hilite_attribute);
-	    mvwaddnstr(edit, line, x_start, converted + index,
-		paintlen);
+	    mvwaddnstr(edit, line, x_start, converted + index, paintlen);
 	    wattroff(edit, hilite_attribute);
 	}
     }
@@ -2847,7 +2779,6 @@ void edit_scroll(scroll_dir direction, ssize_t nlines)
 {
     ssize_t i;
     filestruct *foo;
-    bool do_redraw = need_screen_update(0);
 
     assert(nlines > 0);
 
@@ -2874,7 +2805,7 @@ void edit_scroll(scroll_dir direction, ssize_t nlines)
 	    ssize_t len = strlenpt(openfile->edittop->data) / COLS;
 	    i -= len;
 	    if (len > 0)
-		do_redraw = TRUE;
+		refresh_needed = TRUE;
 	}
 #endif
     }
@@ -2882,14 +2813,14 @@ void edit_scroll(scroll_dir direction, ssize_t nlines)
     /* Limit nlines to the number of lines we could scroll. */
     nlines -= i;
 
-    /* Don't bother scrolling zero lines or more than the number of
-     * lines in the edit window minus one; in both cases, get out, and
-     * call edit_refresh() beforehand if we need to. */
-    if (nlines == 0 || do_redraw || nlines >= editwinrows) {
-	if (do_redraw || nlines >= editwinrows)
-	    edit_refresh_needed = TRUE;
+    /* Don't bother scrolling zero lines, nor more than the window can hold. */
+    if (nlines == 0)
 	return;
-    }
+    if (nlines >= editwinrows)
+	refresh_needed = TRUE;
+
+    if (refresh_needed == TRUE)
+	return;
 
     /* Scroll the text of the edit window up or down nlines lines,
      * depending on the value of direction. */
@@ -2937,7 +2868,7 @@ void edit_scroll(scroll_dir direction, ssize_t nlines)
     for (i = nlines; i > 0 && foo != NULL; i--) {
 	if ((i == nlines && direction == DOWNWARD) || (i == 1 &&
 		direction == UPWARD)) {
-	    if (do_redraw)
+	    if (need_screen_update(0))
 		update_line(foo, (foo == openfile->current) ?
 			openfile->current_x : 0);
 	} else
@@ -2950,12 +2881,18 @@ void edit_scroll(scroll_dir direction, ssize_t nlines)
 
 /* Update any lines between old_current and current that need to be
  * updated.  Use this if we've moved without changing any text. */
-void edit_redraw(filestruct *old_current, size_t pww_save)
+void edit_redraw(filestruct *old_current)
 {
+    size_t was_pww = openfile->placewewant;
+
+    openfile->placewewant = xplustabs();
+
     /* If the current line is offscreen, scroll until it's onscreen. */
     if (openfile->current->lineno >= openfile->edittop->lineno + maxrows ||
-		openfile->current->lineno < openfile->edittop->lineno)
-	edit_update((focusing || !ISSET(SMOOTH_SCROLL)) ? CENTER : NONE);
+		openfile->current->lineno < openfile->edittop->lineno) {
+	edit_update((focusing || !ISSET(SMOOTH_SCROLL)) ? CENTERING : FLOWING);
+	refresh_needed = TRUE;
+    }
 
 #ifndef NANO_TINY
     /* If the mark is on, update all lines between old_current and current. */
@@ -2968,14 +2905,18 @@ void edit_redraw(filestruct *old_current, size_t pww_save)
 	    foo = (foo->lineno > openfile->current->lineno) ?
 			foo->prev : foo->next;
 	}
-    }
-#endif /* !NANO_TINY */
+    } else
+#endif
+	/* Otherwise, update old_current only if it differs from current
+	 * and was horizontally scrolled. */
+	if (old_current != openfile->current && get_page_start(was_pww) > 0)
+	    update_line(old_current, 0);
 
-    /* Update old_current and current if we've changed page. */
-    if (need_screen_update(0) || need_screen_update(pww_save)) {
-	update_line(old_current, 0);
+    /* Update current if we've changed page, or if it differs from
+     * old_current and needs to be horizontally scrolled. */
+    if (need_screen_update(was_pww) || (old_current != openfile->current &&
+			get_page_start(openfile->placewewant) > 0))
 	update_line(openfile->current, openfile->current_x);
-    }
 }
 
 /* Refresh the screen without changing the position of lines.  Use this
@@ -2997,7 +2938,7 @@ void edit_refresh(void)
 #endif
 
 	/* Make sure the current line is on the screen. */
-	edit_update((focusing || !ISSET(SMOOTH_SCROLL)) ? CENTER : NONE);
+	edit_update((focusing || !ISSET(SMOOTH_SCROLL)) ? CENTERING : STATIONARY);
     }
 
     foo = openfile->edittop;
@@ -3019,26 +2960,30 @@ void edit_refresh(void)
     wnoutrefresh(edit);
 }
 
-/* Move edittop to put it in range of current, keeping current in the
- * same place.  location determines how we move it: if it's CENTER, we
- * center current, and if it's NONE, we put current current_y lines
- * below edittop. */
-void edit_update(update_type location)
+/* Move edittop so that current is on the screen.  manner says how it
+ * should be moved: CENTERING means that current should end up in the
+ * middle of the screen, STATIONARY means that it should stay at the
+ * same vertical position, and FLOWING means that it should scroll no
+ * more than needed to bring current into view. */
+void edit_update(update_type manner)
 {
-    filestruct *foo = openfile->current;
-    int goal;
+    int goal = 0;
 
-    /* If location is CENTER, we move edittop up (editwinrows / 2)
-     * lines.  This puts current at the center of the screen.  If
-     * location is NONE, we move edittop up current_y lines if current_y
-     * is in range of the screen, 0 lines if current_y is less than 0,
-     * or (editwinrows - 1) lines if current_y is greater than
-     * (editwinrows - 1).  This puts current at the same place on the
-     * screen as before, or at the top or bottom of the screen if
-     * edittop is beyond either. */
-    if (location == CENTER)
+    /* If manner is CENTERING, move edittop half the number of window
+     * lines back from current.  If manner is STATIONARY, move edittop
+     * back current_y lines if current_y is in range of the screen,
+     * 0 lines if current_y is below zero, or (editwinrows - 1) lines
+     * if current_y is too big.  This puts current at the same place
+     * on the screen as before, or at the top or bottom if current_y is
+     * beyond either.  If manner is FLOWING, move edittop back 0 lines
+     * or (editwinrows - 1) lines, depending or where current has moved.
+     * This puts the cursor on the first or the last line. */
+    if (manner == CENTERING)
 	goal = editwinrows / 2;
-    else {
+    else if (manner == FLOWING) {
+	if (openfile->current->lineno >= openfile->edittop->lineno)
+	    goal = editwinrows - 1;
+    } else {
 	goal = openfile->current_y;
 
 	/* Limit goal to (editwinrows - 1) lines maximum. */
@@ -3046,19 +2991,20 @@ void edit_update(update_type location)
 	    goal = editwinrows - 1;
     }
 
-    for (; goal > 0 && foo->prev != NULL; goal--) {
-	foo = foo->prev;
+    openfile->edittop = openfile->current;
+
+    while (goal > 0 && openfile->edittop->prev != NULL) {
+	openfile->edittop = openfile->edittop->prev;
+	goal --;
 #ifndef NANO_TINY
-	if (ISSET(SOFTWRAP) && foo)
-	    goal -= strlenpt(foo->data) / COLS;
+	if (ISSET(SOFTWRAP))
+	    goal -= strlenpt(openfile->edittop->data) / COLS;
 #endif
     }
-    openfile->edittop = foo;
 #ifdef DEBUG
     fprintf(stderr, "edit_update(): setting edittop to lineno %ld\n", (long)openfile->edittop->lineno);
 #endif
     compute_maxrows();
-    edit_refresh_needed = TRUE;
 }
 
 /* Unconditionally redraw the entire screen. */
@@ -3089,8 +3035,8 @@ void total_refresh(void)
 void display_main_list(void)
 {
 #ifndef DISABLE_COLOR
-    if (openfile->syntax
-	  && (openfile->syntax->formatter || openfile->syntax->linter))
+    if (openfile->syntax &&
+		(openfile->syntax->formatter || openfile->syntax->linter))
 	set_lint_or_format_shortcuts();
     else
 	set_spell_shortcuts();
@@ -3100,11 +3046,8 @@ void display_main_list(void)
 }
 
 /* If constant is TRUE, we display the current cursor position only if
- * disable_cursorpos is FALSE.  Otherwise, we display it
- * unconditionally and set disable_cursorpos to FALSE.  If constant is
- * TRUE and disable_cursorpos is TRUE, we also set disable_cursorpos to
- * FALSE, so that we leave the current statusbar alone this time, and
- * display the current cursor position next time. */
+ * suppress_cursorpos is FALSE.  If constant is FALSE, we display the
+ * position always.  In any case we reset suppress_cursorpos to FALSE. */
 void do_cursorpos(bool constant)
 {
     filestruct *f;
@@ -3115,6 +3058,7 @@ void do_cursorpos(bool constant)
 
     assert(openfile->fileage != NULL && openfile->current != NULL);
 
+    /* Determine the size of the file up to the cursor. */
     f = openfile->current->next;
     c = openfile->current->data[openfile->current_x];
 
@@ -3126,25 +3070,26 @@ void do_cursorpos(bool constant)
     openfile->current->data[openfile->current_x] = c;
     openfile->current->next = f;
 
-    if (constant && disable_cursorpos) {
-	disable_cursorpos = FALSE;
+    /* If the position needs to be suppressed, don't suppress it next time. */
+    if (suppress_cursorpos && constant) {
+	suppress_cursorpos = FALSE;
 	return;
     }
 
-    /* Display the current cursor position on the statusbar, and set
-     * disable_cursorpos to FALSE. */
+    /* Display the current cursor position on the statusbar. */
     linepct = 100 * openfile->current->lineno / openfile->filebot->lineno;
     colpct = 100 * cur_xpt / cur_lenpt;
     charpct = (openfile->totsize == 0) ? 0 : 100 * i / openfile->totsize;
 
-    statusbar(
+    statusline(HUSH,
 	_("line %ld/%ld (%d%%), col %lu/%lu (%d%%), char %lu/%lu (%d%%)"),
 	(long)openfile->current->lineno,
 	(long)openfile->filebot->lineno, linepct,
 	(unsigned long)cur_xpt, (unsigned long)cur_lenpt, colpct,
 	(unsigned long)i, (unsigned long)openfile->totsize, charpct);
 
-    disable_cursorpos = FALSE;
+    /* Displaying the cursor position should not suppress it next time. */
+    suppress_cursorpos = FALSE;
 }
 
 /* Unconditionally display the current cursor position. */
@@ -3167,35 +3112,34 @@ void disable_nodelay(void)
 
 /* Highlight the current word being replaced or spell checked.  We
  * expect word to have tabs and control characters expanded. */
-void do_replace_highlight(bool highlight, const char *word)
+void spotlight(bool active, const char *word)
 {
-    size_t y = xplustabs(), word_len = strlenpt(word);
+    size_t word_len = strlenpt(word), room;
 
-    y = get_page_start(y) + COLS - y;
-	/* Now y is the number of columns that we can display on this
-	 * line. */
+    /* Compute the number of columns that are available for the word. */
+    room = COLS + get_page_start(xplustabs()) - xplustabs();
 
-    assert(y > 0);
+    assert(room > 0);
 
-    if (word_len > y)
-	y--;
+    if (word_len > room)
+	room--;
 
     reset_cursor();
     wnoutrefresh(edit);
 
-    if (highlight)
+    if (active)
 	wattron(edit, hilite_attribute);
 
     /* This is so we can show zero-length matches. */
     if (word_len == 0)
 	waddch(edit, ' ');
     else
-	waddnstr(edit, word, actual_x(word, y));
+	waddnstr(edit, word, actual_x(word, room));
 
-    if (word_len > y)
+    if (word_len > room)
 	waddch(edit, '$');
 
-    if (highlight)
+    if (active)
 	wattroff(edit, hilite_attribute);
 }
 
@@ -3264,7 +3208,7 @@ void do_credits(void)
 	"",
 	"",
 	"",
-	"http://www.nano-editor.org/"
+	"https://nano-editor.org/"
     };
 
     const char *xlcredits[XLCREDIT_LEN] = {

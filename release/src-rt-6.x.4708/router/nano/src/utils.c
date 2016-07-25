@@ -1,4 +1,3 @@
-/* $Id: utils.c 5580 2016-01-22 16:10:36Z bens $ */
 /**************************************************************************
  *   utils.c                                                              *
  *                                                                        *
@@ -279,27 +278,29 @@ const char *fixbounds(const char *r)
 #endif /* HAVE_REGEX_H */
 
 #ifndef DISABLE_SPELLER
-/* Is the word starting at position pos in buf a whole word? */
-bool is_whole_word(size_t pos, const char *buf, const char *word)
+/* Is the word starting at the given position in buf and of the given length
+ * a separate word?  That is: is it not part of a longer word?*/
+bool is_separate_word(size_t position, size_t length, const char *buf)
 {
-    char *p = charalloc(mb_cur_max()), *r = charalloc(mb_cur_max());
-    size_t word_end = pos + strlen(word);
+    char *before = charalloc(mb_cur_max()), *after = charalloc(mb_cur_max());
+    size_t word_end = position + length;
     bool retval;
 
-    assert(buf != NULL && pos <= strlen(buf) && word != NULL);
+    assert(buf != NULL && position < strlen(buf) && position + length <= strlen(buf));
 
-    parse_mbchar(buf + move_mbleft(buf, pos), p, NULL);
-    parse_mbchar(buf + word_end, r, NULL);
+    /* Get the characters before and after the word, if any. */
+    parse_mbchar(buf + move_mbleft(buf, position), before, NULL);
+    parse_mbchar(buf + word_end, after, NULL);
 
     /* If we're at the beginning of the line or the character before the
      * word isn't a non-punctuation "word" character, and if we're at
      * the end of the line or the character after the word isn't a
      * non-punctuation "word" character, we have a whole word. */
-    retval = (pos == 0 || !is_word_mbchar(p, FALSE)) &&
-	(word_end == strlen(buf) || !is_word_mbchar(r, FALSE));
+    retval = (position == 0 || !is_word_mbchar(before, FALSE)) &&
+		(word_end == strlen(buf) || !is_word_mbchar(after, FALSE));
 
-    free(p);
-    free(r);
+    free(before);
+    free(after);
 
     return retval;
 }
@@ -452,73 +453,68 @@ size_t get_page_start(size_t column)
 }
 
 /* Return the placewewant associated with current_x, i.e. the zero-based
- * column position of the cursor.  The value will be no smaller than
- * current_x. */
+ * column position of the cursor. */
 size_t xplustabs(void)
 {
-    if (openfile->current)
-	return strnlenpt(openfile->current->data, openfile->current_x);
-    else
-	return 0;
+    assert(openfile->current != NULL);
+
+    return strnlenpt(openfile->current->data, openfile->current_x);
 }
 
-/* Return the index in s of the character displayed at the given column,
- * i.e. the largest value such that strnlenpt(s, actual_x(s, column)) <=
- * column. */
-size_t actual_x(const char *s, size_t column)
+/* Return the index in text of the character that (when displayed) will
+ * not overshoot the given column. */
+size_t actual_x(const char *text, size_t column)
 {
-    size_t i = 0;
-	/* The position in s, returned. */
-    size_t len = 0;
-	/* The screen display width to s[i]. */
+    size_t index = 0;
+	/* The index in text, returned. */
+    size_t width = 0;
+	/* The screen display width to text[index], in columns. */
 
-    assert(s != NULL);
+    assert(text != NULL);
 
-    while (*s != '\0') {
-	int s_len = parse_mbchar(s, NULL, &len);
+    while (*text != '\0') {
+	int charlen = parse_mbchar(text, NULL, &width);
 
-	if (len > column)
+	if (width > column)
 	    break;
 
-	i += s_len;
-	s += s_len;
+	index += charlen;
+	text += charlen;
     }
 
-    return i;
+    return index;
 }
 
-/* A strnlen() with tabs and multicolumn characters factored in, similar
- * to xplustabs().  How many columns wide are the first maxlen characters
- * of s? */
-size_t strnlenpt(const char *s, size_t maxlen)
+/* A strnlen() with tabs and multicolumn characters factored in:
+ * how many columns wide are the first maxlen bytes of text? */
+size_t strnlenpt(const char *text, size_t maxlen)
 {
-    size_t len = 0;
-	/* The screen display width to s[i]. */
+    size_t width = 0;
+	/* The screen display width to text[maxlen]. */
 
     if (maxlen == 0)
 	return 0;
 
-    assert(s != NULL);
+    assert(text != NULL);
 
-    while (*s != '\0') {
-	int s_len = parse_mbchar(s, NULL, &len);
+    while (*text != '\0') {
+	int charlen = parse_mbchar(text, NULL, &width);
 
-	s += s_len;
-
-	if (maxlen <= s_len)
+	if (maxlen <= charlen)
 	    break;
 
-	maxlen -= s_len;
+	maxlen -= charlen;
+	text += charlen;
     }
 
-    return len;
+    return width;
 }
 
-/* A strlen() with tabs and multicolumn characters factored in, similar
- * to xplustabs().  How many columns wide is s? */
-size_t strlenpt(const char *s)
+/* A strlen() with tabs and multicolumn characters factored in:
+ * how many columns wide is text? */
+size_t strlenpt(const char *text)
 {
-    return strnlenpt(s, (size_t)-1);
+    return strnlenpt(text, (size_t)-1);
 }
 
 /* Append a new magicline to filebot. */
@@ -543,8 +539,9 @@ void new_magicline(void)
 void remove_magicline(void)
 {
     if (openfile->filebot->data[0] == '\0' &&
-	openfile->filebot != openfile->fileage) {
-	assert(openfile->filebot != openfile->edittop && openfile->filebot != openfile->current);
+		openfile->filebot != openfile->fileage) {
+	assert(openfile->filebot != openfile->edittop &&
+		openfile->filebot != openfile->current);
 
 	openfile->filebot = openfile->filebot->prev;
 	free_filestruct(openfile->filebot->next);
@@ -564,8 +561,8 @@ void mark_order(const filestruct **top, size_t *top_x, const filestruct
     assert(top != NULL && top_x != NULL && bot != NULL && bot_x != NULL);
 
     if ((openfile->current->lineno == openfile->mark_begin->lineno &&
-	openfile->current_x > openfile->mark_begin_x) ||
-	openfile->current->lineno > openfile->mark_begin->lineno) {
+		openfile->current_x > openfile->mark_begin_x) ||
+		openfile->current->lineno > openfile->mark_begin->lineno) {
 	*top = openfile->mark_begin;
 	*top_x = openfile->mark_begin_x;
 	*bot = openfile->current;
@@ -613,20 +610,24 @@ size_t get_totsize(const filestruct *begin, const filestruct *end)
     return totsize;
 }
 
-/* Get back a pointer given a line number in the current openfilestruct. */
+/* Given a line number, return a pointer to the corresponding struct. */
 filestruct *fsfromline(ssize_t lineno)
 {
     filestruct *f = openfile->current;
 
     if (lineno <= openfile->current->lineno)
-	for (; f->lineno != lineno && f != openfile->fileage; f = f->prev)
-	   ;
+	while (f->lineno != lineno && f->prev != NULL)
+	    f = f->prev;
     else
-	for (; f->lineno != lineno && f->next != NULL; f = f->next)
-	    ;
+	while (f->lineno != lineno && f->next != NULL)
+	    f = f->next;
 
-    if (f->lineno != lineno)
-	f = NULL;
+    if (f->lineno != lineno) {
+	statusline(ALERT, _("Internal error: can't match line %d.  "
+			"Please save your work."), lineno);
+	return NULL;
+    }
+
     return f;
 }
 

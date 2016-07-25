@@ -1,4 +1,3 @@
-/* $Id: nano.c 5678 2016-02-25 18:58:17Z bens $ */
 /**************************************************************************
  *   nano.c                                                               *
  *                                                                        *
@@ -219,17 +218,15 @@ partition *partition_filestruct(filestruct *top, size_t top_x,
     } else
 	p->filebot = NULL;
 
-    /* Save the line above the top of the partition, detach the top of
-     * the partition from it, and save the text before top_x in
-     * top_data. */
+    /* Remember which line is above the top of the partition, detach the
+     * top of the partition from it, and save the text before top_x. */
     p->top_prev = top->prev;
     top->prev = NULL;
     p->top_data = mallocstrncpy(NULL, top->data, top_x + 1);
     p->top_data[top_x] = '\0';
 
-    /* Save the line below the bottom of the partition, detach the
-     * bottom of the partition from it, and save the text after bot_x in
-     * bot_data. */
+    /* Remember which line is below the bottom of the partition, detach the
+     * bottom of the partition from it, and save the text after bot_x. */
     p->bot_next = bot->next;
     bot->next = NULL;
     p->bot_data = mallocstrcpy(NULL, bot->data + bot_x);
@@ -238,8 +235,7 @@ partition *partition_filestruct(filestruct *top, size_t top_x,
     null_at(&bot->data, bot_x);
 
     /* Remove all text before top_x at the top of the partition. */
-    charmove(top->data, top->data + top_x, strlen(top->data) -
-	top_x + 1);
+    charmove(top->data, top->data + top_x, strlen(top->data) - top_x + 1);
     align(&top->data);
 
     /* Return the partition. */
@@ -250,23 +246,20 @@ partition *partition_filestruct(filestruct *top, size_t top_x,
  * at (filebot, strlen(filebot->data)) again. */
 void unpartition_filestruct(partition **p)
 {
-    char *tmp;
-
     assert(p != NULL && openfile->fileage != NULL && openfile->filebot != NULL);
 
     /* Reattach the line above the top of the partition, and restore the
      * text before top_x from top_data.  Free top_data when we're done
      * with it. */
-    tmp = mallocstrcpy(NULL, openfile->fileage->data);
     openfile->fileage->prev = (*p)->top_prev;
     if (openfile->fileage->prev != NULL)
 	openfile->fileage->prev->next = openfile->fileage;
     openfile->fileage->data = charealloc(openfile->fileage->data,
-	strlen((*p)->top_data) + strlen(openfile->fileage->data) + 1);
-    strcpy(openfile->fileage->data, (*p)->top_data);
+		strlen((*p)->top_data) + strlen(openfile->fileage->data) + 1);
+    charmove(openfile->fileage->data + strlen((*p)->top_data),
+		openfile->fileage->data, strlen(openfile->fileage->data) + 1);
+    strncpy(openfile->fileage->data, (*p)->top_data, strlen((*p)->top_data));
     free((*p)->top_data);
-    strcat(openfile->fileage->data, tmp);
-    free(tmp);
 
     /* Reattach the line below the bottom of the partition, and restore
      * the text after bot_x from bot_data.  Free bot_data when we're
@@ -275,7 +268,7 @@ void unpartition_filestruct(partition **p)
     if (openfile->filebot->next != NULL)
 	openfile->filebot->next->prev = openfile->filebot;
     openfile->filebot->data = charealloc(openfile->filebot->data,
-	strlen(openfile->filebot->data) + strlen((*p)->bot_data) + 1);
+		strlen(openfile->filebot->data) + strlen((*p)->bot_data) + 1);
     strcat(openfile->filebot->data, (*p)->bot_data);
     free((*p)->bot_data);
 
@@ -316,9 +309,8 @@ void move_to_filestruct(filestruct **file_top, filestruct **file_bot,
      * the edit window is inside the partition, and keep track of
      * whether the mark begins inside the partition. */
     filepart = partition_filestruct(top, top_x, bot, bot_x);
-    edittop_inside = (openfile->edittop->lineno >=
-	openfile->fileage->lineno && openfile->edittop->lineno <=
-	openfile->filebot->lineno);
+    edittop_inside = (openfile->edittop->lineno >= openfile->fileage->lineno &&
+			openfile->edittop->lineno <= openfile->filebot->lineno);
 #ifndef NANO_TINY
     if (openfile->mark_set) {
 	mark_inside = (openfile->mark_begin->lineno >=
@@ -333,8 +325,7 @@ void move_to_filestruct(filestruct **file_top, filestruct **file_bot,
     }
 #endif
 
-    /* Get the number of characters in the text, and subtract it from
-     * totsize. */
+    /* Subtract the number of characters in the text from the file size. */
     openfile->totsize -= get_totsize(top, bot);
 
     if (*file_top == NULL) {
@@ -344,7 +335,7 @@ void move_to_filestruct(filestruct **file_top, filestruct **file_bot,
 	*file_top = openfile->fileage;
 	*file_bot = openfile->filebot;
 
-	/* Renumber starting with file_top. */
+	/* Renumber, starting with file_top. */
 	renumber(*file_top);
     } else {
 	filestruct *file_bot_save = *file_bot;
@@ -367,13 +358,11 @@ void move_to_filestruct(filestruct **file_top, filestruct **file_bot,
 
 	delete_node(openfile->fileage);
 
-	/* Renumber starting with the line after the original
-	 * file_bot. */
+	/* Renumber, starting with the line after the original file_bot. */
 	renumber(file_bot_save->next);
     }
 
-    /* Since the text has now been saved, remove it from the
-     * filestruct. */
+    /* Since the text has now been saved, remove it from the filestruct. */
     openfile->fileage = (filestruct *)nmalloc(sizeof(filestruct));
     openfile->fileage->data = mallocstrcpy(NULL, "");
     openfile->filebot = openfile->fileage;
@@ -404,15 +393,15 @@ void move_to_filestruct(filestruct **file_top, filestruct **file_bot,
 
     /* If the top of the edit window was inside the old partition, put
      * it in range of current. */
-    if (edittop_inside)
-	edit_update(NONE);
+    if (edittop_inside) {
+	edit_update(STATIONARY);
+	refresh_needed = TRUE;
+    }
 
-    /* Renumber starting with the beginning line of the old
-     * partition. */
+    /* Renumber, starting with the beginning line of the old partition. */
     renumber(top_save);
 
-    /* If the NO_NEWLINES flag isn't set, and the text doesn't end with
-     * a magicline, add a new magicline. */
+    /* If the text doesn't end with a magicline, and it should, add one. */
     if (!ISSET(NO_NEWLINES) && openfile->filebot->data[0] != '\0')
 	new_magicline();
 }
@@ -438,22 +427,21 @@ void copy_from_filestruct(filestruct *somebuffer)
 	size_t top_x, bot_x;
 
 	mark_order((const filestruct **)&top, &top_x,
-		(const filestruct **)&bot, &bot_x, &right_side_up);
+			(const filestruct **)&bot, &bot_x, &right_side_up);
 
 	single_line = (top == bot);
     }
 #endif
 
-    /* Partition the filestruct so that it contains no text, and keep
-     * track of whether the top of the edit window is inside the
-     * partition. */
-    filepart = partition_filestruct(openfile->current,
-	openfile->current_x, openfile->current, openfile->current_x);
+    /* Partition the filestruct so that it contains no text, and remember
+     * whether the current line is at the top of the edit window. */
+    filepart = partition_filestruct(openfile->current, openfile->current_x,
+				openfile->current, openfile->current_x);
     edittop_inside = (openfile->edittop == openfile->fileage);
+    free_filestruct(openfile->fileage);
 
     /* Put the top and bottom of the current filestruct at the top and
      * bottom of a copy of the passed buffer. */
-    free_filestruct(openfile->fileage);
     openfile->fileage = copy_filestruct(somebuffer);
     openfile->filebot = openfile->fileage;
     while (openfile->filebot->next != NULL)
@@ -488,33 +476,29 @@ void copy_from_filestruct(filestruct *somebuffer)
     }
 #endif
 
-    /* Get the number of characters in the copied text, and add it to
-     * totsize. */
-    openfile->totsize += get_totsize(openfile->fileage,
-	openfile->filebot);
+    /* Add the number of characters in the copied text to the file size. */
+    openfile->totsize += get_totsize(openfile->fileage, openfile->filebot);
 
     /* Update the current y-coordinate to account for the number of
      * lines the copied text has, less one since the first line will be
      * tacked onto the current line. */
     openfile->current_y += openfile->filebot->lineno - 1;
 
-    top_save = openfile->fileage;
-
-    /* If the top of the edit window is inside the partition, set it to
-     * where the copied text now starts. */
+    /* If we pasted onto the first line of the edit window, the corresponding
+     * struct has been freed, so... point at the start of the copied text. */
     if (edittop_inside)
 	openfile->edittop = openfile->fileage;
+
+    top_save = openfile->fileage;
 
     /* Unpartition the filestruct so that it contains all the text
      * again, plus the copied text. */
     unpartition_filestruct(&filepart);
 
-    /* Renumber starting with the beginning line of the old
-     * partition. */
+    /* Renumber, starting with the beginning line of the old partition. */
     renumber(top_save);
 
-    /* If the NO_NEWLINES flag isn't set, and the text doesn't end with
-     * a magicline, add a new magicline. */
+    /* If the text doesn't end with a magicline, and it should, add one. */
     if (!ISSET(NO_NEWLINES) && openfile->filebot->data[0] != '\0')
 	new_magicline();
 }
@@ -529,7 +513,7 @@ openfilestruct *make_new_opennode(void)
 void unlink_opennode(openfilestruct *fileptr)
 {
     assert(fileptr != NULL && fileptr->prev != NULL && fileptr->next != NULL &&
-		 fileptr != fileptr->prev && fileptr != fileptr->next);
+		fileptr != fileptr->prev && fileptr != fileptr->next);
 
     fileptr->prev->next = fileptr->next;
     fileptr->next->prev = fileptr->prev;
@@ -654,7 +638,7 @@ void die(const char *msg, ...)
     exit(1);
 }
 
-/* Save the current file under the name spacified in die_filename, which
+/* Save the current file under the name specified in die_filename, which
  * is modified to be unique if necessary. */
 void die_save_file(const char *die_filename
 #ifndef NANO_TINY
@@ -662,7 +646,7 @@ void die_save_file(const char *die_filename
 #endif
 	)
 {
-    char *retval;
+    char *targetname;
     bool failed = TRUE;
 
     /* If we're using restricted mode, don't write any emergency backup
@@ -676,14 +660,15 @@ void die_save_file(const char *die_filename
     if (*die_filename == '\0')
 	die_filename = "nano";
 
-    retval = get_next_filename(die_filename, ".save");
-    if (retval[0] != '\0')
-	failed = !write_file(retval, NULL, TRUE, OVERWRITE, TRUE);
+    targetname = get_next_filename(die_filename, ".save");
+
+    if (*targetname != '\0')
+	failed = !write_file(targetname, NULL, TRUE, OVERWRITE, TRUE);
 
     if (!failed)
-	fprintf(stderr, _("\nBuffer written to %s\n"), retval);
-    else if (retval[0] != '\0')
-	fprintf(stderr, _("\nBuffer not written to %s: %s\n"), retval,
+	fprintf(stderr, _("\nBuffer written to %s\n"), targetname);
+    else if (*targetname != '\0')
+	fprintf(stderr, _("\nBuffer not written to %s: %s\n"), targetname,
 		strerror(errno));
     else
 	fprintf(stderr, _("\nBuffer not written: %s\n"),
@@ -694,15 +679,13 @@ void die_save_file(const char *die_filename
      * but don't worry if it fails because we're supposed to be bailing as
      * fast as possible. */
     if (die_stat) {
-	int shush;
-	shush = chmod(retval, die_stat->st_mode);
-	shush = chown(retval, die_stat->st_uid, die_stat->st_gid);
-	if (shush)
-	    ;
+	IGNORE_CALL_RESULT(chmod(targetname, die_stat->st_mode));
+	IGNORE_CALL_RESULT(chown(targetname, die_stat->st_uid,
+						die_stat->st_gid));
     }
 #endif
 
-    free(retval);
+    free(targetname);
 }
 
 /* Initialize the three window portions nano uses. */
@@ -934,10 +917,15 @@ void usage(void)
  * it was compiled with. */
 void version(void)
 {
-    printf(_(" GNU nano, version %s\n"), VERSION);
+#ifdef REVISION
+    printf(" nano from git, commit %s (after %s)\n", REVISION, VERSION);
+#else
+    printf(_(" nano, version %s\n"), VERSION);
+#endif
     printf(" (C) 1999..2016 Free Software Foundation, Inc.\n");
+    printf(_(" (C) 2014..%s the contributors to nano\n"), "2016");
     printf(
-	_(" Email: nano@nano-editor.org	Web: http://www.nano-editor.org/"));
+	_(" Email: nano@nano-editor.org	Web: https://nano-editor.org/"));
     printf(_("\n Compiled options:"));
 
 #ifdef NANO_TINY
@@ -990,6 +978,9 @@ void version(void)
 #endif
 #ifdef DISABLE_COLOR
     printf(" --disable-color");
+#endif
+#ifndef ENABLE_COMMENT
+    printf(" --disable-comment");
 #endif
 #ifdef DISABLE_EXTRA
     printf(" --disable-extra");
@@ -1104,8 +1095,8 @@ void do_exit(void)
 	if (ISSET(TEMP_FILE))
 	    no_current_file_name_warning();
 
-	i = do_yesno_prompt(FALSE,
-		_("Save modified buffer (ANSWERING \"No\" WILL DESTROY CHANGES) ? "));
+	i = do_yesno_prompt(FALSE, _("Save modified buffer?  "
+			"(Answering \"No\" will DISCARD changes.) "));
     }
 
 #ifdef DEBUG
@@ -1118,8 +1109,6 @@ void do_exit(void)
 	close_and_go();
     else if (i != 1)
 	statusbar(_("Cancelled"));
-
-    display_main_list();
 }
 
 /* Close the current buffer, and terminate nano if it was the last. */
@@ -1132,7 +1121,7 @@ void close_and_go(void)
 #endif
 #ifndef DISABLE_MULTIBUFFER
     /* If there are no more open file buffers, jump off a cliff. */
-    if (!close_buffer(FALSE))
+    if (!close_buffer())
 #endif
 	finish();
 }
@@ -1163,6 +1152,8 @@ void finish_stdin_pager(void)
 	nperror("fopen");
 
     read_file(f, 0, "stdin", TRUE, FALSE);
+    openfile->edittop = openfile->fileage;
+
     ttystdin = open("/dev/tty", O_RDONLY);
     if (!ttystdin)
 	die(_("Couldn't reopen stdin from keyboard, sorry\n"));
@@ -1445,7 +1436,8 @@ void do_toggle(int flag)
 	)
 	enabled = !enabled;
 
-    statusbar("%s %s", _(flagtostr(flag)), enabled ? _("enabled") : _("disabled"));
+    statusline(HUSH, "%s %s", _(flagtostr(flag)),
+		enabled ? _("enabled") : _("disabled"));
 }
 #endif /* !NANO_TINY */
 
@@ -1555,24 +1547,38 @@ void terminal_init(void)
 #endif
 }
 
-/* Read in a character, interpret it as a shortcut or toggle if
- * necessary, and return it.
- * If allow_funcs is FALSE, don't actually run any functions associated
- * with shortcut keys. */
+/* Say that an unbound key was struck, and if possible which one. */
+void unbound_key(int code)
+{
+    if (func_key)
+	statusline(ALERT, _("Unbound key"));
+    else if (meta_key) {
+	if (0x60 < code && code < 0x7B)
+	    code -= 0x20;
+	statusline(ALERT, _("Unbound key: M-%c"), code);
+    } else if (code < 0x20)
+	statusline(ALERT, _("Unbound key: ^%c"), code + 0x40);
+    else
+	statusline(ALERT, _("Unbound key: %c"), code);
+}
+
+/* Read in a keystroke.  Act on the keystroke if it is a shortcut or a toggle;
+ * otherwise, insert it into the edit buffer.  If allow_funcs is FALSE, don't
+ * do anything with the keystroke -- just return it. */
 int do_input(bool allow_funcs)
 {
     int input;
-	/* The character we read in. */
-    static int *kbinput = NULL;
-	/* The input buffer. */
-    static size_t kbinput_len = 0;
+	/* The keystroke we read in: a character or a shortcut. */
+    static int *puddle = NULL;
+	/* The input buffer for actual characters. */
+    static size_t depth = 0;
 	/* The length of the input buffer. */
     bool preserve = FALSE;
-	/* Preserve the contents of the cutbuffer? */
+	/* Whether to preserve the contents of the cutbuffer. */
     const sc *s;
     bool have_shortcut;
 
-    /* Read in a character. */
+    /* Read in a keystroke. */
     input = get_kbinput(edit);
 
 #ifndef NANO_TINY
@@ -1604,8 +1610,7 @@ int do_input(bool allow_funcs)
      * function key, and it's not a shortcut or toggle, throw it out. */
     if (!have_shortcut) {
 	if (is_ascii_cntrl_char(input) || meta_key || func_key) {
-	    statusbar(_("Unknown Command"));
-	    beep();
+	    unbound_key(input);
 	    meta_key = FALSE;
 	    func_key = FALSE;
 	    input = ERR;
@@ -1613,26 +1618,23 @@ int do_input(bool allow_funcs)
     }
 
     if (allow_funcs) {
-	/* If we got a character, and it isn't a shortcut or toggle,
-	 * it's a normal text character.  Display the warning if we're
-	 * in view mode, or add the character to the input buffer if
-	 * we're not. */
+	/* If the keystroke isn't a shortcut nor a toggle, it's a normal text
+	 * character: add the character to the input buffer -- or display a
+	 * warning when we're in view mode. */
 	if (input != ERR && !have_shortcut) {
 	    if (ISSET(VIEW_MODE))
 		print_view_warning();
 	    else {
-		kbinput_len++;
-		kbinput = (int *)nrealloc(kbinput, kbinput_len *
-			sizeof(int));
-		kbinput[kbinput_len - 1] = input;
+		depth++;
+		puddle = (int *)nrealloc(puddle, depth * sizeof(int));
+		puddle[depth - 1] = input;
 	    }
 	}
 
 	/* If we got a shortcut or toggle, or if there aren't any other
-	 * characters waiting after the one we read in, we need to
-	 * output all the characters in the input buffer if it isn't
-	 * empty.  Note that it should be empty if we're in view
-	 * mode. */
+	 * characters waiting after the one we read in, we need to output
+	 * all available characters in the input puddle.  Note that this
+	 * puddle will be empty if we're in view mode. */
 	if (have_shortcut || get_key_buffer_len() == 0) {
 #ifndef DISABLE_WRAPPING
 	    /* If we got a shortcut or toggle, and it's not the shortcut
@@ -1641,24 +1643,24 @@ int do_input(bool allow_funcs)
 		wrap_reset();
 #endif
 
-	    if (kbinput != NULL) {
+	    if (puddle != NULL) {
 		/* Display all the characters in the input buffer at
 		 * once, filtering out control characters. */
-		char *output = charalloc(kbinput_len + 1);
+		char *output = charalloc(depth + 1);
 		size_t i;
 
-		for (i = 0; i < kbinput_len; i++)
-		    output[i] = (char)kbinput[i];
+		for (i = 0; i < depth; i++)
+		    output[i] = (char)puddle[i];
 		output[i] = '\0';
 
-		do_output(output, kbinput_len, FALSE);
+		do_output(output, depth, FALSE);
 
 		free(output);
 
 		/* Empty the input buffer. */
-		kbinput_len = 0;
-		free(kbinput);
-		kbinput = NULL;
+		free(puddle);
+		puddle = NULL;
+		depth = 0;
 	    }
 	}
 
@@ -1694,12 +1696,12 @@ int do_input(bool allow_funcs)
 		    if (f && !f->viewok)
 			reset_multis(openfile->current, FALSE);
 #endif
-		    if (edit_refresh_needed) {
+		    if (refresh_needed) {
 #ifdef DEBUG
-			fprintf(stderr, "running edit_refresh() as edit_refresh_needed is true\n");
+			fprintf(stderr, "running edit_refresh() as refresh_needed is true\n");
 #endif
 			edit_refresh();
-			edit_refresh_needed = FALSE;
+			refresh_needed = FALSE;
 		    } else if (s->scfunc == do_delete || s->scfunc == do_backspace)
 			update_line(openfile->current, openfile->current_x);
 		}
@@ -1746,7 +1748,6 @@ int do_mouse(void)
 #ifndef NANO_TINY
 	size_t current_x_save = openfile->current_x;
 #endif
-	size_t pww_save = openfile->placewewant;
 
 	sameline = (mouse_y == openfile->current_y);
 
@@ -1758,8 +1759,8 @@ int do_mouse(void)
 	if (ISSET(SOFTWRAP)) {
 	    size_t i = 0;
 	    for (openfile->current = openfile->edittop;
-		 openfile->current->next && i < mouse_y;
-		 openfile->current = openfile->current->next, i++) {
+			openfile->current->next && i < mouse_y;
+			openfile->current = openfile->current->next, i++) {
 		openfile->current_y = i;
 		i += strlenpt(openfile->current->data) / COLS;
 	    }
@@ -1788,17 +1789,15 @@ int do_mouse(void)
 	{
 	    /* Move to where the click occurred. */
 	    for (; openfile->current_y < mouse_y && openfile->current !=
-		   openfile->filebot; openfile->current_y++)
+			openfile->filebot; openfile->current_y++)
 		openfile->current = openfile->current->next;
 	    for (; openfile->current_y > mouse_y && openfile->current !=
-		   openfile->fileage; openfile->current_y--)
+			openfile->fileage; openfile->current_y--)
 		openfile->current = openfile->current->prev;
 
 	    openfile->current_x = actual_x(openfile->current->data,
 		get_page_start(xplustabs()) + mouse_x);
 	}
-
-	openfile->placewewant = xplustabs();
 
 #ifndef NANO_TINY
 	/* Clicking where the cursor is toggles the mark, as does
@@ -1811,7 +1810,7 @@ int do_mouse(void)
 	    /* The cursor moved; clean the cutbuffer on the next cut. */
 	    cutbuffer_reset();
 
-	edit_redraw(current_save, pww_save);
+	edit_redraw(current_save);
     }
 
     /* No more handling is needed. */
@@ -1842,12 +1841,11 @@ void do_output(char *output, size_t output_len, bool allow_cntrls)
 #endif
 
     while (i < output_len) {
-	/* If allow_cntrls is TRUE, convert nulls and newlines properly. */
+	/* If control codes are allowed, encode a null as a newline, and
+	 * let a newline character create a whole new line. */
 	if (allow_cntrls) {
-	    /* Null to newline, if needed. */
 	    if (output[i] == '\0')
 		output[i] = '\n';
-	    /* Newline to Enter, if needed. */
 	    else if (output[i] == '\n') {
 		do_enter();
 		i++;
@@ -1855,31 +1853,29 @@ void do_output(char *output, size_t output_len, bool allow_cntrls)
 	    }
 	}
 
-	/* Interpret the next multibyte character. */
+	/* Get the next multibyte character. */
 	char_buf_len = parse_mbchar(output + i, char_buf, NULL);
 
 	i += char_buf_len;
 
-	/* If allow_cntrls is FALSE, filter out an ASCII control character. */
+	/* If controls are not allowed, ignore an ASCII control character. */
 	if (!allow_cntrls && is_ascii_cntrl_char(*(output + i -	char_buf_len)))
 	    continue;
 
-	/* If the NO_NEWLINES flag isn't set, when a character is
-	 * added to the magicline, it means we need a new magicline. */
+	/* If we're adding to the magicline, create a new magicline. */
 	if (!ISSET(NO_NEWLINES) && openfile->filebot == openfile->current)
 	    new_magicline();
 
-	/* More dangerousness fun =) */
-	openfile->current->data = charealloc(openfile->current->data,
-					current_len + (char_buf_len * 2));
-
 	assert(openfile->current_x <= current_len);
 
+	/* Make room for the new character and copy it into the line. */
+	openfile->current->data = charealloc(openfile->current->data,
+					current_len + char_buf_len + 1);
 	charmove(openfile->current->data + openfile->current_x + char_buf_len,
 			openfile->current->data + openfile->current_x,
-			current_len - openfile->current_x + char_buf_len);
+			current_len - openfile->current_x + 1);
 	strncpy(openfile->current->data + openfile->current_x, char_buf,
-		char_buf_len);
+			char_buf_len);
 	current_len += char_buf_len;
 	openfile->totsize++;
 	set_modified();
@@ -1903,16 +1899,16 @@ void do_output(char *output, size_t output_len, bool allow_cntrls)
 	/* If we're wrapping text, we need to call edit_refresh(). */
 	if (!ISSET(NO_WRAP))
 	    if (do_wrap(openfile->current))
-		edit_refresh_needed = TRUE;
+		refresh_needed = TRUE;
 #endif
     }
 
 #ifndef NANO_TINY
     /* Well, we might also need a full refresh if we've changed the
      * line length to be a new multiple of COLS. */
-    if (ISSET(SOFTWRAP) && edit_refresh_needed == FALSE)
+    if (ISSET(SOFTWRAP) && refresh_needed == FALSE)
 	if (strlenpt(openfile->current->data) / COLS != orig_lenpt / COLS)
-	    edit_refresh_needed = TRUE;
+	    refresh_needed = TRUE;
 #endif
 
     free(char_buf);
@@ -1923,9 +1919,9 @@ void do_output(char *output, size_t output_len, bool allow_cntrls)
     reset_multis(openfile->current, FALSE);
 #endif
 
-    if (edit_refresh_needed == TRUE) {
+    if (refresh_needed == TRUE) {
 	edit_refresh();
-	edit_refresh_needed = FALSE;
+	refresh_needed = FALSE;
     } else
 	update_line(openfile->current, openfile->current_x);
 }
@@ -1938,8 +1934,10 @@ int main(int argc, char **argv)
 #ifndef DISABLE_WRAPJUSTIFY
     bool fill_used = FALSE;
 	/* Was the fill option used on the command line? */
+#ifndef DISABLE_WRAPPING
     bool forced_wrapping = FALSE;
 	/* Should long lines be automatically hard wrapped? */
+#endif
 #endif
 #ifndef DISABLE_MULTIBUFFER
     bool old_multibuffer;
@@ -2013,6 +2011,9 @@ int main(int argc, char **argv)
 	{NULL, 0, NULL, 0}
     };
 #endif
+
+    /* Back up the terminal settings so that they can be restored. */
+    tcgetattr(0, &oldterm);
 
 #ifdef ENABLE_UTF8
     {
@@ -2202,7 +2203,9 @@ int main(int argc, char **argv)
 		    exit(1);
 		}
 		fill_used = TRUE;
+#ifndef DISABLE_WRAPPING
 		forced_wrapping = TRUE;
+#endif
 		break;
 #endif
 #ifndef DISABLE_SPELLER
@@ -2423,7 +2426,7 @@ int main(int argc, char **argv)
 #endif
 		);
 #ifdef HAVE_REGEX_H
-    quoterc = regcomp(&quotereg, quotestr, REG_EXTENDED);
+    quoterc = regcomp(&quotereg, quotestr, NANO_REG_EXTENDED);
 
     if (quoterc == 0) {
 	/* We no longer need quotestr, just quotereg. */
@@ -2478,16 +2481,12 @@ int main(int argc, char **argv)
     }
 #endif /* !NANO_TINY */
 
-    /* Initialize the search and replace strings. */
+    /* Initialize the search string. */
     last_search = mallocstrcpy(NULL, "");
-    last_replace = mallocstrcpy(NULL, "");
 
     /* If tabsize wasn't specified, set its default value. */
     if (tabsize == -1)
 	tabsize = WIDTH_OF_TAB;
-
-    /* Back up the old terminal settings so that they can be restored. */
-    tcgetattr(0, &oldterm);
 
     /* Initialize curses mode.  If this fails, get out. */
     if (initscr() == NULL)
@@ -2627,14 +2626,14 @@ int main(int argc, char **argv)
     fprintf(stderr, "Main: bottom win, top win and edit win\n");
 #endif
 
-    display_main_list();
-
     display_buffer();
 
     while (TRUE) {
-	/* Make sure the cursor is in the edit window. */
-	reset_cursor();
-	wnoutrefresh(edit);
+	if (currmenu != MMAIN)
+	    display_main_list();
+
+	focusing = TRUE;
+	lastmessage = HUSH;
 
 	/* If constant cursor position display is on, and there are no
 	 * keys waiting in the input buffer, display the current cursor
@@ -2642,13 +2641,15 @@ int main(int argc, char **argv)
 	if (ISSET(CONST_UPDATE) && get_key_buffer_len() == 0)
 	    do_cursorpos(TRUE);
 
-	currmenu = MMAIN;
-	focusing = FALSE;
+	/* Forget any earlier statusbar x position. */
+	reinit_statusbar_x();
 
-	/* Turn the cursor on when waiting for input. */
+	/* Place the cursor in the edit window and make it visible. */
+	reset_cursor();
 	curs_set(1);
+	wnoutrefresh(edit);
 
-	/* Read in and interpret characters. */
+	/* Read in and interpret keystrokes. */
 	do_input(TRUE);
     }
 

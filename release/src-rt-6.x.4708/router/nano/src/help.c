@@ -1,4 +1,3 @@
-/* $Id: help.c 5640 2016-02-13 19:41:12Z bens $ */
 /**************************************************************************
  *   help.c                                                               *
  *                                                                        *
@@ -119,6 +118,8 @@ void do_help(void)
 
 	old_line = line;
 
+	lastmessage = HUSH;
+
 	kbinput = get_kbinput(edit);
 
 #ifndef NANO_TINY
@@ -162,7 +163,8 @@ void do_help(void)
 	} else if (func == do_exit) {
 	    /* Exit from the help viewer. */
 	    break;
-	}
+	} else
+	    unbound_key(kbinput);
     }
 
     if (old_no_help) {
@@ -337,14 +339,12 @@ void help_init(void)
 		"the third line from the bottom and shows important "
 		"messages.  ");
 	htx[1] = N_("The bottom two lines show the most commonly used "
-		"shortcuts in the editor.\n\n The notation for "
-		"shortcuts is as follows: Control-key sequences are "
-		"notated with a caret (^) symbol and can be entered "
-		"either by using the Control (Ctrl) key or pressing "
-		"the Escape (Esc) key twice.  Escape-key sequences are "
-		"notated with the Meta (M-) symbol and can be entered "
-		"using either the Esc, Alt, or Meta key depending on "
-		"your keyboard setup.  ");
+		"shortcuts in the editor.\n\n Shortcuts are written as "
+		"follows: Control-key sequences are notated with a '^' "
+		"and can be entered either by using the Ctrl key or "
+		"pressing the Esc key twice.  Meta-key sequences are "
+		"notated with 'M-' and can be entered using either the "
+		"Alt, Cmd, or Esc key, depending on your keyboard setup.  ");
 	htx[2] = N_("Also, pressing Esc twice and then typing a "
 		"three-digit decimal number from 000 to 255 will enter "
 		"the character with the corresponding value.  The "
@@ -446,7 +446,7 @@ void help_init(void)
 
 	/* First see how many toggles there are. */
 	for (s = sclist; s != NULL; s = s->next)
-	   maximum = (s->toggle && s->ordinal > maximum) ? s->ordinal : maximum;
+	    maximum = (s->toggle && s->ordinal > maximum) ? s->ordinal : maximum;
 
 	/* Now show them in the original order. */
 	while (counter < maximum) {
@@ -454,7 +454,7 @@ void help_init(void)
 	    for (s = sclist; s != NULL; s = s->next)
 		if (s->toggle && s->ordinal == counter) {
 		    ptr += sprintf(ptr, "%s\t\t%s %s\n", (s->menus == MMAIN ? s->keystr : ""),
-				 _(flagtostr(s->toggle)), _("enable/disable"));
+				_(flagtostr(s->toggle)), _("enable/disable"));
 		    if (s->toggle == NO_COLOR_SYNTAX || s->toggle == TABS_TO_SPACES)
 			ptr += sprintf(ptr, "\n");
 		    break;

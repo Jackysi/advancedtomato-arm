@@ -1,4 +1,3 @@
-/* $Id: nano.h 5679 2016-02-25 21:04:45Z astyanax $ */
 /**************************************************************************
  *   nano.h                                                               *
  *                                                                        *
@@ -169,6 +168,10 @@ typedef enum {
 } file_format;
 
 typedef enum {
+    HUSH, MILD, ALERT
+} message_type;
+
+typedef enum {
     OVERWRITE, APPEND, PREPEND
 } append_type;
 
@@ -177,7 +180,7 @@ typedef enum {
 } scroll_dir;
 
 typedef enum {
-    CENTER, NONE
+    CENTERING, FLOWING, STATIONARY
 } update_type;
 
 typedef enum {
@@ -188,6 +191,9 @@ typedef enum {
     ADD, DEL, BACK, CUT, CUT_EOF, REPLACE,
 #ifndef DISABLE_WRAPPING
     SPLIT_BEGIN, SPLIT_END,
+#endif
+#ifndef DISABLE_COMMENT
+    COMMENT, UNCOMMENT, PREFLIGHT,
 #endif
     JOIN, PASTE, INSERT, ENTER, OTHER
 } undo_type;
@@ -209,11 +215,11 @@ typedef struct colortype {
 	/* This syntax's background color. */
     bool bright;
 	/* Is this color A_BOLD? */
-    bool icase;
-	/* Is this regex string case insensitive? */
     int pairnum;
 	/* The color pair number used for this foreground color and
 	 * background color. */
+    int rex_flags;
+	/* The regex compilation flags (with or without REG_ICASE). */
     char *start_regex;
 	/* The start (or all) of the regex string. */
     regex_t *start;
@@ -229,16 +235,14 @@ typedef struct colortype {
 } colortype;
 
 typedef struct regexlisttype {
-    char *ext_regex;
-	/* The regexstrings for the things that match this syntax. */
-    regex_t *ext;
-	/* The compiled regexes. */
+    char *full_regex;
+	/* A regex string to match things that imply a certain syntax. */
     struct regexlisttype *next;
-	/* Next set of regexes. */
+	/* The next regex. */
 } regexlisttype;
 
 typedef struct syntaxtype {
-    char *desc;
+    char *name;
 	/* The name of this syntax. */
     regexlisttype *extensions;
 	/* The list of extensions that this syntax applies to. */
@@ -246,14 +250,16 @@ typedef struct syntaxtype {
 	/* The list of headerlines that this syntax applies to. */
     regexlisttype *magics;
 	/* The list of libmagic results that this syntax applies to. */
-    colortype *color;
-	/* The colors used in this syntax. */
     char *linter;
-	/* The command to lint this type of file. */
+	/* The command with which to lint this type of file. */
     char *formatter;
-        /* Use this formatter command (for programming lang mainly) */
+        /* The formatting command (for programming languages mainly). */
+    char *comment;
+	/* The line comment prefix (and postfix) for this type of file. */
+    colortype *color;
+	/* The colors and their regexes used in this syntax. */
     int nmultis;
-	/* How many multi-line strings this syntax has. */
+	/* How many multiline regex strings this syntax has. */
     struct syntaxtype *next;
 	/* Next syntax. */
 } syntaxtype;
@@ -321,6 +327,14 @@ typedef struct partition {
 } partition;
 
 #ifndef NANO_TINY
+typedef struct undo_group {
+    ssize_t top_line;
+	/* First line of group. */
+    ssize_t bottom_line;
+	/* Last line of group. */
+    struct undo_group *next;
+} undo_group;
+
 typedef struct undo {
     ssize_t lineno;
     undo_type type;
@@ -335,19 +349,20 @@ typedef struct undo {
 	/* The file size after the action. */
     int xflags;
 	/* Some flag data we need. */
+    undo_group *grouping;
+	/* Undo info specific to groups of lines. */
 
     /* Cut-specific stuff we need. */
     filestruct *cutbuffer;
 	/* Copy of the cutbuffer. */
     filestruct *cutbottom;
 	/* Copy of cutbottom. */
-    bool mark_set;
-	/* Was the marker set when we cut? */
     ssize_t mark_begin_lineno;
-	/* copy copy copy */
+	/* Mostly the line number of the current line; sometimes something else. */
     size_t mark_begin_x;
-	/* Another shadow variable. */
+	/* The x position corresponding to the above line number. */
     struct undo *next;
+	/* A pointer to the undo item of the preceding action. */
 } undo;
 #endif /* !NANO_TINY */
 
@@ -418,9 +433,9 @@ typedef struct openfilestruct {
 
 #ifndef DISABLE_NANORC
 typedef struct rcoption {
-   const char *name;
+    const char *name;
 	/* The name of the rcfile option. */
-   long flag;
+    long flag;
 	/* The flag associated with it, if any. */
 } rcoption;
 #endif
@@ -558,15 +573,17 @@ enum
 
 /* Some extra flags for the undo function. */
 #define WAS_FINAL_BACKSPACE	(1<<1)
-#define WAS_MARKED_FORWARD	(1<<2)
-#define WAS_WHOLE_LINE		(1<<3)
+#define WAS_WHOLE_LINE		(1<<2)
+/* The flags for the mark need to be the highest. */
+#define MARK_WAS_SET		(1<<3)
+#define WAS_MARKED_FORWARD	(1<<4)
 #endif /* !NANO_TINY */
 
 /* The maximum number of entries displayed in the main shortcut list. */
 #define MAIN_VISIBLE (((COLS + 40) / 20) * 2)
 
 /* The minimum editor window columns and rows required for nano to work
- * correctly. */
+ * correctly.  Don't make these smaller than 4 and 1. */
 #define MIN_EDITOR_COLS 4
 #define MIN_EDITOR_ROWS 1
 
@@ -583,5 +600,14 @@ enum
 
 /* The maximum number of bytes buffered at one time. */
 #define MAX_BUF_SIZE 128
+
+/* The largest size_t number that doesn't have the high bit set. */
+#define HIGHEST_POSITIVE ((~(size_t)0) >> 1)
+
+#ifdef REVISION
+#define BRANDING PACKAGE_VERSION"-git  "REVISION
+#else
+#define BRANDING PACKAGE_STRING
+#endif
 
 #endif /* !NANO_H */

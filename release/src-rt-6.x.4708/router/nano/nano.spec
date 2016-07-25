@@ -1,5 +1,5 @@
 %define name	nano
-%define version	2.5.3
+%define version	2.6.1
 %define release	1
 
 Name		: %{name}
@@ -9,8 +9,8 @@ Summary		: a user-friendly editor, a Pico clone with enhancements
 
 License		: GPLv3+
 Group		: Applications/Editors
-URL		: http://www.nano-editor.org/
-Source		: http://www.nano-editor.org/dist/v2.4/%{name}-%{version}.tar.gz
+URL		: https://nano-editor.org/
+Source		: https://nano-editor.org/dist/v2.6/%{name}-%{version}.tar.gz
 
 BuildRoot	: %{_tmppath}/%{name}-%{version}-root
 BuildRequires	: autoconf, automake, gettext-devel, ncurses-devel, texinfo
@@ -18,7 +18,7 @@ Requires(post)	: info
 Requires(preun)	: info
 
 %description
-GNU nano is a small and friendly text editor.  It aims to emulate the
+nano is a small and friendly text editor.  It aims to emulate the
 Pico text editor while also offering several enhancements.
 
 %prep

@@ -1,4 +1,4 @@
-This is nano.info, produced by makeinfo version 5.2 from nano.texi.
+This is nano.info, produced by makeinfo version 6.1 from nano.texi.
 
 INFO-DIR-SECTION Editors
 START-INFO-DIR-ENTRY
@@ -11,7 +11,7 @@ File: nano.info,  Node: Top,  Next: Introduction,  Up: (dir)
 nano
 ****
 
-This manual documents GNU 'nano', a small and friendly text editor.
+This manual documents 'nano', a small and friendly text editor.
 
 * Menu:
 
@@ -32,8 +32,8 @@ File: nano.info,  Node: Introduction,  Next: Invoking,  Prev: Top,  Up: Top
 1 Introduction
 **************
 
-GNU 'nano' is a small and friendly text editor.  Besides basic text
-editing, 'nano' offers many extra features, such as an interactive
+'nano' is a small and friendly text editor.  Besides basic text editing,
+'nano' offers many extra features, such as an interactive
 search-and-replace, undo/redo, syntax coloring, smooth scrolling,
 auto-indentation, go-to-line-and-column-number, feature toggles, file
 locking, backup files, and internationalization support.
@@ -668,6 +668,10 @@ The supported settings in a nanorc file are:
      Enable the use of '~/.nano/search_history' for saving and reading
      search/replace strings.
 
+'set justifytrim'
+     When justifying text, trailing whitespace will automatically be
+     removed.
+
 'set keycolor FGCOLOR,BGCOLOR'
      Specify the color combination to use for the shortcut key combos in
      the two help lines at the bottom of the screen.  See 'set
@@ -862,6 +866,18 @@ following commands in a nanorc file:
      functionality only works when libmagic is installed on the system
      and will be silently ignored otherwise.
 
+'comment "string"'
+     Use the given string for commenting and uncommenting lines.  A
+     vertical bar or pipe character (|) designates bracket-style
+     comments; for example, "/*|*/" for CSS files.  The characters
+     before the pipe are prepended to the line and the characters after
+     the pipe are appended at the end of the line.  If no pipe character
+     is present, the entire string is prepended; for example, "#" for
+     Python files.  If empty double quotes are specified, the
+     comment/uncomment functions are disabled; for example, "" for JSON.
+     Double quotes or backslashes may be escaped with a backslash; for
+     example, ".\\"" for man page source.
+
 'color fgcolor,bgcolor "regex" ...'
      Display all pieces of text that match the extended regular
      expression "regex" with foreground color "fgcolor" and background
@@ -895,10 +911,10 @@ following commands in a nanorc file:
 'extendsyntax str directive [arg ...]'
      Extend the syntax previously defined as str to include new
      information.  This allows you to add a new 'color', 'icolor',
-     'header', 'magic', 'linter', or 'formatter' directive to an already
-     defined syntax -- useful when you want to slightly improve a syntax
-     defined in one of the system-installed files (which are normally
-     not writable).
+     'header', 'magic', 'comment', 'linter', or 'formatter' directive to
+     an already defined syntax -- useful when you want to slightly
+     improve a syntax defined in one of the system-installed files
+     (which are normally not writable).
 
 
 File: nano.info,  Node: Rebinding Keys,  Prev: Syntax Highlighting,  Up: Nanorc Files
@@ -1014,6 +1030,10 @@ file:
 'unindent'
      Unindents (shifts to the left) the currently marked text.
 
+'comment'
+     Comments or uncomments the current line or marked lines, using the
+     comment style specified in the active syntax.
+
 'left'
      Goes left one position (in the editor or browser).
 
@@ -1063,7 +1083,8 @@ file:
      Goes to the last line of the file.
 
 'gotoline'
-     Goes to a specific line (and column if specified).
+     Goes to a specific line (and column if specified).  Negative
+     numbers count from the end of the file (and end of the line).
 
 'gototext'
      Switches from targeting a line number to searching for text.
@@ -1081,7 +1102,7 @@ file:
      are open.
 
 'verbatim'
-     Inserts the next character verbatim into the file.
+     Inserts the next keystroke verbatim into the file.
 
 'tab'
      Inserts a tab at the current cursor location.
@@ -1330,7 +1351,7 @@ certain differences between the editors:
      "toggled" on or off using Meta key sequences, meaning the program
      does not have to be restarted to turn a particular feature on or
      off.  See the internal help function (^G) for a list of features
-     that can be toggled.  Or see *Note Feature Toggles::.  instead.
+     that can be toggled.  Or see *Note Feature Toggles:: instead.
 
 'Current Cursor Position'
      The output of the "Display Cursor Position" command (^C) displays
@@ -1442,7 +1463,7 @@ familiar with compiling programs with autoconf support:
 
 '--disable-nls'
      Disables Native Language support.  This will disable the use of any
-     available GNU 'nano' translations.
+     available 'nano' translations.
 
 '--disable-wrapping-as-root'
      Disable hard-wrapping of overlong lines by default when 'nano' is
@@ -1471,28 +1492,28 @@ familiar with compiling programs with autoconf support:
 
 Tag Table:
 Node: Top199
-Node: Introduction560
-Node: Invoking1314
-Node: Command-line Options2107
-Ref: Expert Mode9373
-Node: Editor Basics10335
-Node: Entering Text10618
-Node: Commands11357
-Node: The Cutbuffer12142
-Node: The Mark12820
-Node: Screen Layout13558
-Node: Search and Replace14727
-Node: Using the Mouse15425
-Node: Limitation16041
-Node: Built-in Help16444
-Node: Feature Toggles16835
-Node: Nanorc Files18950
-Node: Settings20382
-Ref: Whitespace27560
-Node: Syntax Highlighting27912
-Node: Rebinding Keys31928
-Node: The File Browser41114
-Node: Pico Compatibility41936
-Node: Building and Configure Options43909
+Node: Introduction556
+Node: Invoking1306
+Node: Command-line Options2099
+Ref: Expert Mode9365
+Node: Editor Basics10327
+Node: Entering Text10610
+Node: Commands11349
+Node: The Cutbuffer12134
+Node: The Mark12812
+Node: Screen Layout13550
+Node: Search and Replace14719
+Node: Using the Mouse15417
+Node: Limitation16033
+Node: Built-in Help16436
+Node: Feature Toggles16827
+Node: Nanorc Files18942
+Node: Settings20374
+Ref: Whitespace27654
+Node: Syntax Highlighting28006
+Node: Rebinding Keys32716
+Node: The File Browser42113
+Node: Pico Compatibility42935
+Node: Building and Configure Options44906
 
 End Tag Table

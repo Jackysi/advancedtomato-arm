@@ -1,4 +1,3 @@
-/* $Id: cut.c 5671 2016-02-23 12:07:58Z bens $ */
 /**************************************************************************
  *   cut.c                                                                *
  *                                                                        *
@@ -205,7 +204,7 @@ void do_cut_text(
 #endif /* !NANO_TINY */
 	set_modified();
 
-    edit_refresh_needed = TRUE;
+    refresh_needed = TRUE;
 
 #ifndef DISABLE_COLOR
     reset_multis(openfile->current, FALSE);
@@ -270,6 +269,8 @@ void do_cut_till_eof(void)
 /* Copy text from the cutbuffer into the current filestruct. */
 void do_uncut_text(void)
 {
+    int was_lineno = openfile->current->lineno;
+
     assert(openfile->current != NULL && openfile->current->data != NULL);
 
     /* If the cutbuffer is empty, get out. */
@@ -288,6 +289,9 @@ void do_uncut_text(void)
     update_undo(PASTE);
 #endif
 
+    if (openfile->current->lineno - was_lineno < editwinrows)
+	focusing = FALSE;
+
     /* Set the current place we want to where the text from the
      * cutbuffer ends. */
     openfile->placewewant = xplustabs();
@@ -295,7 +299,7 @@ void do_uncut_text(void)
     /* Mark the file as modified. */
     set_modified();
 
-    edit_refresh_needed = TRUE;
+    refresh_needed = TRUE;
 
 #ifndef DISABLE_COLOR
     reset_multis(openfile->current, FALSE);

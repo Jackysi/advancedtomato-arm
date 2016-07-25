@@ -1,4 +1,3 @@
-/* $Id: proto.h 5678 2016-02-25 18:58:17Z bens $ */
 /**************************************************************************
  *   proto.h                                                              *
  *                                                                        *
@@ -35,6 +34,8 @@ extern bool meta_key;
 extern bool func_key;
 extern bool focusing;
 
+extern message_type lastmessage;
+
 #ifndef NANO_TINY
 extern int controlleft;
 extern int controlright;
@@ -46,7 +47,8 @@ extern ssize_t wrap_at;
 #endif
 
 extern char *last_search;
-extern char *last_replace;
+
+extern char *present_path;
 
 extern unsigned flags[4];
 extern WINDOW *topwin;
@@ -113,7 +115,7 @@ extern syntaxtype *syntaxes;
 extern char *syntaxstr;
 #endif
 
-extern bool edit_refresh_needed;
+extern bool refresh_needed;
 
 extern int currmenu;
 extern sc *sclist;
@@ -148,9 +150,9 @@ typedef void (*functionptrtype)(void);
 
 /* All functions in browser.c. */
 #ifndef DISABLE_BROWSER
-char *do_browser(char *path, DIR *dir);
+char *do_browser(char *path);
 char *do_browse_from(const char *inpath);
-void browser_init(const char *path, DIR *dir);
+void read_the_list(const char *path, DIR *dir);
 functionptrtype parse_browser_input(int *kbinput);
 void browser_refresh(void);
 void browser_select_dirname(const char *needle);
@@ -289,10 +291,9 @@ void replace_buffer(const char *filename);
 #endif
 void display_buffer(void);
 #ifndef DISABLE_MULTIBUFFER
-void switch_to_prevnext_buffer(bool next, bool quiet);
 void switch_to_prev_buffer_void(void);
 void switch_to_next_buffer_void(void);
-bool close_buffer(bool quiet);
+bool close_buffer(void);
 #endif
 filestruct *read_line(char *buf, size_t buf_len, filestruct *prevnode);
 void read_file(FILE *f, int fd, const char *filename, bool undoable, bool checkwritable);
@@ -341,10 +342,10 @@ char **username_tab_completion(const char *buf, size_t *num_matches,
 	size_t buf_len);
 char **cwd_tab_completion(const char *buf, bool allow_files, size_t
 	*num_matches, size_t buf_len);
-char *input_tab(char *buf, bool allow_files, size_t *place, bool
-	*lastwastab, void (*refresh_func)(void), bool *list);
+char *input_tab(char *buf, bool allow_files, size_t *place,
+	bool *lastwastab, void (*refresh_func)(void), bool *listed);
 #endif
-const char *tail(const char *foo);
+const char *tail(const char *path);
 #ifndef DISABLE_HISTORIES
 char *histfilename(void);
 void load_history(void);
@@ -500,6 +501,7 @@ void enable_signals(void);
 void disable_flow_control(void);
 void enable_flow_control(void);
 void terminal_init(void);
+void unbound_key(int code);
 int do_input(bool allow_funcs);
 #ifndef DISABLE_MOUSE
 int do_mouse(void);
@@ -528,13 +530,13 @@ void do_statusbar_next_word(void);
 void do_statusbar_verbatim_input(bool *got_enter);
 size_t statusbar_xplustabs(void);
 size_t get_statusbar_page_start(size_t start_col, size_t column);
+void reinit_statusbar_x(void);
 void reset_statusbar_cursor(void);
 void update_the_statusbar(void);
 void update_bar_if_needed(void);
 functionptrtype get_prompt_string(int *value, bool allow_tabs,
 #ifndef DISABLE_TABCOMP
-	bool allow_files,
-	bool *list,
+	bool allow_files, bool *listed,
 #endif
 	const char *curranswer,
 #ifndef DISABLE_HISTORIES
@@ -561,12 +563,11 @@ void rcfile_error(const char *msg, ...);
 char *parse_argument(char *ptr);
 #ifndef DISABLE_COLOR
 char *parse_next_regex(char *ptr);
-bool nregcomp(const char *regex, int eflags);
 void parse_syntax(char *ptr);
-void parse_include(char *ptr);
+void parse_includes(char *ptr);
 short color_to_short(const char *colorname, bool *bright);
-void parse_colors(char *ptr, bool icase);
 bool parse_color_names(char *combostr, short *fg, short *bg, bool *bright);
+void grab_and_store(const char *kind, char *ptr, regexlisttype **storage);
 #endif
 void parse_rcfile(FILE *rcstream
 #ifndef DISABLE_COLOR
@@ -584,13 +585,12 @@ void regexp_cleanup(void);
 void not_found_msg(const char *str);
 void search_replace_abort(void);
 int search_init(bool replacing, bool use_answer);
-bool findnextstr(
+int findnextstr(
 #ifndef DISABLE_SPELLER
 	bool whole_word_only,
 #endif
 	const filestruct *begin, size_t begin_x,
-	const char *needle, size_t *needle_len);
-void findnextstr_wrap_reset(void);
+	const char *needle, size_t *match_len);
 void do_search(void);
 #ifndef NANO_TINY
 void do_findprevious(void);
@@ -599,6 +599,7 @@ void do_findnext(void);
 #if !defined(NANO_TINY) || !defined(DISABLE_BROWSER)
 void do_research(void);
 #endif
+void go_looking(void);
 #ifdef HAVE_REGEX_H
 int replace_regexp(char *string, bool create);
 #endif
@@ -607,8 +608,8 @@ ssize_t do_replace_loop(
 #ifndef DISABLE_SPELLER
 	bool whole_word_only,
 #endif
-	bool *canceled, const filestruct *real_current, size_t
-	*real_current_x, const char *needle);
+	const filestruct *real_current, size_t *real_current_x,
+	const char *needle);
 void do_replace(void);
 void goto_line_posx(ssize_t line, size_t pos_x);
 void do_gotolinecolumn(ssize_t line, ssize_t column, bool use_answer,
@@ -651,6 +652,9 @@ void do_indent_void(void);
 void do_unindent(void);
 void do_undo(void);
 void do_redo(void);
+#endif
+#ifndef DISABLE_COMMENT
+void do_comment(void);
 #endif
 void do_enter(void);
 #ifndef NANO_TINY
@@ -721,7 +725,7 @@ ssize_t ngetdelim(char **lineptr, size_t *n, int delim, FILE *stream);
 const char *fixbounds(const char *r);
 #endif
 #ifndef DISABLE_SPELLER
-bool is_whole_word(size_t pos, const char *buf, const char *word);
+bool is_separate_word(size_t position, size_t length, const char *buf);
 #endif
 const char *strstrwrapper(const char *haystack, const char *needle,
 	const char *start);
@@ -744,6 +748,10 @@ void mark_order(const filestruct **top, size_t *top_x, const filestruct
 void discard_until(const undo *thisitem, openfilestruct *thefile);
 void add_undo(undo_type action);
 void update_undo(undo_type action);
+#ifndef DISABLE_COMMENT
+void update_comment_undo(ssize_t lineno);
+bool comment_line(undo_type action, filestruct *f, const char *comment_seq);
+#endif
 #endif
 size_t get_totsize(const filestruct *begin, const filestruct *end);
 filestruct *fsfromline(ssize_t lineno);
@@ -786,16 +794,17 @@ char *display_string(const char *buf, size_t start_col, size_t len, bool
 	dollars);
 void titlebar(const char *path);
 extern void set_modified(void);
-void statusbar(const char *msg, ...);
+void statusbar(const char *msg);
+void statusline(message_type importance, const char *msg, ...);
 void bottombars(int menu);
-void onekey(const char *keystroke, const char *desc, size_t len);
+void onekey(const char *keystroke, const char *desc, int length);
 void reset_cursor(void);
 void edit_draw(filestruct *fileptr, const char *converted, int
 	line, size_t start);
 int update_line(filestruct *fileptr, size_t index);
 bool need_screen_update(size_t pww_save);
 void edit_scroll(scroll_dir direction, ssize_t nlines);
-void edit_redraw(filestruct *old_current, size_t pww_save);
+void edit_redraw(filestruct *old_current);
 void edit_refresh(void);
 void edit_update(update_type location);
 void total_redraw(void);
@@ -803,7 +812,7 @@ void total_refresh(void);
 void display_main_list(void);
 void do_cursorpos(bool constant);
 void do_cursorpos_void(void);
-void do_replace_highlight(bool highlight, const char *word);
+void spotlight(bool active, const char *word);
 void xon_complaint(void);
 void xoff_complaint(void);
 void do_suspend_void(void);

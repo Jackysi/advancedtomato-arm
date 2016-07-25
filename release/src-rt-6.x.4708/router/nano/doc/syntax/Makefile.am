@@ -22,8 +22,8 @@ pkgdata_DATA =	asm.nanorc \
 		man.nanorc \
 		mgp.nanorc \
 		mutt.nanorc \
-		nftables.nanorc \
 		nanorc.nanorc \
+		nftables.nanorc \
 		objc.nanorc \
 		ocaml.nanorc \
 		patch.nanorc \
@@ -34,6 +34,7 @@ pkgdata_DATA =	asm.nanorc \
 		pov.nanorc \
 		python.nanorc \
 		ruby.nanorc \
+		rust.nanorc \
 		sh.nanorc \
 		spec.nanorc \
 		tcl.nanorc \

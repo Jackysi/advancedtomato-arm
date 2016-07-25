@@ -47,6 +47,9 @@
 /* Define this to disable all text wrapping. */
 #undef DISABLE_WRAPPING
 
+/* Define this to disable the comment/uncomment functionality. */
+#undef ENABLE_COMMENT
+
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #undef ENABLE_NLS
@@ -210,6 +213,9 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
 
+/* Flag(s) to use to get the full range of extended regular expressions */
+#undef NANO_REG_EXTENDED
+
 /* Define this to make the nano executable as small as possible. */
 #undef NANO_TINY
 
@@ -253,6 +259,9 @@
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
+
+/* "Setting REVISION in config.h." */
+#undef REVISION
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

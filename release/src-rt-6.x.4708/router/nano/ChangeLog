@@ -1,3 +1,208 @@
+2016-03-31  Benno Schulenberg  <bensberg@justemail.net>
+	* src/text.c (do_int_spell_fix): Replace a fake 'while', delete a
+	redundant 'if', rename a variable, and adjust whitespace.
+
+2016-03-30  Benno Schulenberg  <bensberg@justemail.net>
+	* src/search.c (do_replace_loop, go_looking, findnextstr): Report
+	"Cancelled" instead of "Not found" when the user aborts a replace
+	that is taking too long.  This fixes Savannah bug #47439.
+	* src/winio.c (do_replace_highlight): Rename this to 'spotlight',
+	for clarity, and for contrast with 'do_replace/do_replace_loop'.
+	* src/winio.c (spotlight): Rename a variable for clarity.
+	* src/files.c (input_tab), src/prompt.c (get_prompt_string):
+	Rename a variable to better indicate booleanness.
+	* src/text.c (do_int_speller): Unwrap a few lines.
+
+2016-03-29  Benno Schulenberg  <bensberg@justemail.net>
+	* src/nano.c (main), src/text.c (do_justify, do_verbatim_input),
+	src/winio.c (parse_escape_sequence): Place the cursor in the edit
+	window also when --constantshow is in effect, after a ^J Justify or
+	an invalid escape sequence, and when entering a verbatim keystroke.
+	Leave the cursor off during Unicode input, for extra feedback.
+	* src/browser.c (do_browser): Improve the wording of a message.
+	* src/chars.c (is_valid_unicode): Speed up Unicode validation.
+	* src/text.c (do_int_spell_fix): Allow to stop replacing a word
+	without aborting the entire spell-fixing session.
+	* src/search.c (do_replace_loop): Chop a now-unused parameter.
+
+2016-03-28  Benno Schulenberg  <bensberg@justemail.net>
+	* src/winio.c (statusbar): Don't bother putting back the cursor in
+	the edit window, as it is off anyway, and will be placed back in the
+	main loop.  This prevents a segfault when trying to open a directory.
+	* src/search.c (findnextstr): Provide feedback when searching takes
+	longer than roughly half a second (on average).
+	* src/*.c: Remove the 'last_replace' variable that is never used.
+	* src/winio.c (parse_kbinput): Delete a no-op.
+
+2016-03-23  Benno Schulenberg  <bensberg@justemail.net>
+	* src/search.c (findnextstr): Prevent the internal spell checker from
+	finding the first occurrence twice.  And delete the piece of dead code
+	that was meant to do this.  This fixes Savannah bug #47188.
+	* src/search.c (findnextstr): Clean up and rename a variable.
+	* src/search.c (findnextstr): Poll the keyboard once per second.
+	* src/winio.c (reset_cursor): Remove a pointless condition, and make
+	use of an existing intermediary variable.
+	* src/winio.c (reset_cursor): Tidy up and rename a variable.
+	* src/winio.c (onekey): Elide an unneeded 'if' and unneeded variable.
+
+2016-03-22  Thomas Rosenau  <thomasr@fantasymail.de>
+	* configure.ac, src/*.c: Check for the existence of the REG_ENHANCED
+	regex flag, and use it when it's available (on OS X systems).  This
+	completes the fix for Savannah bug #47325.
+
+2016-03-21  Benno Schulenberg  <bensberg@justemail.net>
+	* src/browser.c (findnextfile): Trim a duplicate variable.
+	* src/browser.c (browser_refresh, findnextfile): Rename four vars.
+
+2016-03-20  Benno Schulenberg  <bensberg@justemail.net>
+	* src/files.c (do_writeout), src/nano.c (do_exit): Normalize the
+	punctuation in some prompts: no space before a question mark, and
+	a semicolon instead of a comma between phrases.
+	* src/text.c (do_cutword): Don't put cut words into the cutbuffer --
+	that is: treat the deletion of words like pressing Backspace/Delete.
+	* src/search.c (get_history_completion, find_history): Cycle through
+	the items from newest to oldest.  This fixes Savannah bug #47205.
+	* src/files.c (do_writeout): When the name of the file was changed,
+	always ask whether this is okay.  This fixes Savannah bug #46894.
+	* src/search.c (do_research): Use 'return' instead of 'else'.
+	* src/search.c (do_search): Don't bother setting 'answer'; just	use
+	'last_search', which has been set to 'answer' in search_init().
+	* src/search.c (go_looking): Factor out the common part of
+	do_search() and do_research() into this new function.
+
+2016-03-19  Benno Schulenberg  <bensberg@justemail.net>
+	* src/search.c (search_init): Always remember the last typed string,
+	also when it's an invalid regex.  This fixes Savannah bug #47440.
+	* src/search.c (search_init, do_replace): Don't bother setting the
+	current answer to the empty string, as do_prompt() can handle a NULL.
+	* src/browser.c (do_browser): Delete a snippet of dead code.
+	* src/browser.c (do_browser): Delete an unneeded variable.
+	* src/search.c (do_gotolinecolumn): Delete another unneeded variable.
+	* src/search.c (search_init): Snip an always-FALSE condition.
+	* src/search.c (search_init): Reshuffle stuff to reduce indentation.
+	* src/search.c (do_replace): Snip a useless setting of answer.
+
+2016-03-17  Benno Schulenberg  <bensberg@justemail.net>
+	* src/search.c (do_research): Use the Search key bindings also during
+	a Re-search, to enable cancelling.  This fixes Savannah bug #47159.
+	* src/search.c (do_replace): Remove two redundant returns.
+	* src/search.c (findnextstr): Prune two #ifdefs.
+	* src/search.c: Adjust some indentation.
+
+2016-03-14  Benno Schulenberg  <bensberg@justemail.net>
+	* src/color.c (color_update): Don't dereference a possible NULL.
+	* src/rcfile.c (parse_colors): Make error message equal to others.
+	* src/rcfile.c (parse_rcfile): Rearrange some things to reduce the
+	indentation level by four steps, so we can unwrap a dozen lines.
+
+2016-03-13  Benno Schulenberg  <bensberg@justemail.net>
+	* src/search.c (regexp_init): Allow using the word boundary markers
+	\< and \> in search strings on non-GNU systems.  This is a partial
+	fix for Savannah bug #47325 reported by Thomas Rosenau.
+	* src/rcfile.c (parse_rcfile, parse_colors, nregcomp): Combine the
+	regular-expression flags at compile time instead of at run time.
+	* src/rcfile.c (parse_syntax, parse_colors): Rename a variable.
+	* src/winio.c (edit_draw): Give a central variable a ringing name.
+
+2016-03-13  Thomas Rosenau  <thomasr@fantasymail.de>  (tiny change)
+	* autogen.sh, README.SVN: Mention SVN instead of CVS.
+
+2016-03-12  Benno Schulenberg  <bensberg@justemail.net>
+	* src/color.c (color_update): Set the syntax and regex pointers
+	just once, in a single place.  And unnest two 'if's.
+	* src/rcfile.c (parse_one_include, parse_includes): New names for
+	these functions, to be more distinguishable.
+	* src/rcfile.c (parse_colors): Reduce the indentation.
+	* src/rcfile.c (parse_colors): Rename a variable.
+	* src/rcfile.c (parse_colors, parse_rcfile): Refind the tail of
+	the colors list only when extending, not for every added color.
+
+2016-03-11  Benno Schulenberg  <bensberg@justemail.net>
+	* src/browser.c (do_browser): Fix compilation when configured with
+	--enable-tiny plus --enable-browser.
+	* src/rcfile.c: Tweak some comments and reshuffle some lines.
+	* src/rcfile.c (color_to_short): Elide a variable.
+	* src/rcfile.c (grab_and_store): First check that there is an
+	open syntax before checking that it is named "default".
+	* src/rcfile.c (parse_rcfile): Fix compilation when configured with
+	--enable-tiny plus --enable-nanorc.
+
+2016-03-10  Benno Schulenberg  <bensberg@justemail.net>
+	* src/rcfile.c (grab_and_store): Do not accept 'header' and 'magic'
+	commands for the default syntax.  This fixes Savannah bug #47323.
+	* src/rcfile.c (pick_up_name): Fold the parsing of a linter and
+	formatter command into a single routine.
+	* src/rcfile.c (parse_header_exp, parse_magic_exp, grab_and_store):
+	Elide the first two functions, and reshuffle parameters in the last.
+	* src/rcfile.c (parse_syntax, parse_rcfile), src/color.c
+	(color_update): Turn the linked list of syntaxes upside-down, so that
+	the last-defined one comes first, so that searching can stop at the
+	first match instead of always having to run through the entire list.
+	* src/rcfile.c: Rename a variable to better fit its new role.
+
+2016-03-09  Benno Schulenberg  <bensberg@justemail.net>
+	* src/rcfile.c (parse_syntax): Produce an adequate error message
+	when the syntax name is unquoted.  This fixes Savannah bug #47324.
+	* src/rcfile.c (parse_syntax): Use the grab_and_store() function
+	also for gathering up extension regexes.
+
+2016-03-04  Benno Schulenberg  <bensberg@justemail.net>
+	* src/color.c (found_in_list): Don't bother keeping the compiled
+	regular expression when it matched -- drop this tiny optimization
+	for when opening multiple files.  Instead stop calling malloc().
+	* src/nano.h: Delete a now-unused struct member.
+	* src/global.c (free_list_item): Elide this now too tiny function.
+	* scr/global.c (thanks_for_all_the_fish): Rename three variables.
+	* src/rcfile.c (parse_colors): Tweak a few things.
+	* src/color.c (color_update): Rename a variable.
+
+2016-03-01  Benno Schulenberg  <bensberg@justemail.net>
+	* src/rcfile.c (parse_syntax), src/color.c (color_update): Don't
+	bother discarding a duplicate syntax (it's too rare, saves little
+	memory, and freeing it properly	would cost even more code), just
+	select the last-defined one.  This addresses Savannah bug #47303.
+	* src/color.c (color_update): Allow to select an empty syntax.
+
+2016-02-29  Benno Schulenberg  <bensberg@justemail.net>
+	* src/nano.h, src/rcfile.c, src/color.c: Rename a struct member.
+	* src/rcfile.c (parse_rcfile): Don't allocate a struct for the
+	"none" syntax (and thus prevent it from being extended).
+	* src/nano.h, src/rcfile.c: Arrange some things more orderly.
+	* src/rcfile.c (parse_rcfile): Close an extended syntax again.
+	* src/rcfile.c (parse_rcfile): Rename a variable.
+	* src/rcfile.c (grab_and_store): Fix breakage of r5695.
+	* src/color.c (color_update): Do not dereference symlinks, so that
+	the syntax will be derived from the name given on the command line,
+	not from that of the target file.  This fixes Savannah bug #47307.
+
+2016-02-28  Benno Schulenberg  <bensberg@justemail.net>
+	* src/rcfile.c (parse_header_exp): Don't continue when something is
+	wrong -- skip the rest of the line.  This fixes Savannah bug #47289.
+	* src/rcfile.c (parse_header_exp, parse_magic_exp, grab_and_store):
+	Use the now correct parsing of header regexes also for parsing magic
+	regexes.  This fixes Savannah bug #47292 and saves 50 lines of code.
+	* src/rcfile.c (grab_and_store): Rename a variable and densify.
+	* src/rcfile.c (grab_and_store): Do not drop regexes that were
+	gathered earlier.  This fixes Savannah bug #47285.
+	* src/rcfile.c (grab_and_store): Rearrange things in my style.
+	* src/rcfile.c (parse_syntax, parse_rcfile): Disallow adding any
+	further things to a syntax when an rcfile ends or when an invalid
+	syntax command is found.  This fixes Savannah bug #47207.
+
+2016-02-26  Benno Schulenberg  <bensberg@justemail.net>
+	* doc/man/nanorc.5, doc/texinfo/nano.texi, doc/syntax/nanorc.nanorc,
+	doc/nanorc.sample.in: Correct the description of 'justifytrim', add
+	it to the Info document, sort it, and tweak a wording.
+	* src/color.c (color_update): Look for a default syntax only when
+	all else failed -- forego the small, complicating optimization.
+	* src/color.c (color_update): Strip things bare to see the sameness.
+	* src/color.c (found_in_list): Factor out this triple repetition.
+	* src/color.c (color_update): Rename a variable for conciseness.
+	* src/color.c (nfreeregex): Elide this function, now used just once.
+	* src/nano.h: Rename a struct element for aptness and contrast.
+	* src/nano.h: Rename another element, because it refers not just
+	to file extensions, but also to header lines and magic strings.
+
 GNU nano 2.5.3 - 2016.02.25
 
 2016-02-25  Benno Schulenberg  <bensberg@justemail.net>
@@ -19,8 +224,8 @@ GNU nano 2.5.3 - 2016.02.25
 
 2016-02-22  Chris Allegretta  <chrisa@asty.org>
 	* Add the ability to kill the trailing spaces when justifying text,
-	by adding a new nanorc option 'justifytrim' -- we'll see
-	whether this warrants a command-line flag or not.  Now with slightly
+	by adding a new nanorc option 'justifytrim' -- we'll see whether
+	this warrants a command-line flag or not.  Now with slightly
 	better logic for multi-spaced lines.
 
 2016-02-22  Benno Schulenberg  <bensberg@justemail.net>
@@ -968,7 +1173,7 @@ GNU nano 2.4.2 - 2015.07.05
 
 2015-06-11  Benno Schulenberg  <bensberg@justemail.net>
 	* src/winio.c (get_key_buffer): Add some debugging code to make it
-	easy to see what codes a key stroke produces.
+	easy to see what codes a keystroke produces.
 
 2015-06-07  Benno Schulenberg  <bensberg@justemail.net>
 	* doc/texinfo/nano.texi: Show the node with the command-line options
@@ -1342,10 +1547,10 @@ GNU nano 2.3.99pre2 - 2015.02.06
 GNU nano 2.3.99pre1 - 2015.01.06
 
 2015-01-03  Chris Allegretta  <chrisa@asty.org>
-	* New formatter code to support syntaxes like
-	go which have tools to automatically lint and reformat the text for
-	you (gofmt), which is lovely.  rcfile option formatter, function
-	text.c:do_formatter() and some other calls.
+	* New formatter code to support syntaxes like Go that have tools to
+	automatically lint and reformat the text (gofmt), which is lovely.
+	Added rcfile option formatter, a function do_formatter() in text.c
+	and some other calls.
 
 2014-12-28  Benno Schulenberg  <bensberg@justemail.net>
 	* src/files.c (do_lockfile): Gettextize the "File being edited"
@@ -2649,7 +2854,7 @@ GNU nano 2.3.3 - 2014.05.29
 
 2013-06-13  David Lawrence Ramsey <pooka109@gmail.com>
 	* src/global.c (first_sc_for): Try to more consistently display keystrokes,
-	  useful when the user has re-binded a bunch of them.
+	  useful when the user has rebound a bunch of them.
 
 2013-06-13 Kamil Dudka <kdudka@redhat.com>
 	* doc/man/nano.1: Actually document the -P (--poslog) option.
@@ -2761,7 +2966,7 @@ GNU nano 2.3.0 - 2011.02.26
 	  by Eitan Adler <lists@eitanadler.com>.
 
 2011-02-23 Kamil Dudka <kdudka@redhat.com>
-	* doc/man/nanorc.5: Fix small typo.
+	* doc/man/nanorc.5: Fix small typo.  Report and original patch by John Bradshaw.
 
 2011-02-22 Chris Allegretta <chrisa@asty.org>
 	* color.c (nfreeregex): Fix that we were trying to set the pointer passed by value
@@ -2804,7 +3009,7 @@ GNU nano 2.2.6 - 2010.11.22
 
 GNU nano 2.2.5 - 2010.08.05
 
-2010-08-04 Lauri Kasanen <curaga@operamail.comcuraga@operamail.com>
+2010-08-04 Lauri Kasanen <curaga@operamail.com>
 	* doc/syntax/mgp.nanorc: New Magicpoint syntax highlighting definition.
 
 2010-08-04 Peter <exodus@savannah>
@@ -2823,7 +3028,7 @@ GNU nano 2.2.5 - 2010.08.05
 
 GNU nano 2.2.4 - 2010.04.15
 
-2010-04-07 Chris Allegretta <chrisa@asty.org>
+2010-04-14 Chris Allegretta <chrisa@asty.org>
 	* doc/man/nano.1,nanorc.5: Remove the backup file warnings now
 	  that a sufficient security fix exists for the backup file code.
 

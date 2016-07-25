@@ -1,4 +1,3 @@
-/* $Id: prompt.c 5670 2016-02-23 08:31:57Z bens $ */
 /**************************************************************************
  *   prompt.c                                                             *
  *                                                                        *
@@ -33,10 +32,6 @@ static size_t statusbar_x = (size_t)-1;
 	/* The cursor position in answer. */
 static size_t statusbar_pww = (size_t)-1;
 	/* The place we want in answer. */
-static size_t old_statusbar_x = (size_t)-1;
-	/* The old cursor position in answer, if any. */
-static size_t old_pww = (size_t)-1;
-	/* The old place we want in answer, if any. */
 
 /* Read in a character, interpret it as a shortcut or toggle if
  * necessary, and return it.
@@ -467,6 +462,13 @@ size_t get_statusbar_page_start(size_t start_col, size_t column)
 		start_col - 1);
 }
 
+/* Reinitialize the cursor position in the status bar prompt. */
+void reinit_statusbar_x(void)
+{
+    statusbar_x = (size_t)-1;
+    statusbar_pww = (size_t)-1;
+}
+
 /* Put the cursor in the statusbar prompt at statusbar_x. */
 void reset_statusbar_cursor(void)
 {
@@ -527,8 +529,7 @@ void update_bar_if_needed(void)
 /* Get a string of input at the statusbar prompt. */
 functionptrtype get_prompt_string(int *actual, bool allow_tabs,
 #ifndef DISABLE_TABCOMP
-	bool allow_files,
-	bool *list,
+	bool allow_files, bool *listed,
 #endif
 	const char *curranswer,
 #ifndef DISABLE_HISTORIES
@@ -618,7 +619,7 @@ functionptrtype get_prompt_string(int *actual, bool allow_tabs,
 #endif
 	    if (allow_tabs)
 		answer = input_tab(answer, allow_files, &statusbar_x,
-				   &tabbed, refresh_func, list);
+					&tabbed, refresh_func, listed);
 
 	    update_the_statusbar();
 	} else
@@ -628,7 +629,7 @@ functionptrtype get_prompt_string(int *actual, bool allow_tabs,
 	    if (history_list != NULL) {
 		/* If we're scrolling up at the bottom of the history list
 		 * and answer isn't blank, save answer in magichistory. */
-		if ((*history_list)->next == NULL && answer[0] != '\0')
+		if ((*history_list)->next == NULL && *answer != '\0')
 		    magichistory = mallocstrcpy(magichistory, answer);
 
 		/* Get the older search from the history list and save it in
@@ -705,13 +706,6 @@ functionptrtype get_prompt_string(int *actual, bool allow_tabs,
     }
 #endif
 
-    /* If we're done with this prompt, restore the cursor position
-     * to what it was at the /previous/ prompt, in case there was. */
-    if (func == do_cancel || func == do_enter) {
-	statusbar_x = old_statusbar_x;
-	statusbar_pww = old_pww;
-    }
-
     *actual = kbinput;
 
     return func;
@@ -742,8 +736,11 @@ int do_prompt(bool allow_tabs,
     int retval;
     functionptrtype func;
 #ifndef DISABLE_TABCOMP
-    bool list = FALSE;
+    bool listed = FALSE;
 #endif
+    /* Save a possible current statusbar x position. */
+    size_t was_statusbar_x = statusbar_x;
+    size_t was_pww = statusbar_pww;
 
     prompt = charalloc(((COLS - 4) * mb_cur_max()) + 1);
 
@@ -756,8 +753,7 @@ int do_prompt(bool allow_tabs,
 
     func = get_prompt_string(&retval, allow_tabs,
 #ifndef DISABLE_TABCOMP
-	allow_files,
-	&list,
+			allow_files, &listed,
 #endif
 	curranswer,
 #ifndef DISABLE_HISTORIES
@@ -768,10 +764,12 @@ int do_prompt(bool allow_tabs,
     free(prompt);
     prompt = NULL;
 
-    /* We're done with the prompt, so save the statusbar cursor
-     * position. */
-    old_statusbar_x = statusbar_x;
-    old_pww = statusbar_pww;
+    /* If we're done with this prompt, restore the x position to what
+     * it was at a possible previous prompt. */
+    if (func == do_cancel || func == do_enter) {
+	statusbar_x = was_statusbar_x;
+	statusbar_pww = was_pww;
+    }
 
     /* If we left the prompt via Cancel or Enter, set the return value
      * properly. */
@@ -788,10 +786,9 @@ int do_prompt(bool allow_tabs,
 #endif
 
 #ifndef DISABLE_TABCOMP
-    /* If we've done tab completion, there might be a list of filename
-     * matches on the edit window at this point.  Make sure that they're
-     * cleared off. */
-    if (list)
+    /* If we've done tab completion, there might still be a list of
+     * filename matches on the edit window.  Clear them off. */
+    if (listed)
 	refresh_func();
 #endif
 
@@ -920,6 +917,8 @@ int do_yesno_prompt(bool all, const char *msg)
 	}
     } while (response == -2);
 
-    currmenu = oldmenu;
+    /* Restore the previously active menu. */
+    bottombars(oldmenu);
+
     return response;
 }
