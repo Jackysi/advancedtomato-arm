@@ -682,6 +682,7 @@ static int init_vlan_ports(void)
 		dirty |= check_nv("vlan2ports", "4 5");
 		break;
 	case MODEL_R7000:
+	case MODEL_R6400:
 	case MODEL_RTN18U:
 	case MODEL_RTAC68U:
 	case MODEL_RTAC3200:
@@ -879,6 +880,7 @@ static void check_bootnv(void)
 #endif
 #ifdef CONFIG_BCMWL6
 	case MODEL_R7000:
+	case MODEL_R6400:
 	case MODEL_R6250:
 	case MODEL_R6300v2:
 		nvram_unset("et1macaddr");
@@ -1784,10 +1786,13 @@ static int init_nvram(void)
 		break;
 	case MODEL_R6250:
 	case MODEL_R6300v2:
+	case MODEL_R6400:
 	case MODEL_R7000:
 		mfr = "Netgear";
 		if(nvram_match("board_id", "U12H245T00_NETGEAR")) //R6250
 			name = "R6250";
+		else if(nvram_match("board_id", "U12H332T00_NETGEAR")) //R6400
+			name = "R6400";
 		else
 			name = model == MODEL_R7000 ? "R7000" : "R6300v2"; //R7000 or R6300v2
 
@@ -1887,7 +1892,7 @@ static int init_nvram(void)
 			nvram_set("pci/1/1/pdoffset80ma1", "0");
 			nvram_set("pci/1/1/pdoffset80ma2", "0");
 			nvram_set("pci/1/1/regrev", "66");
-			nvram_set("pci/1/1/rpcal2g", "0xfaf7");
+			nvram_set("pci/1/1/rpcal2g", "0xefb");
 			nvram_set("pci/1/1/rxgainerr2ga0", "63");
 			nvram_set("pci/1/1/rxgainerr2ga1", "31");
 			nvram_set("pci/1/1/rxgainerr2ga2", "31");
@@ -1991,10 +1996,10 @@ static int init_nvram(void)
 			nvram_set("pci/2/1/rawtempsense", "0x1ff");
 			nvram_set("pci/2/1/regrev", "66");
 			nvram_set("pci/2/1/rpcal2g", "0");
-			nvram_set("pci/2/1/rpcal5gb0", "0x7d09");
-			nvram_set("pci/2/1/rpcal5gb1", "0x8a08");
-			nvram_set("pci/2/1/rpcal5gb2", "0x7dfe");
-			nvram_set("pci/2/1/rpcal5gb3", "0x9612");
+			nvram_set("pci/2/1/rpcal5gb0", "0x7c0c");
+			nvram_set("pci/2/1/rpcal5gb1", "0x880a");
+			nvram_set("pci/2/1/rpcal5gb2", "0x7b04");
+			nvram_set("pci/2/1/rpcal5gb3", "0x8c12");
 			nvram_set("pci/2/1/rxchain", "7");
 			nvram_set("pci/2/1/rxgainerr2ga0", "63");
 			nvram_set("pci/2/1/rxgainerr2ga1", "31");
@@ -2616,7 +2621,8 @@ static int init_nvram(void)
 
 		if (!nvram_match("t_fix1", (char *)name)) {
 			nvram_set("boot_wait", "on");
-			nvram_set("wait_time", "10");
+			nvram_set("wait_time", "10");	// failsafe for default R1D CFE
+			nvram_set("uart_en", "1");	// failsafe for default R1D CFE
 			nvram_set("router_name", "X-R1D");
 
 			nvram_set("vlan1hwname", "et0");
@@ -2641,18 +2647,35 @@ static int init_nvram(void)
 			nvram_set("pci/1/1/macaddr", s);
 			nvram_set("wl0_hwaddr", s);
 
-			// force wl0 settings
+			// force 5G settings
+			nvram_set("wl0_channel", "149");
 			nvram_set("wl0_bw", "3");
 			nvram_set("wl0_bw_cap", "7");
 			nvram_set("wl0_chanspec", "149/80");
 			nvram_set("wl0_nctrlsb", "lower");
+			nvram_set("wl0_nband", "1");
+			nvram_set("wl0_nbw", "80");
+			nvram_set("wl0_nbw_cap", "3");
+			// force 2G settings
+			nvram_set("wl1_channel", "6");
+			nvram_set("wl1_bw_cap","3");
+			nvram_set("wl1_chanspec","6l");
+			nvram_set("wl1_nctrlsb", "lower");
+			nvram_set("wl1_nband", "2");
+			nvram_set("wl1_nbw", "40");
+			nvram_set("wl1_nbw_cap", "1");
+			// country set
 			nvram_set("pci/1/1/ccode", "SG");
 			nvram_set("pci/2/1/ccode", "SG");
 			nvram_set("pci/1/1/regrev", "0");
 			nvram_set("pci/2/1/regrev", "0");
-			nvram_set("wl_country", "SG");
-			nvram_set("wl_country_code", "SG");
-			nvram_set("wl_ssid", "MiWiFi_5G");
+			nvram_set("wl0_country", "SG");
+			nvram_set("wl0_country_code", "SG");
+			nvram_set("wl0_country_rev", "0");
+			nvram_set("wl1_country", "SG");
+			nvram_set("wl1_country_code", "SG");
+			nvram_set("wl1_country_rev", "0");
+			nvram_set("wl0_ssid", "MiWiFi_5G");
 			nvram_set("wl1_ssid", "MiWiFi");
 
 			// usb settings
@@ -4550,6 +4573,7 @@ int init_main(int argc, char *argv[])
 			start_vlan();
 			start_lan();
 			start_arpbind();
+			mwan_state_files();
 			start_wan(BOOT);
 			start_services();
 			start_wl();

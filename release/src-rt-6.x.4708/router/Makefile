@@ -986,7 +986,7 @@ openssl/stamp-h1:
 	cd openssl && \
 	./Configure $(HOSTCONFIG) --openssldir=/etc --cross-compile-prefix=' ' \
 	-ffunction-sections -fdata-sections -Wl,--gc-sections \
-	shared $(OPENSSL_CIPHERS) no-ssl2 no-ssl3 \
+	shared $(OPENSSL_CIPHERS) \
 	no-sha0 no-smime no-camellia no-krb5 no-rmd160 no-ripemd \
 	no-seed no-capieng no-gms no-gmp no-rfc3779 \
 	no-err no-hw no-jpake \
@@ -1068,7 +1068,7 @@ nettle/stamp-h1: gmp
 	CPPFLAGS="-I$(TOP)/gmp" \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-L$(TOP)/gmp/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
-	$(CONFIGURE) prefix=$(TOP)/nettle
+	$(CONFIGURE) prefix=$(TOP)/nettle --disable-documentation
 	@touch nettle/stamp-h1
 
 nettle: nettle/stamp-h1
@@ -1307,6 +1307,8 @@ libusb10: libusb10/Makefile
 libusb10-install: libusb10
 	install -D libusb10/libusb/.libs/libusb-1.0.so $(INSTALLDIR)/libusb10/usr/lib/libusb-1.0.so
 	$(STRIP) $(INSTALLDIR)/libusb10/usr/lib/*.so
+	cd $(INSTALLDIR)/libusb10/usr/lib && \
+		ln -sf libusb-1.0.so libusb-1.0.so.0
 
 libusb10-clean:
 	-@$(MAKE) -C $@ clean
@@ -1850,7 +1852,7 @@ minidlna-clean:
 	-@$(MAKE) -C minidlna clean
 	@rm -f minidlna/stamp-h1
 
-minidlna-install: minidlan
+minidlna-install: minidlna
 	@$(SEP)
 	install -D minidlna/minidlna $(INSTALLDIR)/minidlna/usr/sbin/minidlna
 	$(STRIP) $(INSTALLDIR)/minidlna/usr/sbin/minidlna
@@ -1951,7 +1953,7 @@ ebtables-clean:
 
 #Roadkill
 spawn-fcgi/stamp-h1:
-	cd spawn-fcgi && CC=$(CC) \
+	cd spawn-fcgi && autoreconf && CC=$(CC) \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	ac_cv_func_malloc_0_nonnull=yes \
@@ -2252,19 +2254,19 @@ libncurses-install: libncurses
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/v/vt220 $(INSTALLDIR)/libncurses/usr/share/terminfo/v
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/x/xterm $(INSTALLDIR)/libncurses/usr/share/terminfo/x
 	cd $(INSTALLDIR)/libncurses/usr/lib && ln -sf ../share/terminfo terminfo
-	install libncurses/lib/libncurses.so.5.9 $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.5
-	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.5
-	install libncurses/lib/libpanel.so.5.9 $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.5
-	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.5
-	install libncurses/lib/libform.so.5.9 $(INSTALLDIR)/libncurses/usr/lib/libform.so.5
-	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libform.so.5
-	install libncurses/lib/libmenu.so.5.9 $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.5
-	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.5
+	install libncurses/lib/libncurses.so.6.0 $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
+	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
+	install libncurses/lib/libpanel.so.6.0 $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.6
+	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.6
+	install libncurses/lib/libform.so.6.0 $(INSTALLDIR)/libncurses/usr/lib/libform.so.6
+	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libform.so.6
+	install libncurses/lib/libmenu.so.6.0 $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.6
+	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.6
 	cd $(INSTALLDIR)/libncurses/usr/lib/ && \
-		ln -sf libncurses.so.5 libncurses.so && \
-		ln -sf libpanel.so.5 libpanel.so && \
-		ln -sf libform.so.5 libform.so && \
-		ln -sf libmenu.so.5 libmenu.so
+		ln -sf libncurses.so.6 libncurses.so && \
+		ln -sf libpanel.so.6 libpanel.so && \
+		ln -sf libform.so.6 libform.so && \
+		ln -sf libmenu.so.6 libmenu.so
 
 mysql/stamp-h1: openssl zlib libncurses
 	@$(SEP)
@@ -2377,7 +2379,7 @@ openvpn/.conf: openssl lzo
 	$(CONFIGURE) --prefix= \
 	--with-crypto-library=openssl \
 	--disable-debug --disable-plugin-auth-pam --disable-plugin-down-root --with-plugindir=/lib --enable-management --disable-small \
-	--disable-selinux --disable-socks --enable-password-save \
+	--disable-selinux --disable-socks \
 	OPENSSL_SSL_CFLAGS="-I$(TOP)/openssl/include" \
 	OPENSSL_SSL_LIBS="-L$(TOP)/openssl -lssl" \
 	ac_cv_lib_resolv_gethostbyname=no
@@ -2428,7 +2430,7 @@ libcurl/stamp-h1: zlib openssl
 		--enable-file --enable-ftp --enable-http --enable-ipv6 --enable-tftp \
 		--disable-nls --disable-ares --disable-dict --disable-debug --disable-gopher \
 		--disable-ldap --disable-manual --disable-telnet --disable-verbose \
-		--with-random="/dev/urandom" --with-ssl="$(TOP)/openssl" \
+		--with-random="/dev/urandom" --with-ssl="$(TOP)/openssl/ssl" \
 		--without-gnutls --without-krb4 --without-libidn \
 		--with-linux-headers=$(LINUXDIR)/include \
 		OPENSSL_CFLAGS="-I$(TOP)/openssl/include" \
@@ -2449,11 +2451,11 @@ libcurl-install: libcurl
 	install -D libcurl/src/.libs/curl $(INSTALLDIR)/libcurl/usr/sbin/curl
 	$(STRIP) -s $(INSTALLDIR)/libcurl/usr/sbin/curl
 	install -d $(INSTALLDIR)/libcurl/usr/lib
-	install -D libcurl/lib/.libs/libcurl.so.4.3.0 $(INSTALLDIR)/libcurl/usr/lib/libcurl.so.4.3.0
-	$(STRIP) -s $(INSTALLDIR)/libcurl/usr/lib/libcurl.so.4.3.0
+	install -D libcurl/lib/.libs/libcurl.so.4.4.0 $(INSTALLDIR)/libcurl/usr/lib/libcurl.so.4.4.0
+	$(STRIP) -s $(INSTALLDIR)/libcurl/usr/lib/libcurl.so.4.4.0
 	cd $(INSTALLDIR)/libcurl/usr/lib/ && \
-		ln -sf libcurl.so.4.3.0 libcurl.so.4 && \
-		ln -sf libcurl.so.4.3.0 libcurl.so
+		ln -sf libcurl.so.4.4.0 libcurl.so.4 && \
+		ln -sf libcurl.so.4.4.0 libcurl.so
 
 libevent/stamp-h1:
 	cd libevent && CC=$(CC) \
@@ -2599,7 +2601,7 @@ portmap-install: portmap
 e2fsprogs/stamp-h1:
 	cd e2fsprogs && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
-	$(CONFIGURE) --prefix=$(TOP)/e2fsprogs/staged --enable-shared --enable-static
+	$(CONFIGURE) --prefix=$(TOP)/e2fsprogs/staged --enable-libblkid --enable-symlink-build --disable-defrag --disable-nls --without-libiconv-prefix --without-libintl-prefix
 	touch e2fsprogs/stamp-h1
 
 e2fsprogs: e2fsprogs/stamp-h1
@@ -2773,11 +2775,11 @@ libsodium: libsodium/stamp-h1
 
 libsodium-install: libsodium
 	install -d $(INSTALLDIR)/libsodium/usr/lib
-	install -D libsodium/src/libsodium/.libs/libsodium.so.18.0.1 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.0.1
-	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.0.1
+	install -D libsodium/src/libsodium/.libs/libsodium.so.18.1.0 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.0
+	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.0
 	cd $(INSTALLDIR)/libsodium/usr/lib/ && \
-		ln -sf libsodium.so.18.0.1 libsodium.so.18 && \
-		ln -sf libsodium.so.18.0.1 libsodium.so
+		ln -sf libsodium.so.18.1.0 libsodium.so.18 && \
+		ln -sf libsodium.so.18.1.0 libsodium.so
 
 libsodium-clean:
 	-$(MAKE) -C libsodium clean

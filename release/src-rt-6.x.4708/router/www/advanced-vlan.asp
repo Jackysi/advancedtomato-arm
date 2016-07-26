@@ -20,7 +20,7 @@
 	March 2015 Tvlz
 	https://bitbucket.org/tvlz/tvlz-advanced-vlan/
 
-	** Last Updated - MAR 30 2016 - Tvlz **
+	** Last Updated - May 26 2016 - Tvlz **
 
 	For use with Tomato Firmware only.
 	No part of this file may be used without permission.
@@ -81,14 +81,13 @@ if(nvram['boardflags'] & 0x0100) { // BFL_ENETVLAN = this board has vlan capabil
 // http://wiki.openwrt.org/toh/asus/start
 // http://wiki.openwrt.org/toh/linksys/start
 // http://wiki.openwrt.org/toh/start
-switch(nvram['t_model_name']) { //Added by Tvlz, June 2014, ARM March 2015
+switch(nvram['t_model_name']) {
 	case 'vlan-testid0':
 	case 'Asus RT-AC56U':
 	case 'D-Link DIR868L':
 	case 'Cisco Linksys EA6500v2':
 	case 'Cisco Linksys EA6700':
 	case 'Netgear R8000':
-	case 'Xiaomi MiWiFi':
 		COL_P0N = '0';
 		COL_P1N = '1';
 		COL_P2N = '2';
@@ -103,7 +102,8 @@ switch(nvram['t_model_name']) { //Added by Tvlz, June 2014, ARM March 2015
 	case 'Asus RT-AC3200':
 	case 'Huawei WS880':
 	case 'Linksys EA6900':
-	case 'Netgear R7000': // newer versions
+	case 'Netgear R6400':
+	case 'Netgear R7000':
 		COL_P0N = '1';
 		COL_P1N = '2';
 		COL_P2N = '3';
@@ -125,6 +125,13 @@ switch(nvram['t_model_name']) { //Added by Tvlz, June 2014, ARM March 2015
 		COL_P2N = '2';
 		COL_P3N = '1';
 		COL_P4N = '0';
+	break;
+	case 'Xiaomi MiWiFi': //only has 2 Lan Ports
+		COL_P0N = '0';
+		COL_P1N = '2';
+		COL_P2N = '1';
+		COL_P3N = '3';
+		COL_P4N = '4';
 	break;
 	default:
 		COL_P0N = '1';
@@ -934,10 +941,10 @@ function earlyInit() {
 
 <div style='display:none' id='unknown_router'>
 <div class='section-title'><center>!! Unknown Port Mapping Using Default!!</center></div>
-<div class='fields'><center><a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'> <b>Please Follow these Instructions to get it corrected.</b></a>
+<div class='fields'><center><a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'> <b>Please Follow this Link for Instructions to get it corrected.</b></a>
 <br><br> Include Router Brand/Model (<% nv('t_model_name'); %>),
-<br> Results from "robocfg show" - VLANs section only &amp;
-<br> Port Numbers on Router Case (Left -> Right viewed from Front).
+<br> Results from "nvram show | grep vlan1ports" &amp;
+<br> Port Numbers on BACK of Router Case (Left -> Right viewed from Front).
 <br> </center></div>
 <br>
 </div>
@@ -983,7 +990,7 @@ if(port_vlan_supported) vlg.setup();
 <div class='section-title'>Notes <small><i><a href='javascript:toggleVisibility("notes");'><span id='sesdiv_notes_showhide'>(Click here to hide)</span></a></i></small></div>
 <div class='section' id='sesdiv_notes' style='display:none'>
 <ul>
-<li>If you notice that the order of the Lan Ports are incorrectly mapped, <a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'> <b>Please Follow this Link for Instructions to get it corrected.</b></a></li>
+<li>If you notice that the order of the Lan Ports are incorrectly mapped, <a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'> <b>Please Follow these Instructions to get it corrected.</b></a></li>
 <br>
 <li><b>VLAN</b> - Unique identifier of a VLAN.</li>
 <li><b>VID</b> - Allows overriding 'traditional' VLAN/VID mapping with arbitrary VIDs for each VLAN (set to '0' to use 'regular' VLAN/VID mappings instead).</li>
@@ -996,6 +1003,7 @@ if(port_vlan_supported) vlg.setup();
 <li><b>Wireless</b> - Assignments of wireless interfaces to different LAN briges. You should probably be using and/or check things on <a href=advanced-wlanvifs.asp>Advanced/Virtual Wireless</a> and <a href=basic-network.asp>Basic/Network</a>.</li>
 </ul>
 
+<small>
 <ul>
 <li><b>Other relevant notes/hints:</b>
 <ul>
@@ -1010,6 +1018,7 @@ if(trunk_vlan_supported) {
 </ul>
 <br>
 </ul>
+</small>
 </div>
 </div>
 <script type='text/javascript'>

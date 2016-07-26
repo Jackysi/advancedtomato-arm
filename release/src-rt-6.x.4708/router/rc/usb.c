@@ -88,21 +88,19 @@ void start_usb(void)
 	if (nvram_match("boardtype", "0x052b")) { // Netgear WNR3500L v2 - initialize USB port
 		xstart("gpio", "enable", "20");
 	}
-
-	if (get_model() == MODEL_DIR868L) {
+	else if (get_model() == MODEL_DIR868L) {
 		xstart("gpio", "enable", "10");
 	}
 	else if (get_model() == MODEL_WS880) {
 		xstart("gpio", "enable", "7");
 	}
+	else if (get_model() == MODEL_R1D || get_model() == MODEL_R6400) {
+		xstart("gpio", "enable", "0");
+	}
 	else if (get_model() == MODEL_EA6700 || get_model() == MODEL_EA6900 || get_model() == MODEL_WZR1750) {
 		xstart("gpio", "enable", "9");
-
 		if (get_model() == MODEL_WZR1750)
 			xstart("gpio", "disable", "10"); //usb3.0
-	}
-	if (get_model() == MODEL_R1D) {
-		xstart("gpio", "enable", "0");
 	}
 
 	_dprintf("%s\n", __FUNCTION__);
@@ -158,7 +156,7 @@ void start_usb(void)
 			modprobe(SD_MOD);
 			modprobe(USBSTORAGE_MOD);
 
-			if (nvram_get_int("usb_fs_ext4")) {
+			if (nvram_get_int("usb_fs_ext3") || nvram_get_int("usb_fs_ext4")) {
 #ifdef LINUX26
 				modprobe("mbcache");	// used by ext4
 #endif
@@ -167,15 +165,15 @@ void start_usb(void)
 				modprobe("ext4");
 			}
 
-			if (nvram_get_int("usb_fs_ext3")) {
+			/* if (nvram_get_int("usb_fs_ext3")) {
 #ifdef LINUX26
 				modprobe("mbcache");	// used by ext2/ext3
 #endif
-				/* insert ext3 first so that lazy mount tries ext3 before ext2 */
+				// insert ext3 first so that lazy mount tries ext3 before ext2
 				modprobe("jbd");
 				modprobe("ext3");
 				modprobe("ext2");
-			}
+			} */
 
 			if (nvram_get_int("usb_fs_fat")) {
 				modprobe("fat");
@@ -335,9 +333,6 @@ void stop_usb(void)
 #endif
 		modprobe_r(SCSI_MOD);
 	}
-	if (get_model() == MODEL_R1D) {
-		xstart("gpio", "disable", "0");
-	}
 
 #if defined(LINUX26) && defined(TCONFIG_MICROSD)
 	if (disabled || !nvram_get_int("usb_storage") || nvram_get_int("usb_mmc") != 1) {
@@ -396,24 +391,24 @@ void stop_usb(void)
 			modprobe_r("usbserial");
 		}
 */
+	}
 
 	if (nvram_match("boardtype", "0x052b")) { // Netgear WNR3500L v2 - disable USB port
 		xstart("gpio", "disable", "20");
 	}
-
-	if (get_model() == MODEL_DIR868L) {
+	else if (get_model() == MODEL_DIR868L) {
 		xstart("gpio", "disable", "10");
 	}
 	else if (get_model() == MODEL_WS880) {
 		xstart("gpio", "disable", "7");
 	}
+	else if (get_model() == MODEL_R1D || get_model() == MODEL_R6400) {
+		xstart("gpio", "disable", "0");
+	}
 	else if (get_model() == MODEL_EA6700 || get_model() == MODEL_EA6900 || get_model() == MODEL_WZR1750) {
 		xstart("gpio", "disable", "9");
-
 		if (get_model() == MODEL_WZR1750)
 			xstart("gpio", "enable", "10"); //usb3.0
-	}
-
 	}
 #endif
 
