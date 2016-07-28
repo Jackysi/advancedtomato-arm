@@ -543,6 +543,7 @@ struct nvram_tuple router_defaults[] = {
 // basic-ddns
 	{ "ddnsx0",			""				, 0 },
 	{ "ddnsx1",			""				, 0 },
+	{ "ddnsx_ip",			"wan"				, 0 },
 	{ "ddnsx0_cache",		""				, 0 },
 	{ "ddnsx1_cache",		""				, 0 },
 	{ "ddnsx_save",			"1"				, 0 },
