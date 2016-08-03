@@ -1,14 +1,28 @@
 <!--
-Tomato VLAN GUI
-Copyright (C) 2011-2012 Augusto Bott
-http://code.google.com/p/tomato-sdhc-vlan/
+	Tomato VLAN GUI
+	Copyright (C) 2011-2012 Augusto Bott
+	http://code.google.com/p/tomato-sdhc-vlan/
 
-Tomato GUI
-Copyright (C) 2006-2007 Jonathan Zarate
-http://www.polarcloud.com/tomato/
+	Tomato GUI
+	Copyright (C) 2006-2007 Jonathan Zarate
+	http://www.polarcloud.com/tomato/
 
-For use with Tomato Firmware only.
-No part of this file may be used without permission.
+	Tomato VLAN update and bug correction
+	Copyright (C) 2011-2012 Vicente Soriano
+	http://tomatoraf.com
+
+	Tomato Native VLAN support added
+	Jan	2014 by Aaron Finney
+	https://github.com/slash31/TomatoE
+
+	VLAN Port Order By 't_model_name'
+	March 2015 Tvlz
+	https://bitbucket.org/tvlz/tvlz-advanced-vlan/
+
+	** Last Updated - JULY 22 2016 - Tvlz **
+
+	For use with Tomato Firmware only.
+	No part of this file may be used without permission.
 --><title>VLAN</title>
 <content>
 	<style type="text/css">
@@ -36,7 +50,7 @@ No part of this file may be used without permission.
 	<script type="text/javascript" src="js/wireless.jsx?_http_id=<% nv(http_id); %>"></script>
 	<script type="text/javascript" src="js/interfaces.js"></script>
 	<script type="text/javascript">
-		//<% nvram ("t_model_name,vlan0ports,vlan1ports,vlan2ports,vlan3ports,vlan4ports,vlan5ports,vlan6ports,vlan7ports,vlan8ports,vlan9ports,vlan10ports,vlan11ports,vlan12ports,vlan13ports,vlan14ports,vlan15ports,vlan0hwname,vlan1hwname,vlan2hwname,vlan3hwname,vlan4hwname,vlan5hwname,vlan6hwname,vlan7hwname,vlan8hwname,vlan9hwname,vlan10hwname,vlan11hwname,vlan12hwname,vlan13hwname,vlan14hwname,vlan15hwname,wan_ifnameX,wan2_ifnameX,wan3_ifnameX,wan4_ifnameX,manual_boot_nv,boardtype,boardflags,lan_ifname,lan_ifnames,lan1_ifname,lan1_ifnames,lan2_ifname,lan2_ifnames,lan3_ifname,lan3_ifnames,vlan0tag,vlan0vid,vlan1vid,vlan2vid,vlan3vid,vlan4vid,vlan5vid,vlan6vid,vlan7vid,vlan8vid,vlan9vid,vlan10vid,vlan11vid,vlan12vid,vlan13vid,vlan14vid,vlan15vid");%>
+		//<% nvram ("t_model_name,vlan0ports,vlan1ports,vlan2ports,vlan3ports,vlan4ports,vlan5ports,vlan6ports,vlan7ports,vlan8ports,vlan9ports,vlan10ports,vlan11ports,vlan12ports,vlan13ports,vlan14ports,vlan15ports,vlan0hwname,vlan1hwname,vlan2hwname,vlan3hwname,vlan4hwname,vlan5hwname,vlan6hwname,vlan7hwname,vlan8hwname,vlan9hwname,vlan10hwname,vlan11hwname,vlan12hwname,vlan13hwname,vlan14hwname,vlan15hwname,wan_ifnameX,wan2_ifnameX,wan3_ifnameX,wan4_ifnameX,boardtype,boardflags,lan_ifname,lan_ifnames,lan1_ifname,lan1_ifnames,lan2_ifname,lan2_ifnames,lan3_ifname,lan3_ifnames,vlan0tag,vlan0vid,vlan1vid,vlan2vid,vlan3vid,vlan4vid,vlan5vid,vlan6vid,vlan7vid,vlan8vid,vlan9vid,vlan10vid,vlan11vid,vlan12vid,vlan13vid,vlan14vid,vlan15vid");%>
 
 		var port_vlan_supported = 0;
 		var trunk_vlan_supported = 1; //Enable on all routers
@@ -52,28 +66,17 @@ No part of this file may be used without permission.
 			port_vlan_supported = 1;
 		}
 
-
 		// TESTED ONLY ON WRT54G v2 (boardtype 0x0101),WRT54GL v1.1 (boardtype 0x0467) and WNR3500L (boardtype 0x04cf)
 		// info on some of these boardtypes/routers obtained from
 		// http://wiki.openwrt.org/toh/asus/start
 		// http://wiki.openwrt.org/toh/linksys/start
 		// http://wiki.openwrt.org/toh/start
-		switch ( nvram[ 't_model_name' ] ) { //Added by Tvlz, June 2014
+		switch ( nvram[ 't_model_name' ] ) {
 			case 'vlan-testid0':
-			case 'Belkin Share N300 (F7D3302/F7D7302) v1':
-			case 'Belkin Play N600 (F7D4302/F7D8302) v1':
-			case 'D-Link Dir-620 C1':
-//	case 'FiberHome HG320':
-			case 'Linksys E800 v1.0':
-			case 'Linksys E900 v1.0':
-			case 'Linksys E1200 v1.0':
-			case 'Linksys E1200 v2.0':
-			case 'Linksys E1500 v1.0':
-			case 'Linksys E1550 v1.0':
-			case 'Linksys E2500 v1.0':
-			case 'Linksys E2500 v1/v2/v3':
-			case 'Linksys E3200 v1.0':
-			case 'Linksys E4200 v1':
+			case 'Asus RT-AC56U':
+			case 'D-Link DIR868L':
+			case 'Cisco Linksys EA6500v2':
+			case 'Cisco Linksys EA6700':
 				COL_P0N = '0';
 				COL_P1N = '1';
 				COL_P2N = '2';
@@ -81,30 +84,14 @@ No part of this file may be used without permission.
 				COL_P4N = '4';
 				break;
 			case 'vlan-testid1':
-			case 'Asus RT-N10U':
-			case 'Asus RT-N66U':
-			case 'Belkin N F5D8235-4 v3':
-			case 'Belkin Share Max N300 (F7D3301/F7D7301) v1':
-//	case 'Buffalo WZR-D1100H':
-//	case 'Buffalo WZR-D1800H':
-//	case 'Catchtech CW-5358U':
-			case 'Cisco M10 v1.0':
-			case 'Cisco M10 v2.0':
-			case 'D-Link DIR-865L':
-			case 'Linksys M20':
-			case 'Linksys E1000 v1':
-			case 'Linksys E1000 v2.0':
-			case 'Linksys E1000 v2.1':
-			case 'Linksys E2000':
-			case 'Linksys E3000':
-//	case 'Linksys WRT310N':
-			case 'Linksys WRT320N':
-			case 'Linksys WRT610N v2':
-			case 'Tenda N6':
-			case 'Tenda W1800R':
-			case 'Asus WL-500gP':
-			case 'Asus WL-500gP v2':
-			case 'Asus WL-500W':
+			case 'Asus RT-N18U':
+			case 'Asus RT-AC68R/U':
+			case 'Asus RT-AC68P':
+			case 'Asus RT-AC68P/U B1':
+			case 'Huawei WS880':
+			case 'Linksys EA6900':
+			case 'Netgear R6400':
+			case 'Netgear R7000':
 				COL_P0N = '1';
 				COL_P1N = '2';
 				COL_P2N = '3';
@@ -112,13 +99,8 @@ No part of this file may be used without permission.
 				COL_P4N = '0';
 				break;
 			case 'vlan-testid2':
-			case 'Asus RT-N10P':
-			case 'Asus RT-N12':
-			case 'Asus RT-N12 B1':
-			case 'Asus RT-N15U':
-			case 'Asus RT-N53':
-			case 'Asus RT-N53 A1':
-			case 'Belkin Play Max / N600 HD (F7D4301/F7D8301) v1':
+			case 'Netgear R6250':
+			case 'Netgear R6300v2':
 				COL_P0N = '3';
 				COL_P1N = '2';
 				COL_P2N = '1';
@@ -126,18 +108,18 @@ No part of this file may be used without permission.
 				COL_P4N = '4';
 				break;
 			case 'vlan-testid3':
-			case 'Asus RT-N16':
-			case 'Asus RT-AC66U':
-//	case 'ChinaNet RG200E-CA':
-			case 'Netgear WNR2000 v2':
-			case 'Netgear WNR3500L/U/v2':
-			case 'Netgear WNR3500L v2':
-//	case 'Tenda N60':
 				COL_P0N = '4';
 				COL_P1N = '3';
 				COL_P2N = '2';
 				COL_P3N = '1';
 				COL_P4N = '0';
+				break;
+			case 'Xiaomi MiWiFi': //only has 2 Lan Ports
+				COL_P0N = '0';
+				COL_P1N = '2';
+				COL_P2N = '1';
+				COL_P3N = '3';
+				COL_P4N = '4';
 				break;
 			default:
 				COL_P0N = '1';
@@ -147,39 +129,19 @@ No part of this file may be used without permission.
 				COL_P4N = '0';
 				unknown_router = '1';
 				break;
-				/* K2.6 Routers from Tomatoanon needing port order info from router case
-				 case 'CW-5356U': // brand ??
-				 case 'ZTE H218N':
-				 case 'ZTE ZXV10 H618B':
-				 case 'Linksys WRT160N':
-				 case 'Linksys WRT300N v1':
-				 case 'Netgear WNDR3700v3':
-				 case 'Netgear WNDR4000':
-				 case 'D-Link DIR-627':
-				 case 'Netgear WNDR3400':
-				 case 'Netcore NR235W':
-				 case 'Netcore NI360/Q3':
-				 case 'Tenda N80':
-				 case 'PHICOMM FIR302b':
-				 case 'Vivick Q-W601':
-				 case 'Netcore NR235W/NI360':
-				 case 'Netcore NW715P':
-				 case 'Netgear R6300 V1':
-				 case 'Netgear WNDR3400v2':
-				 */
 		}
 
 		var COL_VID = 0;
 		var COL_MAP = 1;
-		var COL_P0  = 2;
+		var COL_P0 = 2;
 		var COL_P0T = 3;
-		var COL_P1  = 4;
+		var COL_P1 = 4;
 		var COL_P1T = 5;
-		var COL_P2  = 6;
+		var COL_P2 = 6;
 		var COL_P2T = 7;
-		var COL_P3  = 8;
+		var COL_P3 = 8;
 		var COL_P3T = 9;
-		var COL_P4  = 10;
+		var COL_P4 = 10;
 		var COL_P4T = 11;
 		var COL_VID_DEF = 12;
 		var COL_BRI = 13;
@@ -322,24 +284,14 @@ No part of this file may be used without permission.
 			 //        'lan3_ifnames=' + fom['lan3_ifnames'].value);
 			 REMOVE-END */
 
-// for some models, Tomato checks for a few vital/crucial nvram settings at init time
-// in some cases, if some/any of them are not found, a full nvram reset/clean could be triggered
-// so, to (try to) play it safe, we check for the 1st needed/available/required
-// VLAN for FastE (vlan0 is usually LAN) and GigE routers (vlan1 is usually LAN)
-			if ( (fom[ 'vlan0ports' ].value.length < 1) || (fom[ 'vlan0hwname' ].value.length < 1) ||
-			     (fom[ 'vlan1ports' ].value.length < 1) || (fom[ 'vlan1hwname' ].value.length < 1) )
-				fom[ 'manual_boot_nv' ].value = '1';
-			else
-				fom[ 'manual_boot_nv' ].value = nvram[ 'manual_boot_nv' ];
-
 			var e = E( 'footer-msg' );
 
 			if ( vlg.countWan() != 1 ) {
-				e.innerHTML        = 'Cannot proceed: one VID must be assigned to WAN.';
+				e.innerHTML = 'Cannot proceed: one VID must be assigned to WAN.';
 				e.style.visibility = 'visible';
 				setTimeout(
 						function() {
-							e.innerHTML        = '';
+							e.innerHTML = '';
 							e.style.visibility = 'hidden';
 						}, 5000 );
 				return;
@@ -926,7 +878,6 @@ No part of this file may be used without permission.
 		<input type="hidden" name="wan3_ifnameX">
 		<input type="hidden" name="wan4_ifnameX">
 		/* MULTIWAN-END */
-		<input type="hidden" name="manual_boot_nv">
 		<input type="hidden" name="lan_ifnames">
 		<input type="hidden" name="lan1_ifnames">
 		<input type="hidden" name="lan2_ifnames">
@@ -951,7 +902,7 @@ No part of this file may be used without permission.
 		<div style="display: none;" class="alert alert-warning" id='unknown_router'>
 			<h5>Unknown Port Mapping!</h5>
 			<a href='http://www.linksysinfo.org/index.php?threads/can-vlan-gui-port-order-be-corrected.70160/#post-247634/'>Please follow these instructions to get it corrected.</a>
-			Include Router Brand/Model (<% nv('t_model_name'); %>), Results from "robocfg show" - VLANs section only &amp; and Port Numbers on Router Case (Left -> Right viewed from Front).
+			Include Router Brand/Model (<% nv('t_model_name'); %>), Results from "nvram show | grep vlan1ports" - VLANs section only &amp; and Port Numbers on Router Case (Left -> Right viewed from Front).
 		</div>
 
 		<div id="sesdiv" class="box" style="display:none">
