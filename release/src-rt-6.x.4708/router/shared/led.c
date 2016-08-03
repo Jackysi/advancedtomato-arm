@@ -223,10 +223,12 @@ int do_led(int which, int mode)
 	static int n18u[]       = { 255, 255,     6,  255,  255,  255,  255,     3,  14,  255};
 	static int r6250[]      = {  11, 255,    15,  255,  255,    1,  255,     8,   8,  255};
 	static int r6300v2[]    = {  11, 255,    10,  255,  255,    1,  255,     8,   8,  255};
+	static int r6400[]      = {   9,  -2,   255,  255,  255,  -11,  255,    12,  13,    8};
 	static int r7000[]      = {  13, 255,   255,  255,  255,  -15,  255,   -17, -18,   12};
 	static int dir868[]     = { 255, 255,     3,  255,  255,   -0,  255,   255, 255,  255};
 	static int ea6700[]     = { 255, 255,    -6,   -6,  255,  255,  255,   255, 255,  255};
-	static int ws880[]      = {   0, 255,   -12,  255,  255,    6,    1,   255,  14,  255};
+	static int ea6900[]     = { 255, 255,     8,  255,  255,    6,  255,   255, 255,  255};
+	static int ws880[]      = {   0, 255,   -12,  255,  255,    6,    1,    14,  14,    6};
 	static int r1d[]        = { 255, 255,   255,  255,  255,    1,   -8,   255, 255,  255};
 	static int wzr1750[]    = { 255, 255,   255,  255,  255,   -5,  255,   255, 255,  255};
 
@@ -457,6 +459,14 @@ int do_led(int which, int mode)
 			c = (mode) ? 3 : 2;
 		} else
 			b = r6300v2[which];
+		break;
+	case MODEL_R6400:
+		if (which == LED_DIAG) {
+			// power led gpio: -2 - orange, -1 - white
+			b = (mode) ? 1 : 2;
+			c = (mode) ? 2 : 1;
+		} else
+			b = r6400[which];
 		break;
 	case MODEL_R7000:
 		if (which == LED_DIAG) {

@@ -846,6 +846,7 @@ static const nvset_t nvset_list[] = {
 	{ "ipv6_6rd_ipv4masklen",	V_RANGE(0, 32)			},
 	{ "ipv6_vlan",			V_RANGE(0, 7)			},	// Enable IPv6 on 1=LAN1 2=LAN2 4=LAN3
 	{ "ipv6_pdonly",		V_01				},	// Request DHCPv6 Prefix Delegation Only
+	{ "ipv6_ipsec",			V_01				},	// Enable Incoming IPv6 IPSec
 #endif
 
 // basic-wfilter
@@ -1264,6 +1265,7 @@ static const nvset_t nvset_list[] = {
 	{ "usb_fs_ext3",		V_01				},
 	{ "usb_fs_ext4",		V_01				},
 	{ "usb_fs_fat",			V_01				},
+	{ "usb_fs_exfat",		V_01				},
 #ifdef TCONFIG_NTFS
 	{ "usb_fs_ntfs",		V_01				},
 	{ "usb_ntfs_driver",		V_LENGTH(0, 10)			},

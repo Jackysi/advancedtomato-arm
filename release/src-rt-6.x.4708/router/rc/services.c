@@ -120,7 +120,7 @@ void start_dnsmasq()
 	mwan_num = nvram_get_int("mwan_num");
 	for(wan_unit = 1; wan_unit <= mwan_num; ++wan_unit){
 		get_wan_prefix(wan_unit, wan_prefix);
-		if(check_wanup(wan_prefix) && get_dns(wan_prefix)->count) break;
+		if(checkConnect(wan_prefix) && get_dns(wan_prefix)->count) break;
 	}
 	// dns
 	const dns_list_t *dns = get_dns(wan_prefix);	// this always points to a static buffer
@@ -646,7 +646,7 @@ void dns_to_resolv(void)
 	}
 	for(wan_unit = 1; wan_unit <= mwan_num; ++wan_unit){
 		get_wan_prefix(wan_unit, wan_prefix);
-		if(check_wanup(wan_prefix) && get_dns(wan_prefix)->count) break;
+		if(checkConnect(wan_prefix) && get_dns(wan_prefix)->count) break;
 	}
 
 	m = umask(022);	// 077 from pppoecd
@@ -2472,8 +2472,15 @@ void start_services(void)
 #endif
 
 
+	if ((get_model() == MODEL_R6400)) {
+		//activate WAN port led
+		//leave only white color
+		//system("gpio disable 6"); // orange
+		system("gpio disable 7"); // white
+	}
+
 	if ((get_model() == MODEL_R7000)) {
-		//enable WAN port led
+		//activate WAN port led
 		system("/usr/sbin/et robowr 0x0 0x10 0x3000");
 		system("/usr/sbin/et robowr 0x0 0x12 0x78");
 		system("/usr/sbin/et robowr 0x0 0x14 0x01");

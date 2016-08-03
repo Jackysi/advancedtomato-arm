@@ -582,7 +582,7 @@ void restart_wl(void)
 	if (is_client)
 		xstart("radio", "join");
 		
-	if (get_model() == MODEL_R7000) {
+	if ((get_model() == MODEL_R6400) || (get_model() == MODEL_R7000)) {
 		if (nvram_match("wl0_radio", "1"))
 			led(LED_WLAN, LED_ON);
 		if (nvram_match("wl1_radio", "1"))
@@ -679,6 +679,7 @@ void start_wl(void)
 					if (nvram_get_int(wl_nvname("radio", unit, 0))) {
 						if (unit == 0) {
 							led(LED_WLAN, LED_ON);
+							killall("blink", SIGKILL);
 							if (nvram_get_int("blink_wl"))
 								eval("blink", ifname, "wlan", "20", "8192");
 						}
@@ -707,7 +708,7 @@ void start_wl(void)
 	if (is_client)
 		xstart("radio", "join");
 	
-	if (get_model() == MODEL_R7000) {
+	if ((get_model() == MODEL_R6400) || get_model() == MODEL_R7000) {
 		if (nvram_match("wl0_radio", "1"))
 			led(LED_WLAN, LED_ON);
 		if (nvram_match("wl1_radio", "1"))

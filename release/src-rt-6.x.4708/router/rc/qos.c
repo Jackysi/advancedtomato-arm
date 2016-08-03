@@ -584,21 +584,31 @@ void start_qos(char *prefix)
 				"# egress %d: %u-%u%%\n"
 				"\t$TCA parent 1:1 classid 1:%d htb rate %ukbit %s %s prio %d quantum %u\n"
 				"\t$TQA parent 1:%d handle %d: $Q\n"
-				"\t$TFA parent 1: prio %d handle %d fw flowid 1:%d\n",
+				"\t$TFA parent 1: prio %d protocol ip handle %d fw flowid 1:%d\n",
 					i, rate, ceil,
 					x, calc(bw, rate), s, burst_leaf, i+1, mtu,
 					x, x,
 					x, i + 1, x);
+#ifdef TCONFIG_IPV6
+			fprintf(f,
+				"\t$TFA parent 1: prio %d protocol ipv6 handle %d fw flowid 1:%d\n",
+					x + 100, i + 1, x);
+#endif
 		} else {
 			fprintf(f,
 				"# egress %d: %u-%u%%\n"
 				"\t$TCA parent 1:1 classid 1:%d htb rate %ukbit %s %s prio %d quantum %u overhead %u linklayer atm\n"
 				"\t$TQA parent 1:%d handle %d: $Q\n"
-				"\t$TFA parent 1: prio %d handle %d fw flowid 1:%d\n",
+				"\t$TFA parent 1: prio %d protocol ip handle %d fw flowid 1:%d\n",
 					i, rate, ceil,
 					x, calc(bw, rate), s, burst_leaf, i+1, mtu, overhead,
 					x, x,
 					x, i + 1, x);
+#ifdef TCONFIG_IPV6
+			fprintf(f,
+				"\t$TFA parent 1: prio %d protocol ipv6 handle %d fw flowid 1:%d\n",
+					x + 100, i + 1, x);
+#endif
 		}
 	}
 	free(buf);
@@ -708,7 +718,7 @@ void start_qos(char *prefix)
 	if (nvram_get_int("qos_ack")) {
 		fprintf(f,
 			"\n"
-			"\t$TFA parent 1: prio 14 u32 "
+			"\t$TFA parent 1: prio 14 protocol ip u32 "
 			"match ip protocol 6 0xff "			// TCP
 			"match u8 0x05 0x0f at 0 "			// IP header length
 //			"match u16 0x0000 0xff80 at 2 "		// total length (0-127)
@@ -720,7 +730,7 @@ void start_qos(char *prefix)
 	if (nvram_get_int("qos_syn")) {
 		fprintf(f,
 			"\n"
-			"\t$TFA parent 1: prio 15 u32 "
+			"\t$TFA parent 1: prio 15 protocol ip u32 "
 			"match ip protocol 6 0xff "			// TCP
 			"match u8 0x05 0x0f at 0 "			// IP header length
 			"match u16 0x0000 0xffc0 at 2 "		// total length (0-63)
@@ -731,7 +741,7 @@ void start_qos(char *prefix)
 	if (nvram_get_int("qos_fin")) {
 		fprintf(f,
 			"\n"
-			"\t$TFA parent 1: prio 17 u32 "
+			"\t$TFA parent 1: prio 17 protocol ip u32 "
 			"match ip protocol 6 0xff "			// TCP
 			"match u8 0x05 0x0f at 0 "			// IP header length
 			"match u16 0x0000 0xffc0 at 2 "		// total length (0-63)
@@ -742,7 +752,7 @@ void start_qos(char *prefix)
 	if (nvram_get_int("qos_rst")) {
 		fprintf(f,
 			"\n"
-			"\t$TFA parent 1: prio 19 u32 "
+			"\t$TFA parent 1: prio 19 protocol ip u32 "
 			"match ip protocol 6 0xff "			// TCP
 			"match u8 0x05 0x0f at 0 "			// IP header length
 			"match u16 0x0000 0xffc0 at 2 "		// total length (0-63)
@@ -751,7 +761,7 @@ void start_qos(char *prefix)
 	}
 
 	if (nvram_get_int("qos_icmp")) {
-		fputs("\n\t$TFA parent 1: prio 13 u32 match ip protocol 1 0xff flowid 1:10\n", f);
+		fputs("\n\t$TFA parent 1: prio 13 protocol ip u32 match ip protocol 1 0xff flowid 1:10\n", f);
 	}
 
 
@@ -873,6 +883,13 @@ void start_qos(char *prefix)
 			f,
 			"\t$TFA_IMQ parent 1: prio %u handle %u fw flowid 1:%u \n",
 			classid, priority, classid);
+
+#ifdef TCONFIG_IPV6
+		fprintf(
+			f,
+			"\t$TFA_IMQ parent 1: prio %u protocol ipv6 handle %u fw flowid 1:%u \n",
+			classid + 100, priority, classid);
+#endif
 	}
 
 	free(buf);
