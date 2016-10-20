@@ -165,7 +165,7 @@ sub fixDyn
 #	fixDynDep("transmission-remote", "libiconv.so.2.4.0");
 #	fixDynDep("radvd", "libdaemon.so.0.5.0");
 	fixDynDep("miniupnpd", "libnfnetlink.so.0.2.0");
-	fixDynDep("dnscrypt-proxy", "libsodium.so.18.1.0");
+	fixDynDep("dnscrypt-proxy", "libsodium.so.18.1.1");
 #	fixDynDep("wlconf", "libshared.so");
 
 
@@ -523,12 +523,14 @@ genSO("${root}/usr/lib/libevent-2.0.so.5", "${router}/libevent/.libs/libevent.a"
 genSO("${root}/usr/lib/libdaemon.so.0.5.0", "${router}/libdaemon/libdaemon/.libs/libdaemon.a");
 genSO("${root}/usr/lib/libiconv.so.2.5.1", "${router}/libiconv/lib/.libs/libiconv.a");
 genSO("${root}/usr/lib/libnfnetlink.so.0.2.0", "${router}/libnfnetlink/src/.libs/libnfnetlink.a");
-genSO("${root}/usr/lib/libsodium.so.18.1.0", "${router}/libsodium/src/libsodium/.libs/libsodium.a");
+genSO("${root}/usr/lib/libsodium.so.18.1.1", "${router}/libsodium/src/libsodium/.libs/libsodium.a");
 genSO("${root}/usr/lib/libpng.so.3.51.0", "${router}/libpng/.libs/libpng.a");
 genSO("${root}/usr/lib/libpng12.so.0.51.0", "${router}/libpng/.libs/libpng12.a");
 genSO("${root}/usr/lib/libjpeg.so", "${router}/libjpeg/.libs/libjpeg.a");
 genSO("${root}/usr/lib/libxml2.so.2.9.1", "${router}/libxml2/.libs/libxml2.a");
 genSO("${root}/usr/lib/libipset.so.3.6.0", "${router}/ipset/lib/.libs/libipset.a");
+genSO("${root}/usr/lib/libpcre.so.1.2.7", "${router}/pcre/.libs/libpcre.a");
+genSO("${root}/usr/lib/libpcreposix.so.0.0.4", "${router}/pcre/.libs/libpcreposix.a");
 
 print "\n";
 
