@@ -413,7 +413,7 @@ static CURLcode ssh_getworkingpath(struct connectdata *conn,
                                    char **path) /* returns the  allocated
                                                    real path to work with */
 {
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
   char *real_path = NULL;
   char *working_path;
   int working_path_len;
@@ -473,7 +473,7 @@ static CURLcode ssh_getworkingpath(struct connectdata *conn,
 }
 
 #ifdef HAVE_LIBSSH2_KNOWNHOST_API
-static int sshkeycallback(CURL *easy,
+static int sshkeycallback(struct Curl_easy *easy,
                           const struct curl_khkey *knownkey, /* known */
                           const struct curl_khkey *foundkey, /* found */
                           enum curl_khmatch match,
@@ -522,7 +522,7 @@ static CURLcode ssh_knownhost(struct connectdata *conn)
   CURLcode result = CURLE_OK;
 
 #ifdef HAVE_LIBSSH2_KNOWNHOST_API
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
 
   if(data->set.str[STRING_SSH_KNOWNHOSTS]) {
     /* we're asked to verify the host against a file */
@@ -657,7 +657,7 @@ static CURLcode ssh_knownhost(struct connectdata *conn)
 static CURLcode ssh_check_fingerprint(struct connectdata *conn)
 {
   struct ssh_conn *sshc = &conn->proto.sshc;
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
   const char *pubkey_md5 = data->set.str[STRING_SSH_HOST_PUBLIC_KEY_MD5];
   char md5buffer[33];
   int i;
@@ -708,7 +708,7 @@ static CURLcode ssh_check_fingerprint(struct connectdata *conn)
 static CURLcode ssh_statemach_act(struct connectdata *conn, bool *block)
 {
   CURLcode result = CURLE_OK;
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
   struct SSHPROTO *sftp_scp = data->req.protop;
   struct ssh_conn *sshc = &conn->proto.sshc;
   curl_socket_t sock = conn->sock[FIRSTSOCKET];
@@ -1161,8 +1161,13 @@ static CURLcode ssh_statemach_act(struct connectdata *conn, bool *block)
       else {
         /* Return the error type */
         err = sftp_libssh2_last_error(sshc->sftp_session);
-        result = sftp_libssh2_error_to_CURLE(err);
-        sshc->actualcode = result?result:CURLE_SSH;
+        if(err)
+          result = sftp_libssh2_error_to_CURLE(err);
+        else
+          /* in this case, the error wasn't in the SFTP level but for example
+             a time-out or similar */
+          result = CURLE_SSH;
+        sshc->actualcode = result;
         DEBUGF(infof(data, "error = %d makes libcurl = %d\n",
                      err, (int)result));
         state(conn, SSH_STOP);
@@ -1890,7 +1895,7 @@ static CURLcode ssh_statemach_act(struct connectdata *conn, bool *block)
         /* since we don't really wait for anything at this point, we want the
            state machine to move on as soon as possible so we set a very short
            timeout here */
-        Curl_expire(data, 1);
+        Curl_expire(data, 0);
 
         state(conn, SSH_STOP);
       }
@@ -2819,7 +2824,7 @@ static CURLcode ssh_block_statemach(struct connectdata *conn,
 {
   struct ssh_conn *sshc = &conn->proto.sshc;
   CURLcode result = CURLE_OK;
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
 
   while((sshc->state != SSH_STOP) && !result) {
     bool block;
@@ -2893,7 +2898,7 @@ static CURLcode ssh_connect(struct connectdata *conn, bool *done)
 #endif
   struct ssh_conn *ssh;
   CURLcode result;
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
 
   /* initialize per-handle data if not already */
   if(!data->req.protop)
@@ -3019,7 +3024,7 @@ static CURLcode ssh_do(struct connectdata *conn, bool *done)
 {
   CURLcode result;
   bool connected = 0;
-  struct SessionHandle *data = conn->data;
+  struct Curl_easy *data = conn->data;
   struct ssh_conn *sshc = &conn->proto.sshc;
 
   *done = FALSE; /* default to false */
@@ -3051,8 +3056,6 @@ static CURLcode scp_disconnect(struct connectdata *conn, bool dead_connection)
   CURLcode result = CURLE_OK;
   struct ssh_conn *ssh = &conn->proto.sshc;
   (void) dead_connection;
-
-  Curl_safefree(conn->data->req.protop);
 
   if(ssh->ssh_session) {
     /* only if there's a session still around to use! */
@@ -3106,7 +3109,6 @@ static CURLcode scp_done(struct connectdata *conn, CURLcode status,
 
 }
 
-/* return number of received (decrypted) bytes */
 static ssize_t scp_send(struct connectdata *conn, int sockindex,
                         const void *mem, size_t len, CURLcode *err)
 {
@@ -3131,10 +3133,6 @@ static ssize_t scp_send(struct connectdata *conn, int sockindex,
   return nwrite;
 }
 
-/*
- * If the read would block (EWOULDBLOCK) we return -1. Otherwise we return
- * a regular CURLcode value.
- */
 static ssize_t scp_recv(struct connectdata *conn, int sockindex,
                         char *mem, size_t len, CURLcode *err)
 {
@@ -3214,8 +3212,6 @@ static CURLcode sftp_disconnect(struct connectdata *conn, bool dead_connection)
   (void) dead_connection;
 
   DEBUGF(infof(conn->data, "SSH DISCONNECT starts now\n"));
-
-  Curl_safefree(conn->data->req.protop);
 
   if(conn->proto.sshc.ssh_session) {
     /* only if there's a session still around to use! */

@@ -792,8 +792,8 @@ static CURLcode operate_do(struct GlobalConfig *global,
           set_binmode(stdout);
         }
 
-        if(config->tcp_nodelay)
-          my_setopt(curl, CURLOPT_TCP_NODELAY, 1L);
+        if(!config->tcp_nodelay)
+          my_setopt(curl, CURLOPT_TCP_NODELAY, 0L);
 
         if(config->tcp_fastopen)
           my_setopt(curl, CURLOPT_TCP_FASTOPEN, 1L);
@@ -1842,7 +1842,7 @@ CURLcode operate(struct GlobalConfig *config, int argc, argv_item_t argv[])
 
   /* Parse .curlrc if necessary */
   if((argc == 1) ||
-     (!curlx_strequal(argv[1], "-q") ||
+     (!curlx_strequal(argv[1], "-q") &&
       !curlx_strequal(argv[1], "--disable"))) {
     parseconfig(NULL, config); /* ignore possible failure */
 

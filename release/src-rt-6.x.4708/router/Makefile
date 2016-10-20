@@ -1068,7 +1068,7 @@ dnsmasq-install:
 nettle/stamp-h1: gmp
 	@cd nettle && CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) \
 	CPPFLAGS="-I$(TOP)/gmp" \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
+	CFLAGS="-O2 -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-L$(TOP)/gmp/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	$(CONFIGURE) prefix=$(TOP)/nettle --disable-documentation
 	@touch nettle/stamp-h1
@@ -2035,13 +2035,13 @@ pcre: pcre/stamp-h1
 
 pcre-install: pcre
 	@$(SEP)
-	install -D pcre/.libs/libpcre.so.1 $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.3
-	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.3
-	install -D pcre/.libs/libpcreposix.so.0.0.2 $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.2
-	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.2
+	install -D pcre/.libs/libpcre.so.1 $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.7
+	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.7
+	install -D pcre/.libs/libpcreposix.so.0.0.4 $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.4
+	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.4
 	cd $(INSTALLDIR)/pcre/usr/lib/ && \
-		ln -sf libpcre.so.1.2.3 libpcre.so.1 && \
-		ln -sf libpcreposix.so.0.0.2 libpcreposix.so.0
+		ln -sf libpcre.so.1.2.7 libpcre.so.1 && \
+		ln -sf libpcreposix.so.0.0.4 libpcreposix.so.0
 
 pcre-clean:
 	( if [ -f pcre/Makefile ]; then \
@@ -2404,11 +2404,11 @@ openvpn_plugin_auth_nvram: nvram$(BCMEX)
 #shibby
 nano/stamp-h1: libncurses
 	cd nano && CC=$(CC) STRIP=$(STRIP) \
-		CFLAGS="-O3 -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libncurses/staged/usr/lib -fPIC" \
 		ac_cv_lib_ncursesw_get_wch=no \
-		$(CONFIGURE) --prefix=/usr --disable-nls --enable-all --without-libiconv-prefix --disable-utf8
+		$(CONFIGURE) --prefix=/usr --disable-nls --enable-tiny --enable-all --without-libiconv-prefix --disable-utf8
 	touch nano/stamp-h1
 
 nano: nano/stamp-h1
@@ -2777,11 +2777,11 @@ libsodium: libsodium/stamp-h1
 
 libsodium-install: libsodium
 	install -d $(INSTALLDIR)/libsodium/usr/lib
-	install -D libsodium/src/libsodium/.libs/libsodium.so.18.1.0 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.0
-	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.0
+	install -D libsodium/src/libsodium/.libs/libsodium.so.18.1.1 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.1
+	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.1
 	cd $(INSTALLDIR)/libsodium/usr/lib/ && \
-		ln -sf libsodium.so.18.1.0 libsodium.so.18 && \
-		ln -sf libsodium.so.18.1.0 libsodium.so
+		ln -sf libsodium.so.18.1.1 libsodium.so.18 && \
+		ln -sf libsodium.so.18.1.1 libsodium.so
 
 libsodium-clean:
 	-$(MAKE) -C libsodium clean
