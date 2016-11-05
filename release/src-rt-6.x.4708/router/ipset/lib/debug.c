@@ -77,6 +77,7 @@ debug_cadt_attrs(int max, const struct ipset_attr_policy *policy,
 		 const struct ipset_attrname attr2name[],
 		 struct nlattr *nla[])
 {
+	uint64_t tmp;
 	uint32_t v;
 	int i;
 
@@ -102,10 +103,10 @@ debug_cadt_attrs(int max, const struct ipset_attr_policy *policy,
 				attr2name[i].name, ntohl(v));
 			break;
 		case MNL_TYPE_U64:
+			memcpy(&tmp, mnl_attr_get_payload(nla[i]), sizeof(tmp));
 			fprintf(stderr, "\t\t%s: 0x%llx\n",
 				attr2name[i].name, (long long int)
-				be64toh(*(uint64_t *)
-					mnl_attr_get_payload(nla[i])));
+				be64toh(tmp));
 			break;
 		case MNL_TYPE_NUL_STRING:
 			fprintf(stderr, "\t\t%s: %s\n",

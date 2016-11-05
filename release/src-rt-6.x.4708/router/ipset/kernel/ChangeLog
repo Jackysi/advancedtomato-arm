@@ -1,3 +1,131 @@
+6.30
+  - netfilter: ipset: hash: fix boolreturn.cocci warnings
+    (Fengguang Wu)
+  - Fix the nla_put_net64() API changes backport
+  - netfilter: ipset: Fixing unnamed union init (Elad Raz)
+  - netfilter: x_tables: Use par->net instead of computing from the passed
+    net devices (Eric W. Biederman)
+  - Correct the reported memory size for bitmap:* types
+  - Fix coding styles reported by checkpatch.pl, already in kernel
+  - netfilter: x_tables: Pass struct net in xt_action_param
+    (Eric W. Biederman)
+  - net: sched: fix skb->protocol use in case of accelerated vlan path
+    (Jiri Pirko)
+  - Check IPSET_ATTR_ETHER netlink attribute length in hash:ipmac too
+  - netfilter: fix include files for compilation (Mikko Rapeli)
+  - ipset: Backports for the nla_put_net64() API changes (Neutron Soutmun)
+  - netfilter: ipset: use setup_timer() and mod_timer().
+    (Muhammad Falak R Wani)
+  - hash:ipmac type support added to ipset (Tomasz Chilinski)
+
+6.29
+  - Fix race condition in ipset save, swap and delete (Vishwanath Pai)
+
+6.28
+  - Check IPSET_ATTR_ETHER netlink attribute length
+  - Fix __aligned_u64 compatibility support for older kernel releases
+  - Add compatibility to support EXPORT_SYMBOL_GPL in module.h
+  - Fix set:list type crash when flush/dump set in parallel
+  - pass down netns pointer to call() and call_rcu() (backport)
+  - allow a 0 netmask with hash_netiface type (Florian Westphal)
+
+6.27
+  - Fix reported memory size for hash:* types
+  - Fix hash type expire: release empty hash bucket block
+  - Fix hash type expiration: incorrect index fixed
+  - Collapse same condition body to a single one
+  - Fix extension alignment
+  - Compatibility: include linux/export.h when needed
+  - Compatibility: make sure vmalloc.h is included for kvfree()
+  - Compatibility: Fix detecting 'struct net' in 'struct tcf_ematch'
+  - Compatibility: Protect definition of RCU_INIT_POINTER in compatibility
+    header file
+  - netfilter: ipset: Fix sleeping memory allocation in atomic context
+    (Nikolay Borisov)
+
+6.26
+  - Out of bound access in hash:net* types fixed (reported by Dave Jones)
+  - Make struct htype per ipset family (originally from Sergey Popovich)
+  - Optimize hash creation routine (originally from Sergey Popovich)
+  - Make sure element data size is a multiple of u32 (originally from Sergey
+    Popovich)
+  - Make NLEN compile time constant for hash types (originally from Sergey
+    Popovich)
+  - Simplify mtype_expire() for hash types (originally from Sergey Popovich)
+  - Count non-static extension memory into the set memory size for userspace
+  - net: sched: Simplify em_ipset_match (Eric W. Biederman)
+
+6.25.1
+  - net/netfilter/ipset: work around gcc-4.4.4 initializer bug
+    (Andrew Morton)
+
+6.25
+  - Add element count to all set types header
+  - Add element count to hash headers (Eric B Munson)
+  - implement nla_put_in_addr and nla_put_in6_addr (Jiri Benc)
+  - deinline ip_set_put_extensions() (Denys Vlasenko)
+  - Fix error path in mtype_resize() when new hash bucket cannot be
+    allocated
+  - There is no need to call synchronize_rcu() after list_add_rcu()
+  - Fix typo in function name get_phyoutdev_name()
+  - Separate memsize calculation code into dedicated functions (originally
+    from Sergey Popovich)
+  - Split extensions into separate files (originally from Sergey Popovich)
+  - Improve comment extension helpers (originally from Sergey Popovich)
+  - Improve skbinfo get/init helpers (originally from Sergey Popovich)
+  - Headers file cleanup (originally from Sergey Popovich)
+  - Correct rcu_dereference_bh_nfnl() usage (originally from Sergey
+    Popovich)
+  - add helpers for fetching physin/outdev (Florian Westphal)
+  - When a single set is destroyed, make sure it can't be grabbed by dump
+  - In comment extension ip_set_comment_free() is always called in a safe
+    path
+  - Add rcu_barrier() to module removal in the bitmap types too
+  - Fix coding styles reported by the most recent checkpatch.pl
+  - Make sure bitmap:ip,mac detects the proper MAC even when it's
+    overwritten
+  - RCU safe comment extension handling
+  - Make sure the proper is_destroyed value is checked at dumping
+  - Fix broken commit "Check extensions attributes before getting
+    extensions."
+  - Improve preprocessor macros checks (Sergey Popovich)
+  - Fix hashing for ipv6 sets (Sergey Popovich)
+  - Fix ext_*() macros so pointers returned by these macros could be
+    referenced directly (Sergey Popovich)
+  - Check for comment netlink attribute length (Sergey Popovich)
+  - Return bool values instead of int (Sergey Popovich)
+  - Check CIDR value only when attribute is given (Sergey Popovich)
+  - Make sure we always return line number on batch (Sergey Popovich)
+  - Permit CIDR equal to the host address CIDR in IPv6 (Sergey Popovich)
+  - Use HOST_MASK literal to represent host address CIDR len (Sergey
+    Popovich)
+  - Check IPSET_ATTR_PORT only once (Sergey Popovich)
+  - Check extensions attributes before getting extensions (Sergey Popovich)
+  - Use SET_WITH_*() helpers to test set extensions (Sergey Popovich)
+  - Return ipset error instead of bool (Sergey Popovich)
+  - Preprocessor directices cleanup (Sergey Popovich)
+  - No need to make nomatch bitfield (Sergey Popovich)
+  - Make sure bit operations are not reordered
+  - Properly calculate extensions offsets and total length (Sergey Popovich)
+  - Fix cidr handling for hash:*net* types, reported by Jonathan Johnson
+  - fix boolreturn.cocci warnings (Fengguang Wu)
+  - make ip_set_get_ip*_port to use skb_network_offset (Alexander Drozdov)
+  - Make sure listing doesn't grab a set which is just being destroyed.
+  - Missing rcu_read_lock() and _unlock() in mtype_list() fixed
+  - Fix coding styles reported by checkpatch.pl
+  - Use nlmsg_total_size instead of NLMSG_SPACE in ip_set_core.c
+  - There's no need to call synchronize_rcu() with kfree_rcu()
+  - Call rcu_barrier() in module removal path
+  - Call synchronize_rcu() in set type (un)register functions only when
+    needed
+  - Remove an unused macro
+  - Give a better name to a macro in ip_set_core.c
+  - Resolve the STREQ macro to make the code more readable, and use
+    nla_strlcpy where possible
+  - Use MSEC_PER_SEC consistently
+  - Remove unnecessary integer RCU handling and fix other sparse warnings
+  - Fix sparse warning "cast to restricted __be32"
+
 6.24
   - netfilter: ipset: small potential read beyond the end of buffer
     (Dan Carpenter)

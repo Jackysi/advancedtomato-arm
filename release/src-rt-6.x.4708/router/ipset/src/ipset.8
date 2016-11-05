@@ -13,7 +13,7 @@
 .\" You should have received a copy of the GNU General Public License
 .\" along with this program; if not, write to the Free Software
 .\" Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-.TH "IPSET" "8" "Sep 23, 2014" "Jozsef Kadlecsik" ""
+.TH "IPSET" "8" "Jun 25, 2015" "Jozsef Kadlecsik" ""
 .SH "NAME"
 ipset \(em administration tool for IP sets
 .SH "SYNOPSIS"
@@ -95,12 +95,11 @@ ignores if the entry already added to the set.
 \fBdel\fP \fISETNAME\fP \fIDEL\-ENTRY\fP [ \fIDEL\-OPTIONS\fP ]
 Delete an entry from a set. If the
 \fB\-exist\fR
-option is specified,
-\fBipset\fR
-ignores if the entry does not added to (already expired from) the set.
+option is specified and the entry is not in the set (maybe already expired),
+then the command is ignored.
 .TP 
 \fBtest\fP \fISETNAME\fP \fITEST\-ENTRY\fP [ \fITEST\-OPTIONS\fP ]
-Test wether an entry is in a set or not. Exit status number is zero
+Test whether an entry is in a set or not. Exit status number is zero
 if the tested entry is in the set and nonzero if it is missing from
 the set.
 .TP 
@@ -271,7 +270,7 @@ parameter for the \fBcreate\fR command means the default timeout value (in secon
 for new entries. If a set is created with timeout support, then the same 
 \fBtimeout\fR option can be used to specify non\-default timeout values
 when adding entries. Zero timeout value means the entry is added permanent to the set.
-The timeout value of already added elements can be changed by readding the element
+The timeout value of already added elements can be changed by re-adding the element
 using the \fB\-exist\fR option. Example:
 .IP
 ipset create test hash:ip timeout 300
@@ -279,6 +278,11 @@ ipset create test hash:ip timeout 300
 ipset add test 192.168.0.1 timeout 60
 .IP
 ipset \-exist add test 192.168.0.1 timeout 600
+.PP
+When listing the set, the number of entries printed in the header might be
+larger than the listed number of entries for sets with the timeout extensions:
+the number of entries in the set is updated when elements added/deleted to the
+set and periodically when the garbage collector evicts the timed out entries.
 .PP
 .SS "counters, packets, bytes"
 All set types support the optional \fBcounters\fR
@@ -317,7 +321,7 @@ ipset add foo 192.168.1.1/24 comment "allow access to SMB share on \\\\\\\\files
 the above would appear as: "allow access to SMB share on \\\\fileserv\\"
 .PP
 .SS "skbinfo, skbmark, skbprio, skbqueue"
-All set types support the optional \fBskbinfo\fR extension. This extension allow to
+All set types support the optional \fBskbinfo\fR extension. This extension allows you to
 store the metainfo (firewall mark, tc class and hardware queue) with every entry and map it to
 packets by usage of SET netfilter target with \-\-map\-set option.
 \fBskbmark\fR option format: \fBMARK\fR or \fBMARK/MASK\fR, where \fBMARK\fR and \fBMASK\fR are 32bit hex
@@ -546,6 +550,28 @@ ipset create foo hash:mac
 ipset add foo 01:02:03:04:05:06
 .IP
 ipset test foo 01:02:03:04:05:06
+
+.SS hash:ip,mac
+The \fBhash:ip,mac\fR set type uses a hash to store IP and a MAC address pairs. Zero valued MAC addresses cannot be stored in a \fBhash:ip,mac\fR
+type of set.
+.PP
+\fICREATE\-OPTIONS\fR := [ \fBfamily\fR { \fBinet\fR | \fBinet6\fR } ] | [ \fBhashsize\fR \fIvalue\fR ] [ \fBmaxelem\fR \fIvalue\fR ] [ \fBtimeout\fR \fIvalue\fR ] [ \fBcounters\fP ] [ \fBcomment\fP ] [ \fBskbinfo\fP ]
+.PP
+\fIADD\-ENTRY\fR := \fIipaddr\fR,\fImacaddr\fR
+.PP
+\fIADD\-OPTIONS\fR := [ \fBtimeout\fR \fIvalue\fR ] [ \fBpackets\fR \fIvalue\fR ] [ \fBbytes\fR \fIvalue\fR ] [ \fBcomment\fR \fIstring\fR ] [ \fBskbmark\fR \fIvalue\fR ] [ \fBskbprio\fR \fIvalue\fR ] [ \fBskbqueue\fR \fIvalue\fR ]
+.PP
+\fIDEL\-ENTRY\fR := \fIipaddr\fR,\fImacaddr\fR
+.PP
+\fITEST\-ENTRY\fR := \fIipaddr\fR,\fImacaddr\fR
+.PP
+Examples:
+.IP
+ipset create foo hash:ip,mac
+.IP
+ipset add foo 1.1.1.1,01:02:03:04:05:06
+.IP
+ipset test foo 1.1.1.1,01:02:03:04:05:06
 
 .SS hash:net
 The \fBhash:net\fR set type uses a hash to store different sized IP network addresses.
@@ -1043,6 +1069,7 @@ OK, just kidding...
 .SH "SEE ALSO"
 \fBiptables\fR(8),
 \fBip6tables\fR(8)
+\fBiptables-extensions\fR(8)
 .SH "AUTHORS"
 Jozsef Kadlecsik wrote ipset, which is based on ippool by
 Joakim Axelsson, Patrick Schaaf and Martin Josefsson.

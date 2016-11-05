@@ -1,5 +1,5 @@
 # Create a set with timeout
-0 ipset create test nethash hashsize 128 timeout 5
+0 ipset create test nethash hashsize 128 timeout 4
 # Add zero valued element
 1 ipset add test 0.0.0.0/0
 # Test zero valued element
@@ -114,6 +114,8 @@
 0 ipset destroy test
 # Check CIDR book-keeping
 0 ./check_cidrs.sh
+# Check all possible CIDR values
+0 ./cidr.sh net
 # Timeout: Check that resizing keeps timeout values
 0 ./resizet.sh -4 net
 # Nomatch: Check that resizing keeps the nomatch flag

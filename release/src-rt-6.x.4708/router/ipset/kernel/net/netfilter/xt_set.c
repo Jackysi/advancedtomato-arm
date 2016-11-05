@@ -9,7 +9,8 @@
  */
 
 /* Kernel module which implements the set match and SET target
- * for netfilter/iptables. */
+ * for netfilter/iptables.
+ */
 
 #include <linux/module.h>
 #include <linux/skbuff.h>
@@ -87,10 +88,10 @@ compat_flags(struct xt_set_info_v0 *info)
 	info->u.compat.dim = IPSET_DIM_ZERO;
 	if (info->u.flags[0] & IPSET_MATCH_INV)
 		info->u.compat.flags |= IPSET_INV_MATCH;
-	for (i = 0; i < IPSET_DIM_MAX-1 && info->u.flags[i]; i++) {
+	for (i = 0; i < IPSET_DIM_MAX - 1 && info->u.flags[i]; i++) {
 		info->u.compat.dim++;
 		if (info->u.flags[i] & IPSET_SRC)
-			info->u.compat.flags |= (1<<info->u.compat.dim);
+			info->u.compat.flags |= (1 << info->u.compat.dim);
 	}
 }
 
@@ -103,11 +104,11 @@ set_match_v0_checkentry(const struct xt_mtchk_param *par)
 	index = ip_set_nfnl_get_byindex(XT_PAR_NET(par), info->match_set.index);
 
 	if (index == IPSET_INVALID_ID) {
-		pr_warn("Cannot find set indentified by id %u to match\n",
+		pr_warn("Cannot find set identified by id %u to match\n",
 			info->match_set.index);
 		return CHECK_FAIL(-ENOENT);
 	}
-	if (info->match_set.u.flags[IPSET_DIM_MAX-1] != 0) {
+	if (info->match_set.u.flags[IPSET_DIM_MAX - 1] != 0) {
 		pr_warn("Protocol error: set match dimension is over the limit!\n");
 		ip_set_nfnl_put(XT_PAR_NET(par), info->match_set.index);
 		return CHECK_FAIL(-ERANGE);
@@ -153,7 +154,7 @@ set_match_v1_checkentry(const struct xt_mtchk_param *par)
 	index = ip_set_nfnl_get_byindex(XT_PAR_NET(par), info->match_set.index);
 
 	if (index == IPSET_INVALID_ID) {
-		pr_warn("Cannot find set indentified by id %u to match\n",
+		pr_warn("Cannot find set identified by id %u to match\n",
 			info->match_set.index);
 		return CHECK_FAIL(-ENOENT);
 	}
@@ -198,10 +199,10 @@ static bool
 set_match_v3(const struct sk_buff *skb, CONST struct xt_action_param *par)
 {
 	const struct xt_set_info_match_v3 *info = par->matchinfo;
+	int ret;
 
 	ADT_OPT(opt, par->family, info->match_set.dim,
 		info->match_set.flags, info->flags, UINT_MAX);
-	int ret;
 
 	if (info->packets.op != IPSET_COUNTER_NONE ||
 	    info->bytes.op != IPSET_COUNTER_NONE)
@@ -214,7 +215,7 @@ set_match_v3(const struct sk_buff *skb, CONST struct xt_action_param *par)
 		return ret;
 
 	if (!match_counter0(opt.ext.packets, &info->packets))
-		return 0;
+		return false;
 	return match_counter0(opt.ext.bytes, &info->bytes);
 }
 
@@ -245,9 +246,10 @@ static bool
 set_match_v4(const struct sk_buff *skb, CONST struct xt_action_param *par)
 {
 	const struct xt_set_info_match_v4 *info = par->matchinfo;
+	int ret;
+
 	ADT_OPT(opt, par->family, info->match_set.dim,
 		info->match_set.flags, info->flags, UINT_MAX);
-	int ret;
 
 	if (info->packets.op != IPSET_COUNTER_NONE ||
 	    info->bytes.op != IPSET_COUNTER_NONE)
@@ -260,7 +262,7 @@ set_match_v4(const struct sk_buff *skb, CONST struct xt_action_param *par)
 		return ret;
 
 	if (!match_counter(opt.ext.packets, &info->packets))
-		return 0;
+		return false;
 	return match_counter(opt.ext.bytes, &info->bytes);
 }
 
@@ -325,8 +327,8 @@ set_target_v0_checkentry(const struct xt_tgchk_param *par)
 			return CHECK_FAIL(-ENOENT);
 		}
 	}
-	if (info->add_set.u.flags[IPSET_DIM_MAX-1] != 0 ||
-	    info->del_set.u.flags[IPSET_DIM_MAX-1] != 0) {
+	if (info->add_set.u.flags[IPSET_DIM_MAX - 1] != 0 ||
+	    info->del_set.u.flags[IPSET_DIM_MAX - 1] != 0) {
 		pr_warn("Protocol error: SET target dimension is over the limit!\n");
 		if (info->add_set.index != IPSET_INVALID_ID)
 			ip_set_nfnl_put(XT_PAR_NET(par), info->add_set.index);
@@ -441,8 +443,8 @@ set_target_v2(struct sk_buff *skb, const struct xt_action_param *par)
 
 	/* Normalize to fit into jiffies */
 	if (add_opt.ext.timeout != IPSET_NO_TIMEOUT &&
-	    add_opt.ext.timeout > UINT_MAX/MSEC_PER_SEC)
-		add_opt.ext.timeout = UINT_MAX/MSEC_PER_SEC;
+	    add_opt.ext.timeout > UINT_MAX / MSEC_PER_SEC)
+		add_opt.ext.timeout = UINT_MAX / MSEC_PER_SEC;
 	if (info->add_set.index != IPSET_INVALID_ID)
 		ip_set_add(info->add_set.index, skb, CAST_TO_MATCH par,
 			   &add_opt);
@@ -458,10 +460,13 @@ set_target_v2(struct sk_buff *skb, const struct xt_action_param *par)
 
 /* Revision 3 target */
 
+#define MOPT(opt, member)	((opt).ext.skbinfo.member)
+
 static unsigned int
 set_target_v3(struct sk_buff *skb, const struct xt_action_param *par)
 {
 	const struct xt_set_info_target_v3 *info = par->targinfo;
+	int ret;
 
 	ADT_OPT(add_opt, par->family, info->add_set.dim,
 		info->add_set.flags, info->flags, info->timeout);
@@ -470,12 +475,10 @@ set_target_v3(struct sk_buff *skb, const struct xt_action_param *par)
 	ADT_OPT(map_opt, par->family, info->map_set.dim,
 		info->map_set.flags, 0, UINT_MAX);
 
-	int ret;
-
 	/* Normalize to fit into jiffies */
 	if (add_opt.ext.timeout != IPSET_NO_TIMEOUT &&
-	    add_opt.ext.timeout > UINT_MAX/MSEC_PER_SEC)
-		add_opt.ext.timeout = UINT_MAX/MSEC_PER_SEC;
+	    add_opt.ext.timeout > UINT_MAX / MSEC_PER_SEC)
+		add_opt.ext.timeout = UINT_MAX / MSEC_PER_SEC;
 	if (info->add_set.index != IPSET_INVALID_ID)
 		ip_set_add(info->add_set.index, skb, CAST_TO_MATCH par,
 			   &add_opt);
@@ -486,23 +489,23 @@ set_target_v3(struct sk_buff *skb, const struct xt_action_param *par)
 		map_opt.cmdflags |= info->flags & (IPSET_FLAG_MAP_SKBMARK |
 						   IPSET_FLAG_MAP_SKBPRIO |
 						   IPSET_FLAG_MAP_SKBQUEUE);
-		ret = match_set(info->map_set.index, skb, par, &map_opt,
+		ret = match_set(info->map_set.index, skb, CAST_TO_MATCH par,
+				&map_opt,
 				info->map_set.flags & IPSET_INV_MATCH);
 		if (!ret)
 			return XT_CONTINUE;
 		if (map_opt.cmdflags & IPSET_FLAG_MAP_SKBMARK)
-			skb->mark = (skb->mark & ~(map_opt.ext.skbmarkmask))
-				    ^ (map_opt.ext.skbmark);
+			skb->mark = (skb->mark & ~MOPT(map_opt,skbmarkmask))
+				    ^ MOPT(map_opt, skbmark);
 		if (map_opt.cmdflags & IPSET_FLAG_MAP_SKBPRIO)
-			skb->priority = map_opt.ext.skbprio;
+			skb->priority = MOPT(map_opt, skbprio);
 		if ((map_opt.cmdflags & IPSET_FLAG_MAP_SKBQUEUE) &&
 		    skb->dev &&
-		    skb->dev->real_num_tx_queues > map_opt.ext.skbqueue)
-			skb_set_queue_mapping(skb, map_opt.ext.skbqueue);
+		    skb->dev->real_num_tx_queues > MOPT(map_opt, skbqueue))
+			skb_set_queue_mapping(skb, MOPT(map_opt, skbqueue));
 	}
 	return XT_CONTINUE;
 }
-
 
 static FTYPE
 set_target_v3_checkentry(const struct xt_tgchk_param *par)
@@ -589,7 +592,6 @@ set_target_v3_destroy(const struct xt_tgdtor_param *par)
 	if (info->map_set.index != IPSET_INVALID_ID)
 		ip_set_nfnl_put(XT_PAR_NET(par), info->map_set.index);
 }
-
 
 static struct xt_match set_matches[] __read_mostly = {
 	{

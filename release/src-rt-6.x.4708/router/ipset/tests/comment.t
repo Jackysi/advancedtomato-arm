@@ -117,7 +117,7 @@
 # Hash comment: Destroy test set
 0 ipset destroy test
 # Hash comment: create set with timeout
-0 ipset create test hash:ip comment timeout 5
+0 ipset create test hash:ip comment timeout 4
 # Hash comment: Add multiple elements with default timeout
 0 for x in `seq 0 255`; do echo "add test 2.0.0.$x comment \\\"text message $x\\\""; done | ipset restore
 # Hash comment: Add multiple elements with zero timeout

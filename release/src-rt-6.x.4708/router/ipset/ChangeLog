@@ -1,3 +1,53 @@
+6.30
+  - Drop extra comma from error message (Neutron Soutmun)
+  - Fix the incorrect dynamic/static modules list (Neutron Soutmun)
+  - Correct tests to check the number of entries too
+  - hash:ipmac type support added to ipset, userspace part (Tomasz Chilinski)
+
+6.29
+  - Suppress unnecessary stderr in command loop for resize and list
+  - Correction in comment test
+  - Support chroot buildroots (reported by Jan Engelhardt)
+  - Fix "configure" breakage due to pkg-config related changes
+    (reported by Jan Engelhardt)
+
+6.28
+  - Support older pkg-config packages
+  - Add bash completion to the install routine (Mart Frauenlob)
+  - Fix misleading error message with comment extension
+  - Test added to check 0.0.0.0/0,iface to be matched in
+    hash:net,iface type
+  - Fix link with libtool >= 2.4.4 (Olivier Blin)
+
+6.27
+  - Handle uint64_t alignment issue in ipset tool
+
+6.26
+  - Out of bound access in hash:net* types fixed (reported by Dave Jones):
+    new tests added to the testsuite to verify the fix
+  - Warn about loaded in ip_set modules at module installation
+  - Use IPSET_BIN in resize-and-list.sh and suppress echoing of loop
+    variable
+  - Manpage typo corrections (David Wittman)
+  - Fix grammar error in manpage (Neutron Soutmun)
+
+6.25.1
+  - ipset manpage: refer to iptables-extensions
+  - Update userspace header file from the kernel tree
+  - Handle 'extern "C" {' in check_libmap.sh
+
+6.25
+  - Add element count to all set types header
+  - Add element count to hash headers (Eric B Munson)
+  - Support linking libipset to C++ programs (reported by Pavel Odintsov)
+  - ipset: propose rewording in manpage (Neutron Soutmun)
+  - More compatibility checking and simplifications to support the
+    2.6.32 kernel tree
+  - Compatibility: define RCU_INIT_POINTER when __rcu is not defined
+  - Compatibility: check kernel source for list_last_entry
+    (CentOS7, reported by Ricardo Klein)
+  - Make possible to pass extra flags to sparse
+
 6.24
   - The "extra" subdirectory for kernel modules may have a full subtree
     (reported by Jesper Dangaard Brouer)

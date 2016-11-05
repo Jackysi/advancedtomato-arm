@@ -83,7 +83,7 @@ for types in $tests; do
 		continue
 		;;
 	    skip)
-	    	eval $cmd
+		eval $cmd >/dev/null
 	    	if [ $? -ne 0 ]; then
 	    		echo "Skipping tests, '$cmd' failed"
 	    		break
