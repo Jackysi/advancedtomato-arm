@@ -2,7 +2,7 @@
 
 	micro_httpd/mini_httpd
 
-	Copyright © 1999,2000 by Jef Poskanzer <jef@acme.com>.
+	Copyright ï¿½ 1999,2000 by Jef Poskanzer <jef@acme.com>.
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -1022,6 +1022,11 @@ int main(int argc, char **argv)
 	init_id();
 
 	if (!debug) {
+
+		// Lets let every one know daemon started.
+		printf( "Tomato interface started successfully\n");
+
+		// Daemonize???
 		if (daemon(1, 1) == -1) {
 			syslog(LOG_ERR, "daemon: %m");
 			return 0;
@@ -1030,8 +1035,11 @@ int main(int argc, char **argv)
 		char s[16];
 		sprintf(s, "%d", getpid());
 		f_write_string("/var/run/httpd.pid", s, 0, 0644);
-	}
-	else {
+
+		// Write to log that service started (informative)
+		syslog(LOG_INFO, "Tomato interface started successfully");
+
+	} else {
 		printf("DEBUG mode, not daemonizing\n");
 	}
 
