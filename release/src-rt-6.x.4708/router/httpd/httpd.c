@@ -162,11 +162,12 @@ void send_error(int status, const char *header, const char *text)
 	const char *s = http_status_desc(status);
 	send_header(status, header, mime_html, 0);
 	web_printf(
-		"<html>"
-		"<head><title>Error</title></head>"
-		"<body>"
-		"<h2>%d %s</h2> %s"
-		"</body></html>",
+		"<!DOCTYPE html>\r\n"
+		"<html>\r\n"
+		"\t<head>\r\n\t\t<title>Error</title>\n\t\t<style>body { font-family: 'Segoe UI', 'Verdana', sans-serif; font-size: 14px; } h2 { font-size: 24px; }</style>\r\n\t</head>\r\n"
+		"\t<body>\r\n"
+		"\t\t<h2>%d %s</h2> %s\r\n"
+		"\t</body>\r\n</html>",
 		status, s, text ? text : s);
 }
 
