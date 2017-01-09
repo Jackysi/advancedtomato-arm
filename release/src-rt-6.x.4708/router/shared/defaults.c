@@ -1018,7 +1018,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server2_poll",     "0"             , 0 },
 	{ "vpn_server2_if",       "tun"           , 0 },
 	{ "vpn_server2_proto",    "udp"           , 0 },
-	{ "vpn_server2_port",     "1194"          , 0 },
+	{ "vpn_server2_port",     "1195"          , 0 },
 	{ "vpn_server2_firewall", "auto"          , 0 },
 	{ "vpn_server2_crypt",    "tls"           , 0 },
 	{ "vpn_server2_comp",     "adaptive"      , 0 },
