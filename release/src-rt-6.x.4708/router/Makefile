@@ -2688,7 +2688,7 @@ tor/stamp-h1: openssl zlib libevent
 	CFLAGS="-O2 -Wall $(EXTRACFLAGS)" \
 	$(CONFIGURE) --prefix=/usr --with-libevent-dir=$(TOP)/libevent/staged/usr/local \
 		--with-openssl-dir=$(TOP)/openssl --with-zlib-dir=$(TOP)/zlib \
-		--disable-asciidoc --disable-tool-name-check
+		--disable-asciidoc --disable-tool-name-check --disable-unittests
 	touch tor/stamp-h1
 
 tor: tor/stamp-h1
