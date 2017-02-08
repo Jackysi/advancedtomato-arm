@@ -934,6 +934,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "ms_dirs",			"/mnt<"				, 0 },
 	{ "ms_port",			"0"				, 0 },
 	{ "ms_dbdir",			""				, 0 },
+	{ "ms_ifname",			"br0"				, 0 },
 	{ "ms_tivo",			"0"				, 0 },
 	{ "ms_stdlna",			"0"				, 0 },
 	{ "ms_sas",			"0"				, 0 },
