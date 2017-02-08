@@ -30,8 +30,9 @@ MODULE_ALIAS("ip_set_list:set");
 struct set_elem {
 	struct rcu_head rcu;
 	struct list_head list;
+	struct ip_set *set;	/* Sigh, in order to cleanup reference */
 	ip_set_id_t id;
-};
+} __aligned(__alignof__(u64));
 
 struct set_adt_elem {
 	ip_set_id_t id;
@@ -90,7 +91,7 @@ list_set_kadd(struct ip_set *set, const struct sk_buff *skb,
 	struct set_elem *e;
 	int ret;
 
-	list_for_each_entry_rcu(e, &map->members, list) {
+	list_for_each_entry(e, &map->members, list) {
 		if (SET_WITH_TIMEOUT(set) &&
 		    ip_set_timeout_expired(ext_timeout(e, set)))
 			continue;
@@ -110,7 +111,7 @@ list_set_kdel(struct ip_set *set, const struct sk_buff *skb,
 	struct set_elem *e;
 	int ret;
 
-	list_for_each_entry_rcu(e, &map->members, list) {
+	list_for_each_entry(e, &map->members, list) {
 		if (SET_WITH_TIMEOUT(set) &&
 		    ip_set_timeout_expired(ext_timeout(e, set)))
 			continue;
@@ -151,30 +152,30 @@ list_set_kadt(struct ip_set *set, const struct sk_buff *skb,
 /* Userspace interfaces: we are protected by the nfnl mutex */
 
 static void
-__list_set_del(struct ip_set *set, struct set_elem *e)
+__list_set_del_rcu(struct rcu_head * rcu)
 {
+	struct set_elem *e = container_of(rcu, struct set_elem, rcu);
+	struct ip_set *set = e->set;
 	struct list_set *map = set->data;
 
 	ip_set_put_byindex(map->net, e->id);
-	/* We may call it, because we don't have a to be destroyed
-	 * extension which is used by the kernel.
-	 */
 	ip_set_ext_destroy(set, e);
-	kfree_rcu(e, rcu);
+	kfree(e);
 }
 
 static inline void
 list_set_del(struct ip_set *set, struct set_elem *e)
 {
+	set->elements--;
 	list_del_rcu(&e->list);
-	__list_set_del(set, e);
+	call_rcu(&e->rcu, __list_set_del_rcu);
 }
 
 static inline void
-list_set_replace(struct ip_set *set, struct set_elem *e, struct set_elem *old)
+list_set_replace(struct set_elem *e, struct set_elem *old)
 {
 	list_replace_rcu(&old->list, &e->list);
-	__list_set_del(set, old);
+	call_rcu(&old->rcu, __list_set_del_rcu);
 }
 
 static void
@@ -206,14 +207,15 @@ list_set_utest(struct ip_set *set, void *value, const struct ip_set_ext *ext,
 			continue;
 		}
 
-		if (d->before == 0)
+		if (d->before == 0) {
 			ret = 1;
-		else if (d->before > 0) {
+		} else if (d->before > 0) {
 			next = list_next_entry(e, list);
 			ret = !list_is_last(&e->list, &map->members) &&
 			      next->id == d->refid;
-		} else
-			ret = prev != NULL && prev->id == d->refid;
+		} else {
+			ret = prev && prev->id == d->refid;
+		}
 		return ret;
 	}
 	return 0;
@@ -226,7 +228,7 @@ list_set_init_extensions(struct ip_set *set, const struct ip_set_ext *ext,
 	if (SET_WITH_COUNTER(set))
 		ip_set_init_counter(ext_counter(e, set), ext);
 	if (SET_WITH_COMMENT(set))
-		ip_set_init_comment(ext_comment(e, set), ext);
+		ip_set_init_comment(set, ext_comment(e, set), ext);
 	if (SET_WITH_SKBINFO(set))
 		ip_set_init_skbinfo(ext_skbinfo(e, set), ext);
 	/* Update timeout last */
@@ -242,9 +244,6 @@ list_set_uadd(struct ip_set *set, void *value, const struct ip_set_ext *ext,
 	struct set_adt_elem *d = value;
 	struct set_elem *e, *n, *prev, *next;
 	bool flag_exist = flags & IPSET_FLAG_EXIST;
-
-	if (SET_WITH_TIMEOUT(set))
-		set_cleanup_entries(set);
 
 	/* Find where to add the new entry */
 	n = prev = next = NULL;
@@ -291,30 +290,28 @@ list_set_uadd(struct ip_set *set, void *value, const struct ip_set_ext *ext,
 			n = list_prev_entry(prev, list);
 	}
 	/* Can we replace a timed out entry? */
-	if (n != NULL &&
+	if (n &&
 	    !(SET_WITH_TIMEOUT(set) &&
 	      ip_set_timeout_expired(ext_timeout(n, set))))
 		n =  NULL;
 
-	e = kzalloc(set->dsize, GFP_KERNEL);
+	e = kzalloc(set->dsize, GFP_ATOMIC);
 	if (!e)
 		return -ENOMEM;
 	e->id = d->id;
+	e->set = set;
 	INIT_LIST_HEAD(&e->list);
 	list_set_init_extensions(set, ext, e);
 	if (n)
-		list_set_replace(set, e, n);
+		list_set_replace(e, n);
 	else if (next)
 		list_add_tail_rcu(&e->list, &next->list);
 	else if (prev)
 		list_add_rcu(&e->list, &prev->list);
 	else
 		list_add_tail_rcu(&e->list, &map->members);
-	spin_unlock_bh(&set->lock);
+	set->elements++;
 
-	synchronize_rcu_bh();
-
-	spin_lock_bh(&set->lock);
 	return 0;
 }
 
@@ -341,7 +338,7 @@ list_set_udel(struct ip_set *set, void *value, const struct ip_set_ext *ext,
 			    next->id != d->refid)
 				return -IPSET_ERR_REF_EXIST;
 		} else if (d->before < 0) {
-			if (prev == NULL || prev->id != d->refid)
+			if (!prev || prev->id != d->refid)
 				return -IPSET_ERR_REF_EXIST;
 		}
 		list_set_del(set, e);
@@ -361,18 +358,12 @@ list_set_uadt(struct ip_set *set, struct nlattr *tb[],
 	struct ip_set *s;
 	int ret = 0;
 
-	if (unlikely(!tb[IPSET_ATTR_NAME] ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_TIMEOUT) ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_CADT_FLAGS) ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_PACKETS) ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_BYTES) ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_SKBMARK) ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_SKBPRIO) ||
-		     !ip_set_optattr_netorder(tb, IPSET_ATTR_SKBQUEUE)))
-		return -IPSET_ERR_PROTOCOL;
-
 	if (tb[IPSET_ATTR_LINENO])
 		*lineno = nla_get_u32(tb[IPSET_ATTR_LINENO]);
+
+	if (unlikely(!tb[IPSET_ATTR_NAME] ||
+		     !ip_set_optattr_netorder(tb, IPSET_ATTR_CADT_FLAGS)))
+		return -IPSET_ERR_PROTOCOL;
 
 	ret = ip_set_get_extensions(set, tb, &ext);
 	if (ret)
@@ -430,6 +421,8 @@ list_set_flush(struct ip_set *set)
 
 	list_for_each_entry_safe(e, n, &map->members, list)
 		list_set_del(set, e);
+	set->elements = 0;
+	set->ext_size = 0;
 }
 
 static void
@@ -440,6 +433,7 @@ list_set_destroy(struct ip_set *set)
 
 	if (SET_WITH_TIMEOUT(set))
 		del_timer_sync(&map->gc);
+
 	list_for_each_entry_safe(e, n, &map->members, list) {
 		list_del(&e->list);
 		ip_set_put_byindex(map->net, e->id);
@@ -451,24 +445,38 @@ list_set_destroy(struct ip_set *set)
 	set->data = NULL;
 }
 
+/* Calculate the actual memory size of the set data */
+static size_t
+list_set_memsize(const struct list_set *map, size_t dsize)
+{
+	struct set_elem *e;
+	size_t memsize;
+	u32 n = 0;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(e, &map->members, list)
+		n++;
+	rcu_read_unlock();
+
+	memsize = sizeof(*map) + n * dsize;
+
+	return memsize;
+}
+
 static int
 list_set_head(struct ip_set *set, struct sk_buff *skb)
 {
 	const struct list_set *map = set->data;
 	struct nlattr *nested;
-	struct set_elem *e;
-	u32 n = 0;
-
-	list_for_each_entry(e, &map->members, list)
-		n++;
+	size_t memsize = list_set_memsize(map, set->dsize) + set->ext_size;
 
 	nested = ipset_nest_start(skb, IPSET_ATTR_DATA);
 	if (!nested)
 		goto nla_put_failure;
 	if (nla_put_net32(skb, IPSET_ATTR_SIZE, htonl(map->size)) ||
-	    nla_put_net32(skb, IPSET_ATTR_REFERENCES, htonl(set->ref - 1)) ||
-	    nla_put_net32(skb, IPSET_ATTR_MEMSIZE,
-			  htonl(sizeof(*map) + n * set->dsize)))
+	    nla_put_net32(skb, IPSET_ATTR_REFERENCES, htonl(set->ref)) ||
+	    nla_put_net32(skb, IPSET_ATTR_MEMSIZE, htonl(memsize)) ||
+	    nla_put_net32(skb, IPSET_ATTR_ELEMENTS, htonl(set->elements)))
 		goto nla_put_failure;
 	if (unlikely(ip_set_put_flags(skb, set)))
 		goto nla_put_failure;
@@ -487,51 +495,50 @@ list_set_list(const struct ip_set *set,
 	struct nlattr *atd, *nested;
 	u32 i = 0, first = cb->args[IPSET_CB_ARG0];
 	struct set_elem *e;
+	int ret = 0;
 
 	atd = ipset_nest_start(skb, IPSET_ATTR_ADT);
 	if (!atd)
 		return -EMSGSIZE;
-	list_for_each_entry(e, &map->members, list) {
-		if (i == first)
-			break;
-		i++;
-	}
 
-	list_for_each_entry_from(e, &map->members, list) {
-		i++;
-		if (SET_WITH_TIMEOUT(set) &&
-		    ip_set_timeout_expired(ext_timeout(e, set)))
+	rcu_read_lock();
+	list_for_each_entry_rcu(e, &map->members, list) {
+		if (i < first ||
+		    (SET_WITH_TIMEOUT(set) &&
+		     ip_set_timeout_expired(ext_timeout(e, set)))) {
+			i++;
 			continue;
-		nested = ipset_nest_start(skb, IPSET_ATTR_DATA);
-		if (!nested) {
-			if (i == first) {
-				nla_nest_cancel(skb, atd);
-				return -EMSGSIZE;
-			} else
-				goto nla_put_failure;
 		}
+		nested = ipset_nest_start(skb, IPSET_ATTR_DATA);
+		if (!nested)
+			goto nla_put_failure;
 		if (nla_put_string(skb, IPSET_ATTR_NAME,
 				   ip_set_name_byindex(map->net, e->id)))
 			goto nla_put_failure;
 		if (ip_set_put_extensions(skb, set, e, true))
 			goto nla_put_failure;
 		ipset_nest_end(skb, nested);
+		i++;
 	}
 
 	ipset_nest_end(skb, atd);
 	/* Set listing finished */
 	cb->args[IPSET_CB_ARG0] = 0;
-	return 0;
+	goto out;
 
 nla_put_failure:
 	nla_nest_cancel(skb, nested);
 	if (unlikely(i == first)) {
+		nla_nest_cancel(skb, atd);
 		cb->args[IPSET_CB_ARG0] = 0;
-		return -EMSGSIZE;
+		ret = -EMSGSIZE;
+	} else {
+		cb->args[IPSET_CB_ARG0] = i;
 	}
-	cb->args[IPSET_CB_ARG0] = i - 1;
 	ipset_nest_end(skb, atd);
-	return 0;
+out:
+	rcu_read_unlock();
+	return ret;
 }
 
 static bool
@@ -563,7 +570,7 @@ static const struct ip_set_type_variant set_variant = {
 static void
 list_set_gc(unsigned long ul_set)
 {
-	struct ip_set *set = (struct ip_set *) ul_set;
+	struct ip_set *set = (struct ip_set *)ul_set;
 	struct list_set *map = set->data;
 
 	spin_lock_bh(&set->lock);
@@ -579,11 +586,8 @@ list_set_gc_init(struct ip_set *set, void (*gc)(unsigned long ul_set))
 {
 	struct list_set *map = set->data;
 
-	init_timer(&map->gc);
-	map->gc.data = (unsigned long) set;
-	map->gc.function = gc;
-	map->gc.expires = jiffies + IPSET_GC_PERIOD(set->timeout) * HZ;
-	add_timer(&map->gc);
+	setup_timer(&map->gc, gc, (unsigned long)set);
+	mod_timer(&map->gc, jiffies + IPSET_GC_PERIOD(set->timeout) * HZ);
 }
 
 /* Create list:set type of sets */
@@ -622,7 +626,8 @@ list_set_create(struct net *net, struct ip_set *set, struct nlattr *tb[],
 		size = IP_SET_LIST_MIN_SIZE;
 
 	set->variant = &set_variant;
-	set->dsize = ip_set_elem_len(set, tb, sizeof(struct set_elem));
+	set->dsize = ip_set_elem_len(set, tb, sizeof(struct set_elem),
+				     __alignof__(struct set_elem));
 	if (!init_list_set(net, set, size))
 		return -ENOMEM;
 	if (tb[IPSET_ATTR_TIMEOUT]) {
@@ -656,7 +661,8 @@ static struct ip_set_type list_set_type __read_mostly = {
 		[IPSET_ATTR_CADT_FLAGS]	= { .type = NLA_U32 },
 		[IPSET_ATTR_BYTES]	= { .type = NLA_U64 },
 		[IPSET_ATTR_PACKETS]	= { .type = NLA_U64 },
-		[IPSET_ATTR_COMMENT]	= { .type = NLA_NUL_STRING },
+		[IPSET_ATTR_COMMENT]	= { .type = NLA_NUL_STRING,
+					    .len  = IPSET_MAX_COMMENT_SIZE },
 		[IPSET_ATTR_SKBMARK]	= { .type = NLA_U64 },
 		[IPSET_ATTR_SKBPRIO]	= { .type = NLA_U32 },
 		[IPSET_ATTR_SKBQUEUE]	= { .type = NLA_U16 },
@@ -673,6 +679,7 @@ list_set_init(void)
 static void __exit
 list_set_fini(void)
 {
+	rcu_barrier();
 	ip_set_type_unregister(&list_set_type);
 }
 

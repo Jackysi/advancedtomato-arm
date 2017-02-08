@@ -3,7 +3,9 @@ dnscrypt-proxy(8) -- A DNSCrypt forwarder
 
 ## SYNOPSIS
 
-`dnscrypt-proxy` [<options>]
+`dnscrypt-proxy <config file>`
+
+`dnscrypt-proxy [<option>, ...]`
 
 ## DESCRIPTION
 
@@ -19,21 +21,11 @@ forwards them to the local stub resolver.
 
 `dnscrypt-proxy` listens to `127.0.0.1` / port `53` by default.
 
-## WARNING
-
-**dnscrypt-proxy** is not a DNS cache. Unless your operating system
-already provides a decent built-in cache (and by default, most systems
-don't), clients shouldn't directly send requests to **dnscrypt-proxy**.
-
-Intead, run a DNS cache like **Unbound**, and configure it to use
-**dnscrypt-proxy** as a forwarder. Both can safely run on the same
-machine as long as they use different IP addresses and/or different
-ports.
-
-## OPTIONS
+## OPTIONS (ignored when a configuration file is provided)
 
   * `-R`, `--resolver-name=<name>`: name of the resolver to use, from
-    the list of available resolvers (see `-L`).
+    the list of available resolvers (see `-L`). Or `random` for a random
+    resolver accessible over IPv4, that doesn't log and supports DNSSEC.
 
   * `-a`, `--local-address=<ip>[:port]`: what local IP the daemon will listen
     to, with an optional port. The default port is 53.
@@ -98,7 +90,7 @@ ports.
     will remain valid for the next <margin> minutes. The exit code is 0
     if a valid certificate can be used, 2 if no valid certificates can be used,
     3 if a timeout occurred, and 4 if a currently valid certificate is
-    going to expire before <margin>. The margin is always specificied in
+    going to expire before <margin>. The margin is always specified in
     minutes.
 
   * `-T`, `--tcp-only`: always use TCP. A connection made using UDP
@@ -125,13 +117,13 @@ string, with optional columns.
 
 ## COMMON USAGE EXAMPLE
 
+    $ dnscrypt-proxy /etc/dnscrypt.conf
+
+## COMMON USAGE EXAMPLE WITHOUT A CONFIGURATION FILE
+
     $ dnscrypt-proxy --daemonize --resolver-name=...
 
 The resolver name is the first column (Name) in the CSV file.
-
-## USAGE EXAMPLE WITH A PRIVATE SERVER
-
-    $ dnscrypt-proxy --daemonize --provider-key=... --provider-name=... --resolver-address=...
 
 ## BUGS AND SUPPORT
 

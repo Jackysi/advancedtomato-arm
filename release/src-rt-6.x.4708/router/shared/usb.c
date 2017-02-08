@@ -475,20 +475,33 @@ char *find_label_or_uuid(char *dev_name, char *label, char *uuid)
 		fstype = "vfat";
 	/* detect ext2/3/4 */
 	else if (!id.error && volume_id_probe_ext(&id) == 0) {
-//		fstype = ((id.sbbuf[0x460] & 0x0008 /* JOURNAL_DEV */) != 0 ||
-//		          (id.sbbuf[0x45c] & 0x0004 /* HAS_JOURNAL */) != 0) ? "ext3" : "ext2";
-
-	if (id.sbbuf[0x438] == 0x53 && id.sbbuf[0x439] == 0xEF) {
-		if(check_magic((char *) &id.sbbuf[0x45c], "ext3_chk"))
-			fstype = "ext3";
-		else if(check_magic((char *) &id.sbbuf[0x45c], "ext4_chk"))
-			fstype = "ext4";
-		else
-			fstype = "ext2";
+		if (id.sbbuf[0x438] == 0x53 && id.sbbuf[0x439] == 0xEF) {
+			if(check_magic((char *) &id.sbbuf[0x45c], "ext3_chk"))
+				fstype = "ext3";
+			else if(check_magic((char *) &id.sbbuf[0x45c], "ext4_chk"))
+				fstype = "ext4";
+			else
+				fstype = "ext2";
+		}
 	}
 	/* detect ntfs */
-	} else if (!id.error && volume_id_probe_ntfs(&id) == 0)
+	else if (!id.error && volume_id_probe_ntfs(&id) == 0)
 		fstype = "ntfs";
+#ifdef HFS
+	/* detect hfs */
+	else if (!id.error && volume_id_probe_hfs_hfsplus(&id) == 0) {
+		if (id.sbbuf[1024] == 0x48) {
+			if (!memcmp(id.sbbuf+1032, "HFSJ", 4)) {
+				if(id.sbbuf[1025] == 0x58) // with case-sensitive
+					fstype = "hfsplus";
+				else
+					fstype = "hfsplus";
+			}
+			else
+				fstype = "hfs";
+		}
+	}
+#endif
 	//!oneleft
 	else if (!id.error && volume_id_probe_exfat(&id) == 0)
 		fstype = "exfat";
