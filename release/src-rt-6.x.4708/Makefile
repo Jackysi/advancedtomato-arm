@@ -522,6 +522,10 @@ define RouterOptions
 			echo "# TCONFIG_SAMBA3 is not set" >>$(1); \
 		fi; \
 	fi; \
+	if [ "$(BUILD_DESC)" = "AIO" ]; then \
+		sed -i "/TCONFIG_AIO/d" $(1); \
+		echo "TCONFIG_AIO=y" >>$(1); \
+	fi; \
 	if [ "$(ASUS_TRX)" = "RT-AC66U" ]; then \
 		sed -i "/TCONFIG_AC66U/d" $(1); \
 		echo "TCONFIG_AC66U=y" >>$(1); \
