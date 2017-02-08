@@ -1236,7 +1236,6 @@ static const nvset_t nvset_list[] = {
 	{ "usb_storage",		V_01				},
 	{ "usb_printer",		V_01				},
 	{ "usb_printer_bidirect",	V_01				},
-	{ "usb_fs_ext3",		V_01				},
 	{ "usb_fs_ext4",		V_01				},
 	{ "usb_fs_fat",			V_01				},
 	{ "usb_fs_exfat",		V_01				},

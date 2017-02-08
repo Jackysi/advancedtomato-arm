@@ -851,7 +851,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "usb_ext_opt",		""				, 0 },
 	{ "usb_fat_opt",		""				, 0 },
 	{ "usb_ntfs_opt",		""				, 0 },
-	{ "usb_fs_ext3",		"1"				, 0 },
 	{ "usb_fs_ext4",		"1"				, 0 },
 	{ "usb_fs_fat",			"1"				, 0 },
 	{ "usb_fs_exfat",		"1"				, 0 },

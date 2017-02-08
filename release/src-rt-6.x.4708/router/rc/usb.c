@@ -156,24 +156,14 @@ void start_usb(void)
 			modprobe(SD_MOD);
 			modprobe(USBSTORAGE_MOD);
 
-			if (nvram_get_int("usb_fs_ext3") || nvram_get_int("usb_fs_ext4")) {
+			if (nvram_get_int("usb_fs_ext4")) {
 #ifdef LINUX26
-				modprobe("mbcache");	// used by ext4
+				modprobe("mbcache");	// used by ext2/3/4
 #endif
 				modprobe("jbd2");
 				modprobe("crc16");
 				modprobe("ext4");
 			}
-
-			/* if (nvram_get_int("usb_fs_ext3")) {
-#ifdef LINUX26
-				modprobe("mbcache");	// used by ext2/ext3
-#endif
-				// insert ext3 first so that lazy mount tries ext3 before ext2
-				modprobe("jbd");
-				modprobe("ext3");
-				modprobe("ext2");
-			} */
 
 			if (nvram_get_int("usb_fs_fat")) {
 				modprobe("fat");
@@ -186,13 +176,13 @@ void start_usb(void)
 			}
 
 #if defined(TCONFIG_UFSDA) || defined(TCONFIG_UFSDN)
-			if (nvram_get_int("usb_fs_ntfs")) {
+			if (nvram_get_int("usb_fs_ntfs") && nvram_match("usb_ntfs_driver", "paragon")) {
 				modprobe("ufsd");
 			}
 #endif
 
 #if defined(TCONFIG_TUXERA)
-			if (nvram_get_int("usb_fs_ntfs")) {
+			if (nvram_get_int("usb_fs_ntfs") && nvram_match("usb_ntfs_driver", "tuxera")) {
 				modprobe("tntfs");
 			}
 #endif
@@ -295,9 +285,6 @@ void stop_usb(void)
 		remove_storage_main(0);
 
 		// Stop storage services
-		modprobe_r("ext2");
-		modprobe_r("ext3");
-		modprobe_r("jbd");
 		modprobe_r("ext4");
 		modprobe_r("jbd2");
 		modprobe_r("crc16");
@@ -449,7 +436,7 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *type)
 			/* not a mountable partition */
 			flags = 0;
 		}
-		else if (strcmp(type, "ext2") == 0 || strcmp(type, "ext3") == 0) {
+		else if (strcmp(type, "ext2") == 0 || strcmp(type, "ext3") == 0 || strcmp(type, "ext4") == 0) {
 			if (nvram_invmatch("usb_ext_opt", ""))
 				sprintf(options, nvram_safe_get("usb_ext_opt"));
 		}
