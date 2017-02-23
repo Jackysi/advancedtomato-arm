@@ -1,3 +1,8 @@
+6.31
+  - Update manpage about the size parameter of list:set types.
+  - New test to verify that only the intended entries are deleted at hash
+    types.
+
 6.30
   - Drop extra comma from error message (Neutron Soutmun)
   - Fix the incorrect dynamic/static modules list (Neutron Soutmun)
