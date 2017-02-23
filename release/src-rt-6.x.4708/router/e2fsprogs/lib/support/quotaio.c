@@ -243,13 +243,16 @@ errcode_t quota_file_open(quota_ctx_t qctx, struct quota_handle *h,
 		if (qctx->quota_file[qtype]) {
 			h = qctx->quota_file[qtype];
 			if (((flags & EXT2_FILE_WRITE) == 0) ||
-			    (h->qh_file_flags & EXT2_FILE_WRITE))
+			    (h->qh_file_flags & EXT2_FILE_WRITE)) {
+				ext2fs_file_close(e2_file);
 				return 0;
+			}
 			(void) quota_file_close(qctx, h);
 		}
 		err = ext2fs_get_mem(sizeof(struct quota_handle), &h);
 		if (err) {
 			log_err("Unable to allocate quota handle");
+			ext2fs_file_close(e2_file);
 			return err;
 		}
 		allocated_handle = 1;
@@ -299,8 +302,11 @@ static errcode_t quota_inode_init_new(ext2_filsys fs, ext2_ino_t ino)
 		return err;
 	}
 
-	if (EXT2_I_SIZE(&inode))
-		quota_inode_truncate(fs, ino);
+	if (EXT2_I_SIZE(&inode)) {
+		err = quota_inode_truncate(fs, ino);
+		if (err)
+			return err;
+	}
 
 	memset(&inode, 0, sizeof(struct ext2_inode));
 	ext2fs_iblk_set(fs, &inode, 0);
@@ -327,7 +333,7 @@ errcode_t quota_file_create(struct quota_handle *h, ext2_filsys fs,
 			    enum quota_type qtype, int fmt)
 {
 	ext2_file_t e2_file;
-	int err;
+	errcode_t err;
 	ext2_ino_t qf_inum = 0;
 
 	if (fmt == -1)
@@ -339,11 +345,11 @@ errcode_t quota_file_create(struct quota_handle *h, ext2_filsys fs,
 		err = ext2fs_new_inode(fs, EXT2_ROOT_INO, LINUX_S_IFREG | 0600,
 				       0, &qf_inum);
 		if (err)
-			return -1;
+			return err;
 		ext2fs_inode_alloc_stats2(fs, qf_inum, +1, 0);
 		ext2fs_mark_ib_dirty(fs);
 	} else if (qf_inum == 0) {
-		return -1;
+		return EXT2_ET_BAD_INODE_NUM;
 	}
 
 	err = ext2fs_read_bitmaps(fs);
@@ -363,7 +369,7 @@ errcode_t quota_file_create(struct quota_handle *h, ext2_filsys fs,
 	log_debug("Creating quota ino=%lu, type=%d", qf_inum, type);
 	err = ext2fs_file_open(fs, qf_inum, h->qh_file_flags, &e2_file);
 	if (err) {
-		log_err("ext2fs_file_open failed: %d", err);
+		log_err("ext2fs_file_open failed: %ld", err);
 		goto out_err;
 	}
 	h->qh_qf.e2_file = e2_file;
@@ -376,6 +382,7 @@ errcode_t quota_file_create(struct quota_handle *h, ext2_filsys fs,
 
 	if (h->qh_ops->new_io && (h->qh_ops->new_io(h) < 0)) {
 		log_err("qh_ops->new_io failed");
+		err = EIO;
 		goto out_err1;
 	}
 
@@ -388,7 +395,7 @@ out_err:
 	if (qf_inum)
 		quota_inode_truncate(fs, qf_inum);
 
-	return -1;
+	return err;
 }
 
 /*

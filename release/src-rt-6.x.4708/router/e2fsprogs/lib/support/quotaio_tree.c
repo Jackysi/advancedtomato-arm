@@ -34,7 +34,7 @@ static inline dqbuf_t getdqbuf(void)
 /* Is given dquot empty? */
 int qtree_entry_unused(struct qtree_mem_dqinfo *info, char *disk)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < info->dqi_entry_size; i++)
 		if (disk[i])
@@ -314,7 +314,8 @@ static void dq_insert_tree(struct quota_handle *h, struct dquot *dquot)
 /* Write dquot to file */
 void qtree_write_dquot(struct dquot *dquot)
 {
-	ssize_t ret;
+	errcode_t retval;
+	unsigned int ret;
 	char *ddquot;
 	struct quota_handle *h = dquot->dq_h;
 	struct qtree_mem_dqinfo *info =
@@ -322,8 +323,8 @@ void qtree_write_dquot(struct dquot *dquot)
 	log_debug("writing ddquot 1: off=%llu, info->dqi_entry_size=%u",
 			dquot->dq_dqb.u.v2_mdqb.dqb_off,
 			info->dqi_entry_size);
-	ret = ext2fs_get_mem(info->dqi_entry_size, &ddquot);
-	if (ret) {
+	retval = ext2fs_get_mem(info->dqi_entry_size, &ddquot);
+	if (retval) {
 		errno = ENOMEM;
 		log_err("Quota write failed (id %u): %s",
 			(unsigned int)dquot->dq_id, strerror(errno));
@@ -506,7 +507,7 @@ struct dquot *qtree_read_dquot(struct quota_handle *h, qid_t id)
 {
 	struct qtree_mem_dqinfo *info = &h->qh_info.u.v2_mdqi.dqi_qtree;
 	ext2_loff_t offset;
-	ssize_t ret;
+	unsigned int ret;
 	char *ddquot;
 	struct dquot *dquot = get_empty_dquot();
 
@@ -628,7 +629,8 @@ static int report_tree(struct dquot *dquot, unsigned int blk, int depth,
 
 static unsigned int find_set_bits(char *bmp, int blocks)
 {
-	unsigned int i, used = 0;
+	unsigned int	used = 0;
+	int		i;
 
 	for (i = 0; i < blocks; i++)
 		if (get_bit(bmp, i))

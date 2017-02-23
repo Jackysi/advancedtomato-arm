@@ -116,9 +116,9 @@ struct blk_move {
 
 errcode_t ext2fs_run_ext3_journal(ext2_filsys *fs);
 
-static const char *please_fsck = N_("Please run e2fsck on the filesystem.\n");
+static const char *please_fsck = N_("Please run e2fsck -f on the filesystem.\n");
 static const char *please_dir_fsck =
-		N_("Please run e2fsck -D on the filesystem.\n");
+		N_("Please run e2fsck -fD on the filesystem.\n");
 
 #ifdef CONFIG_BUILD_FINDFS
 void do_findfs(int argc, char **argv);
@@ -729,7 +729,7 @@ static void rewrite_inodes(ext2_filsys fs)
 	blk64_t		file_acl_block;
 	int		inode_dirty;
 
-	if (fs->super->s_creator_os != EXT2_OS_LINUX)
+	if (fs->super->s_creator_os == EXT2_OS_HURD)
 		return;
 
 	retval = ext2fs_open_inode_scan(fs, 0, &scan);
@@ -1479,6 +1479,7 @@ err:
 
 static void handle_quota_options(ext2_filsys fs)
 {
+	errcode_t retval;
 	quota_ctx_t qctx;
 	ext2_ino_t qf_ino;
 	enum quota_type qtype;
@@ -1491,7 +1492,12 @@ static void handle_quota_options(ext2_filsys fs)
 		/* Nothing to do. */
 		return;
 
-	quota_init_context(&qctx, fs, QUOTA_ALL_BIT);
+	retval = quota_init_context(&qctx, fs, 0);
+	if (retval) {
+		com_err(program_name, retval,
+			_("while initializing quota context in support library"));
+		exit(1);
+	}
 	for (qtype = 0 ; qtype < MAXQUOTAS; qtype++) {
 		if (quota_enable[qtype] == QOPT_ENABLE) {
 			enable = 1;
@@ -1504,11 +1510,31 @@ static void handle_quota_options(ext2_filsys fs)
 	for (qtype = 0 ; qtype < MAXQUOTAS; qtype++) {
 		if (quota_enable[qtype] == QOPT_ENABLE &&
 		    *quota_sb_inump(fs->super, qtype) == 0) {
-			if ((qf_ino = quota_file_exists(fs, qtype)) > 0)
-				quota_update_limits(qctx, qf_ino, qtype);
-			quota_write_inode(qctx, 1 << qtype);
+			if ((qf_ino = quota_file_exists(fs, qtype)) > 0) {
+				retval = quota_update_limits(qctx, qf_ino,
+							     qtype);
+				if (retval) {
+					com_err(program_name, retval,
+						_("while updating quota limits (%d)"),
+						qtype);
+					exit(1);
+				}
+			}
+			retval = quota_write_inode(qctx, 1 << qtype);
+			if (retval) {
+				com_err(program_name, retval,
+					_("while writing quota file (%d)"),
+					qtype);
+				exit(1);
+			}
 		} else if (quota_enable[qtype] == QOPT_DISABLE) {
-			quota_remove_inode(fs, qtype);
+			retval = quota_remove_inode(fs, qtype);
+			if (retval) {
+				com_err(program_name, retval,
+					_("while removing quota file (%d)"),
+					qtype);
+				exit(1);
+			}
 		}
 	}
 
@@ -1531,7 +1557,7 @@ static void handle_quota_options(ext2_filsys fs)
 	return;
 }
 
-static int option_handle_function(char *token, void *data)
+static int option_handle_function(char *token)
 {
 	if (strncmp(token, "usr", 3) == 0) {
 		quota_enable[USRQUOTA] = QOPT_ENABLE;
@@ -1779,8 +1805,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 			break;
 		case 'Q':
 			Q_flag = 1;
-			ret = parse_quota_opts(optarg, option_handle_function,
-					       NULL);
+			ret = parse_quota_opts(optarg, option_handle_function);
 			if (ret)
 				exit(1);
 			open_flag = EXT2_FLAG_RW;

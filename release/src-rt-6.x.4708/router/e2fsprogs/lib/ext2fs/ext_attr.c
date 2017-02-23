@@ -21,6 +21,7 @@
 
 #include "ext2_fs.h"
 #include "ext2_ext_attr.h"
+#include "ext4_acl.h"
 
 #include "ext2fs.h"
 
@@ -215,6 +216,7 @@ struct ext2_xattr_handle {
 	struct ext2_xattr *attrs;
 	size_t length, count;
 	ext2_ino_t ino;
+	unsigned int flags;
 	int dirty;
 };
 
@@ -308,7 +310,7 @@ static int find_ea_index(char *fullname, char **name, int *index)
 	struct ea_name_index *e;
 
 	for (e = ea_names; e->name; e++) {
-		if (memcmp(fullname, e->name, strlen(e->name)) == 0) {
+		if (strncmp(fullname, e->name, strlen(e->name)) == 0) {
 			*name = (char *)fullname + strlen(e->name);
 			*index = e->index;
 			return 1;
@@ -452,6 +454,136 @@ out:
 }
 
 
+static inline int
+posix_acl_xattr_count(size_t size)
+{
+        if (size < sizeof(posix_acl_xattr_header))
+                return -1;
+        size -= sizeof(posix_acl_xattr_header);
+        if (size % sizeof(posix_acl_xattr_entry))
+                return -1;
+        return size / sizeof(posix_acl_xattr_entry);
+}
+
+/*
+ * The lgetxattr function returns data formatted in the POSIX extended
+ * attribute format.  The on-disk format uses a more compact encoding.
+ * See the ext4_acl_to_disk in fs/ext4/acl.c.
+ */
+static errcode_t convert_posix_acl_to_disk_buffer(const void *value, size_t size,
+						  void *out_buf, size_t *size_out)
+{
+	posix_acl_xattr_header *header = (posix_acl_xattr_header*) value;
+	posix_acl_xattr_entry *entry = (posix_acl_xattr_entry *)(header+1), *end;
+	ext4_acl_header *ext_acl;
+	size_t s;
+	void *e;
+	int err;
+
+	int count;
+
+	if (!value)
+		return EINVAL;
+	if (size < sizeof(posix_acl_xattr_header))
+		return ENOMEM;
+	if (header->a_version != ext2fs_cpu_to_le32(POSIX_ACL_XATTR_VERSION))
+		return EINVAL;
+
+	count = posix_acl_xattr_count(size);
+	ext_acl = out_buf;
+	ext_acl->a_version = ext2fs_cpu_to_le32(EXT4_ACL_VERSION);
+
+	if (count <= 0)
+		return EINVAL;
+
+	e = (char *) out_buf + sizeof(ext4_acl_header);
+	s = sizeof(ext4_acl_header);
+	for (end = entry + count; entry != end;entry++) {
+		ext4_acl_entry *disk_entry = (ext4_acl_entry*) e;
+		disk_entry->e_tag = ext2fs_cpu_to_le16(entry->e_tag);
+		disk_entry->e_perm = ext2fs_cpu_to_le16(entry->e_perm);
+
+		switch(entry->e_tag) {
+			case ACL_USER_OBJ:
+			case ACL_GROUP_OBJ:
+			case ACL_MASK:
+			case ACL_OTHER:
+				e += sizeof(ext4_acl_entry_short);
+				s += sizeof(ext4_acl_entry_short);
+				break;
+			case ACL_USER:
+			case ACL_GROUP:
+				disk_entry->e_id =  ext2fs_cpu_to_le32(entry->e_id);
+				e += sizeof(ext4_acl_entry);
+				s += sizeof(ext4_acl_entry);
+				break;
+		}
+	}
+	*size_out = s;
+	return 0;
+}
+
+static errcode_t convert_disk_buffer_to_posix_acl(const void *value, size_t size,
+						  void **out_buf, size_t *size_out)
+{
+	posix_acl_xattr_header *header;
+	posix_acl_xattr_entry *entry;
+	ext4_acl_header *ext_acl = (ext4_acl_header *) value;
+	errcode_t err;
+	const char *cp;
+	char *out;
+	int count;
+
+	if ((!value) ||
+	    (size < sizeof(ext4_acl_header)) ||
+	    (ext_acl->a_version != ext2fs_cpu_to_le32(EXT4_ACL_VERSION)))
+		return EINVAL;
+
+	err = ext2fs_get_mem(size * 2, &out);
+	if (err)
+		return err;
+
+	header = (posix_acl_xattr_header *) out;
+	header->a_version = ext2fs_cpu_to_le32(POSIX_ACL_XATTR_VERSION);
+	entry = (posix_acl_xattr_entry *) (out + sizeof(posix_acl_xattr_header));
+
+	cp = value + sizeof(ext4_acl_header);
+	size -= sizeof(ext4_acl_header);
+
+	while (size > 0) {
+		const ext4_acl_entry *disk_entry = (const ext4_acl_entry *) cp;
+
+		entry->e_tag = ext2fs_le16_to_cpu(disk_entry->e_tag);
+		entry->e_perm = ext2fs_le16_to_cpu(disk_entry->e_perm);
+
+		switch(entry->e_tag) {
+			case ACL_USER_OBJ:
+			case ACL_GROUP_OBJ:
+			case ACL_MASK:
+			case ACL_OTHER:
+				entry->e_id = 0;
+				cp += sizeof(ext4_acl_entry_short);
+				size -= sizeof(ext4_acl_entry_short);
+				break;
+			case ACL_USER:
+			case ACL_GROUP:
+				entry->e_id = ext2fs_le32_to_cpu(disk_entry->e_id);
+				cp += sizeof(ext4_acl_entry);
+				size -= sizeof(ext4_acl_entry);
+				break;
+		default:
+			ext2fs_free_mem(&out);
+			return EINVAL;
+			break;
+		}
+		entry++;
+	}
+	*out_buf = out;
+	*size_out = ((char *) entry - out);
+	return 0;
+}
+
+
 static errcode_t write_xattrs_to_buffer(struct ext2_xattr_handle *handle,
 					struct ext2_xattr **pos,
 					void *entries_start,
@@ -553,6 +685,10 @@ errcode_t ext2fs_xattrs_write(struct ext2_xattr_handle *handle)
 			extra = sizeof(__u32);
 		memset(p + EXT2_GOOD_OLD_INODE_SIZE, 0, extra);
 		inode->i_extra_isize = extra;
+	}
+	if (inode->i_extra_isize & 3) {
+		err = EXT2_ET_INODE_CORRUPTED;
+		goto out;
 	}
 
 	/*
@@ -806,6 +942,10 @@ errcode_t ext2fs_xattrs_read(struct ext2_xattr_handle *handle)
 						  inode->i_extra_isize +
 						  sizeof(__u32))
 		goto read_ea_block;
+	if (inode->i_extra_isize & 3) {
+		err = EXT2_ET_INODE_CORRUPTED;
+		goto out;
+	}
 
 	/* Look for EA in the inode */
 	memcpy(&ea_inode_magic, ((char *) inode) + EXT2_GOOD_OLD_INODE_SIZE +
@@ -906,10 +1046,16 @@ errcode_t ext2fs_xattr_get(struct ext2_xattr_handle *h, const char *key,
 
 	EXT2_CHECK_MAGIC(h, EXT2_ET_MAGIC_EA_HANDLE);
 	for (x = h->attrs; x < h->attrs + h->length; x++) {
-		if (!x->name)
+		if (!x->name || strcmp(x->name, key))
 			continue;
 
-		if (strcmp(x->name, key) == 0) {
+		if (!(h->flags & XATTR_HANDLE_FLAG_RAW) &&
+		    ((strcmp(key, "system.posix_acl_default") == 0) ||
+		     (strcmp(key, "system.posix_acl_access") == 0))) {
+			err = convert_disk_buffer_to_posix_acl(x->value, x->value_len,
+							       value, value_len);
+			return err;
+		} else {
 			err = ext2fs_get_mem(x->value_len, &val);
 			if (err)
 				return err;
@@ -994,6 +1140,20 @@ errcode_t ext2fs_xattr_set(struct ext2_xattr_handle *handle,
 
 	EXT2_CHECK_MAGIC(handle, EXT2_ET_MAGIC_EA_HANDLE);
 	last_empty = NULL;
+
+	err = ext2fs_get_mem(value_len, &new_value);
+	if (err)
+		return err;
+	if (!(handle->flags & XATTR_HANDLE_FLAG_RAW) &&
+	    ((strcmp(key, "system.posix_acl_default") == 0) ||
+	     (strcmp(key, "system.posix_acl_access") == 0))) {
+		err = convert_posix_acl_to_disk_buffer(value, value_len,
+						       new_value, &value_len);
+		if (err)
+			goto errout;
+	} else
+		memcpy(new_value, value, value_len);
+
 	for (x = handle->attrs; x < handle->attrs + handle->length; x++) {
 		if (!x->name) {
 			last_empty = x;
@@ -1002,10 +1162,6 @@ errcode_t ext2fs_xattr_set(struct ext2_xattr_handle *handle,
 
 		/* Replace xattr */
 		if (strcmp(x->name, key) == 0) {
-			err = ext2fs_get_mem(value_len, &new_value);
-			if (err)
-				return err;
-			memcpy(new_value, value, value_len);
 			ext2fs_free_mem(&x->value);
 			x->value = new_value;
 			x->value_len = value_len;
@@ -1018,13 +1174,9 @@ errcode_t ext2fs_xattr_set(struct ext2_xattr_handle *handle,
 	if (last_empty) {
 		err = ext2fs_get_mem(strlen(key) + 1, &last_empty->name);
 		if (err)
-			return err;
+			goto errout;
 		strcpy(last_empty->name, key);
-
-		err = ext2fs_get_mem(value_len, &last_empty->value);
-		if (err)
-			return err;
-		memcpy(last_empty->value, value, value_len);
+		last_empty->value = new_value;
 		last_empty->value_len = value_len;
 		handle->dirty = 1;
 		handle->count++;
@@ -1034,22 +1186,25 @@ errcode_t ext2fs_xattr_set(struct ext2_xattr_handle *handle,
 	/* Expand array, append slot */
 	err = ext2fs_xattrs_expand(handle, 4);
 	if (err)
-		return err;
+		goto errout;
 
 	x = handle->attrs + handle->length - 4;
 	err = ext2fs_get_mem(strlen(key) + 1, &x->name);
 	if (err)
-		return err;
+		goto errout;
 	strcpy(x->name, key);
 
 	err = ext2fs_get_mem(value_len, &x->value);
 	if (err)
-		return err;
+		goto errout;
 	memcpy(x->value, value, value_len);
 	x->value_len = value_len;
 	handle->dirty = 1;
 	handle->count++;
 	return 0;
+errout:
+	ext2fs_free_mem(&new_value);
+	return err;
 }
 
 errcode_t ext2fs_xattr_remove(struct ext2_xattr_handle *handle,
@@ -1127,5 +1282,16 @@ errcode_t ext2fs_xattrs_count(struct ext2_xattr_handle *handle, size_t *count)
 {
 	EXT2_CHECK_MAGIC(handle, EXT2_ET_MAGIC_EA_HANDLE);
 	*count = handle->count;
+	return 0;
+}
+
+errcode_t ext2fs_xattrs_flags(struct ext2_xattr_handle *handle,
+			      unsigned int *new_flags, unsigned int *old_flags)
+{
+	EXT2_CHECK_MAGIC(handle, EXT2_ET_MAGIC_EA_HANDLE);
+	if (old_flags)
+		*old_flags = handle->flags;
+	if (new_flags)
+		handle->flags = *new_flags;
 	return 0;
 }
