@@ -2444,6 +2444,7 @@ btgui-install: btgui
 libnfsidmap/stamp-h1:
 	cd libnfsidmap && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+	autoreconf -fsi && \
 	ac_cv_func_malloc_0_nonnull=yes \
 	ac_cv_func_realloc_0_nonnull=yes \
 	$(CONFIGURE) --prefix=/usr --enable-shared --enable-static
