@@ -1,5 +1,5 @@
 dnl Boilerplate
-AC_INIT([ipset], [6.31], [kadlec@blackhole.kfki.hu])
+AC_INIT([ipset], [6.32], [kadlec@blackhole.kfki.hu])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_HOST
 AC_CONFIG_MACRO_DIR([m4])
@@ -9,6 +9,8 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_ENABLE_STATIC
 LT_INIT([dlopen])
+LT_CONFIG_LTDL_DIR([libltdl])
+LTDL_INIT([nonrecursive])
 
 PKG_PROG_PKG_CONFIG
 

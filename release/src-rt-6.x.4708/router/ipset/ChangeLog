@@ -1,3 +1,8 @@
+6.32
+  - Fix possible truncated output in ipset output buffer handling
+    (Reported by Omri Bahumi and Yoni Lavi).
+  - Missing prototype added in ipset_hash_ipmac.c (debugging)
+
 6.31
   - Update manpage about the size parameter of list:set types.
   - New test to verify that only the intended entries are deleted at hash
