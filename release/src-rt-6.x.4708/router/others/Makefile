@@ -40,7 +40,7 @@ endif
 	install -m 0700 ethstate $(INSTALLDIR)/usr/sbin
 
 #stealthMode
-	install -m 0700 stealthMode $(INSTALLDIR)/usr/sbin
+#	install -m 0700 stealthMode $(INSTALLDIR)/usr/sbin
 
 #MOTD
 	install -m 0700 mymotd $(INSTALLDIR)/usr/sbin
@@ -56,7 +56,7 @@ endif
 
 ifeq ($(TCONFIG_USB),y)
 #optware install script
-	install -m 0700 optware-install.sh $(INSTALLDIR)/usr/sbin
+#	install -m 0700 optware-install.sh $(INSTALLDIR)/usr/sbin
 
 #entware install script
 	install -m 0700 entware-install.sh $(INSTALLDIR)/usr/sbin
