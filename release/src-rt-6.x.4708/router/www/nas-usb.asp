@@ -261,7 +261,7 @@ function verifyFields(focused, quiet)
 	E('_f_uhci').disabled = b || nvram.usb_uhci == -1;
 	E('_f_ohci').disabled = b || nvram.usb_ohci == -1;
 	E('_f_usb2').disabled = b;
-	E('_f_usb3').disabled = b;
+	E('_f_usb3').disabled = b || nvram.usb_usb3 == -1;
 	E('_f_print').disabled = b;
 	E('_f_storage').disabled = b;
 

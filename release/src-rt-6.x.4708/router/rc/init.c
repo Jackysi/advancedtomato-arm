@@ -2356,6 +2356,7 @@ static int init_nvram(void)
 		features = SUP_80211N | SUP_1000ET | SUP_80211AC;
 #ifdef TCONFIG_USB
 		nvram_set("usb_uhci", "-1");
+		nvram_set("usb_usb3", "-1"); // R1D doesn't have USB 3.0
 #endif
 
 		if (!nvram_match("t_fix1", (char *)name)) {
