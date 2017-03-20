@@ -525,6 +525,10 @@ endif
 
 	@cd $(TARGETDIR) && $(TOP)/others/rootprep.sh
 
+ifeq ($(TCONFIG_TOR),y)
+		@cd $(TARGETDIR) && $(TOP)/others/rootprep.sh ln_Tor
+endif
+
 	@echo ---
 
 ifeq ($(TCONFIG_OPTIMIZE_SHARED_LIBS),y)
