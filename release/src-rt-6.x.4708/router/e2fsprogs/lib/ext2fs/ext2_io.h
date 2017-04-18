@@ -101,6 +101,7 @@ struct struct_io_manager {
 #define IO_FLAG_RW		0x0001
 #define IO_FLAG_EXCLUSIVE	0x0002
 #define IO_FLAG_DIRECT_IO	0x0004
+#define IO_FLAG_FORCE_BOUNCE	0x0008
 
 /*
  * Convenience functions....
@@ -138,6 +139,7 @@ extern errcode_t io_channel_cache_readahead(io_channel io,
 
 /* unix_io.c */
 extern io_manager unix_io_manager;
+extern io_manager unixfd_io_manager;
 
 /* undo_io.c */
 extern io_manager undo_io_manager;

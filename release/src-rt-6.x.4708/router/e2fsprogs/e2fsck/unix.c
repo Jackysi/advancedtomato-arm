@@ -1338,7 +1338,6 @@ int main (int argc, char *argv[])
 	int old_bitmaps;
 	__u32 features[3];
 	char *cp;
-	unsigned int qtype_bits = 0;
 	enum quota_type qtype;
 
 	clear_problem_context(&pctx);
@@ -1647,7 +1646,8 @@ failure:
 			com_err(ctx->program_name, retval,
 				_("while checking journal for %s"),
 				ctx->device_name);
-			fatal_error(ctx, 0);
+			fatal_error(ctx,
+				_("Cannot proceed with file system check"));
 		}
 	}
 
@@ -1785,12 +1785,12 @@ print_unsupp_features:
 
 	if (ext2fs_has_feature_quota(sb)) {
 		/* Quotas were enabled. Do quota accounting during fsck. */
-		for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
-			if (*quota_sb_inump(sb, qtype) != 0)
-				qtype_bits |= 1 << qtype;
+		clear_problem_context(&pctx);
+		pctx.errcode = quota_init_context(&ctx->qctx, ctx->fs, 0);
+		if (pctx.errcode) {
+			fix_problem(ctx, PR_0_QUOTA_INIT_CTX, &pctx);
+			fatal_error(ctx, 0);
 		}
-
-		quota_init_context(&ctx->qctx, ctx->fs, qtype_bits);
 	}
 
 	run_result = e2fsck_run(ctx);
@@ -1835,15 +1835,20 @@ no_journal:
 		int needs_writeout;
 
 		for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
-			if (((1 << qtype) & qtype_bits) == 0)
+			if (*quota_sb_inump(sb, qtype) == 0)
 				continue;
 			needs_writeout = 0;
 			pctx.num = qtype;
 			retval = quota_compare_and_update(ctx->qctx, qtype,
 							  &needs_writeout);
 			if ((retval || needs_writeout) &&
-			    fix_problem(ctx, PR_6_UPDATE_QUOTAS, &pctx))
-				quota_write_inode(ctx->qctx, 1 << qtype);
+			    fix_problem(ctx, PR_6_UPDATE_QUOTAS, &pctx)) {
+				pctx.errcode = quota_write_inode(ctx->qctx,
+								 1 << qtype);
+				if (pctx.errcode)
+					(void) fix_problem(ctx,
+						PR_6_WRITE_QUOTAS, &pctx);
+			}
 		}
 		quota_release_context(&ctx->qctx);
 	}

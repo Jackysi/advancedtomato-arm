@@ -1,3 +1,11 @@
+6.31
+  - netfilter: ipset: Null pointer exception in ipset list:set
+    (Vishwanath Pai)
+  - Fix bug: sometimes valid entries in hash:* types of sets were evicted
+    (reported by Eric Ewanco)
+  - Correct copyright owner
+  - Revert patch "Correct rcu_dereference_bh_nfnl() usage"
+
 6.30
   - netfilter: ipset: hash: fix boolreturn.cocci warnings
     (Fengguang Wu)

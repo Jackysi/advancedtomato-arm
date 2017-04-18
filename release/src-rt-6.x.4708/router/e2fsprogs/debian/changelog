@@ -1,3 +1,134 @@
+e2fsprogs (1.43.4-1) unstable; urgency=medium
+
+  * New upstream version
+  * Fix e2fsck to require that the system.data extended attribute is
+    always present even for files smaller than 60 bytes, to be
+    consistent with the kernel
+  * Drop the hard links for mkfs.ext4dev and fsck.ext4dev
+  * Clarify/update various man pages (Closes: #852726)
+  * Clarify the default for the "proceed?" question printed by mke2fs
+    and tune2fs.  (Closes: #852727)
+  * Fix various Coverity warnings and other memory leaks in fuse2fs and
+    extended attribute manipulation functions.
+  * Add Finnish and Malay translations
+  * Update Chinese, Czech, Polish, Serbian, and Spanish translations
+    (Closes: #774379)
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Tue, 31 Jan 2017 17:31:52 -0500
+
+e2fsprogs (1.43.4~WIP.2017.01.30-1) unstable; urgency=medium
+
+  * Fix a bug which was causing mke2fs -d and fuse2fs to improperly
+    handle Posix ACL's.
+  * Fix a bug which could cause mke2fs -d to fail if there is an
+    zero-length file in source directory tree.
+  * Debugfs will now display project quota information.
+  * Debugfs has a more friendly and powerful to print and set extended
+    attributes.
+  * Fix a bug in mke2fs where I/O errors weren't getting properly
+    reported to the user.
+  * Fix a bug in resize2fs when operating on very large file systems
+    which have a block size different from the VM page size.
+  * If the reported device size is absurdly large, mke2fs will now
+    report an error instead looping forever or crashing.
+  * Replace a test file in the sources with an updated version which has
+    a DFSG-compliant copyright license.  This was making lawyers
+    nervous, even though the file was only used in regression tests and
+    was never used when building any binaries.   (Closes: #840733)
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Mon, 30 Jan 2017 22:14:07 -0500
+
+e2fsprogs (1.43.3-1) unstable; urgency=medium
+
+  * Fix e2fsck's handling of timestamps on 32-bit system (Closes: #836559)
+  * E2fsck will sanity check and repair the extra isize fields in inodes
+    and the superblock.
+  * Fix sparc64 crashes when dereferencing unaligned integers in journal
+    blocks when metdata checksums are enabled.
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Sun, 04 Sep 2016 20:41:21 -0400
+
+e2fsprogs (1.43.2-2) unstable; urgency=medium
+
+  * Fix build reproducibility problems
+  * Don't hide the linker flags for e2fsck.static
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Thu, 01 Sep 2016 23:30:55 -0400
+
+e2fsprogs (1.43.2-1) unstable; urgency=medium
+
+  * Change the default journal size to be larger for file systems larger
+    than 128 GB to improve performance on metadata-heavy workloads
+  * Clarify tune2fs's message when the user needs to run e2fsck
+    (Closes: #828022)
+  * Fix an alignment bug in e2fsck which caused sparc64 architectures to
+    crash when replaying the journal on file systems with a 64-bit block
+    number
+  * Fix a typo in debugfs when printing out the dtime field on file
+    systems with an extended timestamp
+  * Fix the logic in e2fsck which decides when to repair legacy negative
+    timestamp encodings.
+  * Add a command to debugfs to copy the inode structure from one inode
+    to another
+  * Fix resize2fs so it will not crash if there is an extended
+    attribute block but it doesn't need to migate any blocks during
+    an off-line resize
+  * Fix a crash when mke2fs or debugfs tries to copy in a directory
+    hierarchy containing an empty directory
+  * Fix a bug in e2fsck caused by a power failure during e2fsck's journal
+    replay could leave the file system in a state where if the file
+    system is mounted without doing a full e2fsck scan, the file system
+    could get corrupted
+  * Fix big endian bugs in the e2undo program
+  * Fix debugfs's logdump so command so it can correctly handle journals
+    which are larger than 2GB
+  * Add new translations: Hugarian and Serbian
+  * Update the Catalan, Chinese, Danish, Dutch, French, German, Polish,
+    Swedish, Ukrainian translations
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Thu, 01 Sep 2016 00:55:13 -0400
+
+e2fsprogs (1.43.1-1) unstable; urgency=medium
+
+  * New upstream version
+  * Fix the Direct I/O fallback code in the Unix I/O manager so it
+    implements read-modify-write correctly.
+  * The mke2fs program will now warn if the user specifies a label which
+    is too long.  (Closes: #791630)
+  * Clean up various man pages (Closes: #766379, #761144, #770750,
+    #428361, #766127)
+  * Fix bug so that debugfs's rdump command works on the root directory
+    (Closes: #766125)
+  * Fix various Debian packaging issues (Closes: #825868)
+  * Build fully security hardened binaries
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Tue, 07 Jun 2016 23:09:55 -0400
+
+e2fsprogs (1.43-3) unstable; urgency=medium
+
+  * Fix various debian packaging nits
+  * Fix spelling mistakes in the copyright files
+  * Fix various spelling mistakes in man pages
+  * Fix project quota bugs in e2fsck and mke2fs
+  * Build binaries with hardening support
+  * Improve e2fsck messages when the journal superblock is corrupt and
+    the user declines to fix the journal.  (Closes: #768162)
+  * Fix debugfs's handling of "set_bg <bg> checksum calc" on 64-bit file
+    systems.
+  * Simplify the debian rules file
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Wed, 25 May 2016 00:51:33 -0400
+
+e2fsprogs (1.43-2) unstable; urgency=medium
+
+  * Update watch file to check for the GPG signatures
+  * Use dh_update_autotools_control to update config.{guess,sub}
+    automatically when building the package.
+  * Only try to run update-initramfs if it exists
+  * Transition to dbgsym packages
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Fri, 20 May 2016 14:07:40 -0400
+
 e2fsprogs (1.43-1) unstable; urgency=medium
 
   * New upstream version
@@ -5,6 +136,12 @@ e2fsprogs (1.43-1) unstable; urgency=medium
   * Update debian policy version to 3.9.8
 
  -- Theodore Y. Ts'o <tytso@mit.edu>  Tue, 17 May 2016 01:04:28 -0400
+
+e2fsprogs (1.43~WIP.2016.03.15-2) sid; urgency=low
+
+  * Fix FTBFS on big-endian systems
+
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Thu, 17 Mar 2016 22:55:52 -0400
 
 e2fsprogs (1.43~WIP.2016.05.12-1) unstable; urgency=medium
 
@@ -230,7 +367,7 @@ e2fsprogs (1.42.11-1) unstable; urgency=medium
   * Fixed cross-compilation support.  (Closes: #753375)
   * Update/fix various man pages
 
- -- Theodore Y. Ts'o <tytso@mit.edu>  Wed, 9 July 2014 23:43:27 -0400
+ -- Theodore Y. Ts'o <tytso@mit.edu>  Wed, 9 Jul 2014 23:43:27 -0400
 
 e2fsprogs (1.42.10-1.1) unstable; urgency=medium
 

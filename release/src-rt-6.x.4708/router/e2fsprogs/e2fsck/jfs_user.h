@@ -38,10 +38,10 @@ struct buffer_head {
 #endif
 	io_channel	b_io;
 	int		b_size;
-	unsigned long long b_blocknr;
-	int		b_dirty;
-	int		b_uptodate;
 	int		b_err;
+	unsigned int	b_dirty:1;
+	unsigned int	b_uptodate:1;
+	unsigned long long b_blocknr;
 	char		b_data[1024];
 };
 
@@ -182,10 +182,10 @@ extern e2fsck_t e2fsck_global_ctx;  /* Try your very best not to use this! */
 #endif /* DEBUGFS */
 
 #ifndef EFSBADCRC
-#define EFSBADCRC	EBADMSG		/* Bad CRC detected */
+#define EFSBADCRC	EXT2_ET_BAD_CRC
 #endif
 #ifndef EFSCORRUPTED
-#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
+#define EFSCORRUPTED	EXT2_ET_FILESYSTEM_CORRUPTED
 #endif
 
 /* recovery.c */

@@ -1,18 +1,20 @@
-Curl and libcurl 7.52.1
+Curl and libcurl 7.53.1
 
- Public curl releases:         162
- Command line options:         204
- curl_easy_setopt() options:   243
+ Public curl releases:         164
+ Command line options:         205
+ curl_easy_setopt() options:   244
  Public functions in libcurl:  61
- Contributors:                 1480
+ Contributors:                 1507
 
 This release includes the following bugfixes:
 
- o CVE-2016-9594: unititialized random [1]
- o lib557: fix checksrc warnings
- o lib: fix MSVC compiler warnings
- o lib557.c: use a shorter MAXIMIZE representation [2]
- o tests: run checksrc on debug builds
+ o cyassl: fix typo
+ o url: Improve CURLOPT_PROXY_CAPATH error handling [1]
+ o urldata: include curl_sspi.h when Windows SSPI is enabled [2]
+ o formdata: check for EOF when reading from stdin [3]
+ o tests: Set CHARSET & LANG to UTF-8 in 1035, 2046 and 2047 [4]
+ o url: Default the proxy CA bundle location to CURL_CA_BUNDLE [5]
+ o rand: added missing #ifdef HAVE_FCNTL_H around fcntl.h header [6]
 
 This release includes the following known bugs:
 
@@ -21,12 +23,17 @@ This release includes the following known bugs:
 This release would not have looked like this without help, code, reports and
 advice from friends like these:
 
-  Daniel Stenberg, Kamil Dudka, Marcel Raad, Ray Satiro,
-  (4 contributors)
+  Dan Fandrich, Daniel Stenberg, İsmail Dönmez, jveazey on github, Ray Satiro,
+  Sergii Pylypenko, Shachaf Ben-Kiki, Viktor Szakáts,
+  (8 contributors)
 
         Thanks! (and sorry if I forgot to mention someone)
 
 References to bug reports and discussions on issues:
 
- [1] = https://curl.haxx.se/docs/adv_20161223.html
- [2] = https://curl.haxx.se/mail/lib-2016-12/0098.html
+ [1] = https://curl.haxx.se/bug/?i=1257
+ [2] = https://curl.haxx.se/bug/?i=1276
+ [3] = https://curl.haxx.se/bug/?i=1281
+ [4] = https://curl.haxx.se/bug/?i=1277
+ [5] = https://curl.haxx.se/bug/?i=1257
+ [6] = https://curl.haxx.se/bug/?i=1285

@@ -21,6 +21,7 @@
 #include <errno.h>
 #endif
 #include <unistd.h>
+#include <libgen.h>
 #include "ext2fs/ext2fs.h"
 #include "support/nls-enable.h"
 
@@ -207,8 +208,7 @@ static int key_compare(const void *a, const void *b)
 
 	ka = a;
 	kb = b;
-	return ext2fs_le64_to_cpu(ka->fsblk) -
-	       ext2fs_le64_to_cpu(kb->fsblk);
+	return ka->fsblk - kb->fsblk;
 }
 
 static int e2undo_setup_tdb(const char *name, io_manager *io_ptr)
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 	__u32 key_crc, blk_crc, hdr_crc;
 	blk64_t lblk;
 	ext2_filsys fs;
-	__u64 offset;
+	__u64 offset = 0;
 	char opt_offset_string[40] = { 0 };
 
 #ifdef ENABLE_NLS
@@ -455,7 +455,7 @@ int main(int argc, char *argv[])
 			offset = ext2fs_le64_to_cpu(undo_ctx.hdr.fs_offset);
 		retval = snprintf(opt_offset_string, sizeof(opt_offset_string),
 						  "offset=%llu", offset);
-		if (retval >= sizeof(opt_offset_string)) {
+		if ((size_t) retval >= sizeof(opt_offset_string)) {
 			/* should not happen... */
 			com_err(prg_name, 0, _("specified offset is too large"));
 			exit(1);

@@ -261,7 +261,7 @@ function verifyFields(focused, quiet)
 	E('_f_uhci').disabled = b || nvram.usb_uhci == -1;
 	E('_f_ohci').disabled = b || nvram.usb_ohci == -1;
 	E('_f_usb2').disabled = b;
-	E('_f_usb3').disabled = b;
+	E('_f_usb3').disabled = b || nvram.usb_usb3 == -1;
 	E('_f_print').disabled = b;
 	E('_f_storage').disabled = b;
 
@@ -438,7 +438,7 @@ createFieldTable('', [
 	null,
 /* LINUX26-BEGIN */
 	{ title: 'HDD Spindown', name: 'f_idle_enable', type: 'checkbox',
-		suffix: ' <small>Spin down each HDD when idle. No need to use with flashdrive.</small>', value: nvram.idle_enable == 1 },
+		suffix: ' <small>Spin down each HDD when idle. No need to use with flash drive.</small>', value: nvram.idle_enable == 1 },
 	null,
 	{ title: 'USB 3G Modem support', name: 'f_usb_3g', type: 'checkbox',
 		suffix: ' <small>Before disconnecting 3G Modem from USB port, remember to uncheck box. If modem used usbserial module, you have to reboot router before unplug modem.</small>', value: nvram.usb_3g == 1 },

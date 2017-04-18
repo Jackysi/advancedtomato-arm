@@ -43,6 +43,17 @@ static const char *(*dl_magic_file)(magic_t, const char *);
 static int (*dl_magic_load)(magic_t, const char *);
 static void (*dl_magic_close)(magic_t);
 
+/*
+ * NO_CHECK functionality was only added in file 4.20.
+ * Older systems like RHEL 5.x still have file 4.17
+ */
+#ifndef MAGIC_NO_CHECK_COMPRESS
+#define MAGIC_NO_CHECK_COMPRESS 0x0001000
+#endif
+#ifndef MAGIC_NO_CHECK_ELF
+#define MAGIC_NO_CHECK_ELF 0x0010000
+#endif
+
 #ifdef HAVE_DLOPEN
 #include <dlfcn.h>
 
@@ -55,10 +66,14 @@ static int magic_library_available(void)
 		if (!magic_handle)
 			return 0;
 
-		dl_magic_open = dlsym(magic_handle, "magic_open");
-		dl_magic_file = dlsym(magic_handle, "magic_file");
-		dl_magic_load = dlsym(magic_handle, "magic_load");
-		dl_magic_close = dlsym(magic_handle, "magic_close");
+		dl_magic_open = (magic_t (*)(int))
+			dlsym(magic_handle, "magic_open");
+		dl_magic_file = (const char *(*)(magic_t, const char *))
+			dlsym(magic_handle, "magic_file");
+		dl_magic_load = (int (*)(magic_t, const char *))
+			dlsym(magic_handle, "magic_load");
+		dl_magic_close = (void (*)(magic_t))
+			dlsym(magic_handle, "magic_close");
 	}
 
 	if (!dl_magic_open || !dl_magic_file ||
@@ -244,7 +259,9 @@ int check_plausibility(const char *device, int flags, int *ret_is_dev)
 	}
 
 #ifdef HAVE_MAGIC_H
-	if ((flags & CHECK_FS_EXIST) && magic_library_available()) {
+	if ((flags & CHECK_FS_EXIST) &&
+	    !getenv("E2FSPROGS_LIBMAGIC_SUPPRESS") &&
+	    magic_library_available()) {
 		const char *msg;
 		magic_t mag;
 		int has_magic = 0;

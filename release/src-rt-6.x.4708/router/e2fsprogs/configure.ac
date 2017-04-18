@@ -84,9 +84,7 @@ dnl
 dnl Check to see if libdl exists for the sake of dlopen
 dnl
 DLOPEN_LIB=''
-AC_CHECK_LIB(dl, dlopen,
-[DLOPEN_LIB=-ldl
-AC_DEFINE(HAVE_DLOPEN, 1, [Define to 1 if dlopen/libdl exists])])
+AC_CHECK_LIB(dl, dlopen,DLOPEN_LIB=-ldl)
 AC_SUBST(DLOPEN_LIB)
 dnl
 AC_ARG_WITH([cc],
@@ -355,7 +353,28 @@ then
 	AC_MSG_RESULT([Enabling gcov support])
 fi
 )
-
+dnl
+dnl handle --enable-hardening
+dnl
+CFLAGS_SHLIB="${CFLAGS_SHLIB:-$CFLAGS}"
+CFLAGS_STLIB="${CFLAGS_STLIB:-$CFLAGS}"
+LDFLAGS_SHLIB=${LDFLAGS_SHLIB:-$LDFLAGS}
+LDFLAGS_STATIC=${LDFLAGS_STATIC:-$LDFLAGS}
+AC_ARG_ENABLE([hardening],
+[  --enable-hardening	  	  build for coverage testing using gcov],
+if test "$enableval" = "yes"
+then
+	HARDEN_CFLAGS="-D_FORTIFY_SOURCE=2 -fstack-protector-strong"
+	HARDEN_LDFLAGS=["-Wl,-z,relro -Wl,-z,now"]
+	CFLAGS="$CFLAGS $HARDEN_CFLAGS -fPIE"
+	CFLAGS_SHLIB="$CFLAGS_SHLIB $HARDEN_CFLAGS"
+	CFLAGS_STLIB="$CFLAGS_STLIB $HARDEN_CFLAGS -fPIE"
+	LDFLAGS="$LDFLAGS $HARDEN_LDFLAGS -fPIE -pie"
+	LDFLAGS_STATIC="$LDFLAGS_STATIC $HARDEN_LDFLAGS"
+	LDFLAGS_SHLIB="$LDFLAGS_SHLIB $HARDEN_LDFLAGS"
+	AC_MSG_RESULT([Enabling hardening support])
+fi
+)
 dnl
 dnl Substitute library extensions
 dnl
@@ -756,6 +775,31 @@ AC_MSG_RESULT([Enabling mmp support by default])
 AC_DEFINE(CONFIG_MMP, 1)
 )
 dnl
+dnl handle --disable-tdb
+dnl
+AH_TEMPLATE([CONFIG_TDB], [Define to 1 to enable tdb support])
+AC_ARG_ENABLE([tdb],
+[  --disable-tdb           disable tdb support],
+if test "$enableval" = "no"
+then
+	AC_MSG_RESULT([Disabling tdb support])
+	TDB_CMT="#"
+	TDB_MAN_COMMENT='.\"'
+else
+	AC_MSG_RESULT([Enabling tdb support])
+	AC_DEFINE(CONFIG_TDB, 1)
+	TDB_CMT=""
+	TDB_MAN_COMMENT=""
+fi
+,
+AC_MSG_RESULT([Enabling mmp support by default])
+AC_DEFINE(CONFIG_TDB, 1)
+TDB_CMT=""
+TDB_MAN_COMMENT=""
+)
+AC_SUBST(TDB_CMT)
+AC_SUBST(TDB_MAN_COMMENT)
+dnl
 dnl handle --disable-bmap-stats
 dnl
 AH_TEMPLATE([ENABLE_BMAP_STATS], [Define to 1 to enable bitmap stats.])
@@ -833,7 +877,7 @@ AC_CHECK_TOOL(RANLIB, ranlib, :)
 AC_CHECK_TOOL(STRIP, strip, :)
 AC_CHECK_PROG(MAKEINFO, makeinfo, makeinfo, )
 if test "_$MAKEINFO" = "_"; then
-    MAKEINFO="@echo Makeinfo is missing. Info documentation will not be built.;true"
+    MAKEINFO="echo Makeinfo is missing. Info documentation will not be built."
 else
     case "$MAKEINFO" in
       */missing.*)
@@ -950,16 +994,19 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
 AC_CHECK_SIZEOF(off_t)
+AC_CHECK_SIZEOF(time_t)
 SIZEOF_SHORT=$ac_cv_sizeof_short
 SIZEOF_INT=$ac_cv_sizeof_int
 SIZEOF_LONG=$ac_cv_sizeof_long
 SIZEOF_LONG_LONG=$ac_cv_sizeof_long_long
 SIZEOF_OFF_T=$ac_cv_sizeof_off_t
+SIZEOF_TIME_T=$ac_cv_sizeof_time_t
 AC_SUBST(SIZEOF_SHORT)
 AC_SUBST(SIZEOF_INT)
 AC_SUBST(SIZEOF_LONG)
 AC_SUBST(SIZEOF_LONG_LONG)
 AC_SUBST(SIZEOF_OFF_T)
+AC_SUBST(SIZEOF_TIME_T)
 AC_C_BIGENDIAN
 if test $cross_compiling = no; then
   BUILD_CC="$BUILD_CC" CPP="$CPP" /bin/sh $ac_aux_dir/parse-types.sh
@@ -1032,6 +1079,9 @@ if test -n "$BLKID_CMT"; then
   AC_SEARCH_LIBS([blkid_probe_all], [blkid])
 fi
 dnl
+if test -n "$DLOPEN_LIB" ; then
+   ac_cv_func_dlopen=yes
+fi
 AC_CHECK_FUNCS(m4_flatten([
 	__secure_getenv
 	add_key
@@ -1039,6 +1089,7 @@ AC_CHECK_FUNCS(m4_flatten([
 	blkid_probe_get_topology
 	blkid_probe_enable_partitions
 	chflags
+	dlopen
 	fadvise64
 	fallocate
 	fallocate64
@@ -1106,10 +1157,15 @@ dnl See if libmagic exists
 dnl
 AC_CHECK_LIB(magic, magic_file, [MAGIC_LIB=-lmagic
 AC_CHECK_HEADERS([magic.h])])
-if test "$ac_cv_lib_dl_dlopen" = yes ; then
+if test "$ac_cv_func_dlopen" = yes ; then
    MAGIC_LIB=$DLOPEN_LIB
 fi
 AC_SUBST(MAGIC_LIB)
+dnl
+dnl Check to see if librt is required for clock_gettime() (glibc < 2.17)
+dnl
+AC_CHECK_LIB(rt, clock_gettime, [CLOCK_GETTIME_LIB=-lrt])
+AC_SUBST(CLOCK_GETTIME_LIB)
 dnl
 dnl Check to see if the FUSE library is -lfuse or -losxfuse
 dnl
@@ -1310,7 +1366,7 @@ dnl in static form.
 dnl
 AC_MSG_CHECKING([whether we can link with -static])
 AC_CACHE_VAL(ac_cv_e2fsprogs_use_static,
-[SAVE_LDFLAGS=$LDFLAGS; LDFLAGS="$LDFLAGS -static"
+[SAVE_LDFLAGS=$LDFLAGS; LDFLAGS="$LDFLAGS_STATIC -static"
 AC_TRY_LINK([#include <stdio.h>],[fflush(stdout);],
  ac_cv_e2fsprogs_use_static=yes, ac_cv_e2fsprogs_use_static=no)
 LDFLAGS=$SAVE_LDFLAGS])
@@ -1327,11 +1383,10 @@ solaris2.*)
 ;;
 esac
 AC_MSG_RESULT($ac_cv_e2fsprogs_use_static)
-LDFLAG_STATIC=
 if test $ac_cv_e2fsprogs_use_static = yes; then
-	LDFLAG_STATIC=-static
+	LDFLAGS_STATIC="$LDFLAGS_STATIC -static"
 fi
-AC_SUBST(LDFLAG_STATIC)
+AC_SUBST(LDFLAGS_STATIC)
 dnl
 dnl Work around mysterious Darwin / GNU libintl problem
 dnl (__asm__ redirection doesn't work for some mysterious reason.  Looks like
@@ -1344,13 +1399,6 @@ darwin*)
 		[Define to 1 if Apple Darwin libintl workaround is needed])
 	;;
 esac
-dnl
-dnl Make the ss and et directories work correctly.
-dnl
-SS_DIR=`cd ${srcdir}/lib/ss; pwd`
-ET_DIR=`cd ${srcdir}/lib/et; pwd`
-AC_SUBST(SS_DIR)
-AC_SUBST(ET_DIR)
 dnl
 dnl Only try to run the test suite if we're not cross compiling.
 dnl
@@ -1384,6 +1432,15 @@ if test $cross_compiling = no; then
 fi
 AC_SUBST(BUILD_CFLAGS)
 AC_SUBST(BUILD_LDFLAGS)
+dnl
+dnl Define CFLAGS and LDFLAGS for shared libraries
+dnl
+CFLAGS_SHLIB=${CFLAGS_SHLIB:-$CFLAGS}
+CFLAGS_STLIB=${CFLAGS_STLIB:-$CFLAGS}
+LDFLAGS_SHLIB=${LDFLAGS_SHLIB:-$LDFLAGS}
+AC_SUBST(CFLAGS_SHLIB)
+AC_SUBST(CFLAGS_STLIB)
+AC_SUBST(LDFLAGS_SHLIB)
 dnl
 dnl Make our output files, being sure that we create the some miscellaneous 
 dnl directories
