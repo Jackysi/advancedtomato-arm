@@ -1438,7 +1438,11 @@ static int init_nvram(void)
 		break;
 	case MODEL_RTAC56U:
 		mfr = "Asus";
+#ifdef TCONFIG_BCMSMP
 		name = "RT-AC56U";
+#else
+		name = "RT-AC56S"; //single-core (NOSMP) clone of RT-AC56U
+#endif
 		features = SUP_SES | SUP_80211N | SUP_1000ET | SUP_80211AC;
 #ifdef TCONFIG_USB
 		nvram_set("usb_uhci", "-1");
