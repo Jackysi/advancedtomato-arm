@@ -246,8 +246,10 @@ void start_usb(void)
 #endif
 
 #ifdef TCONFIG_UPS
-		modprobe("usbhid");
-		start_ups();
+		if (nvram_get_int("usb_apcupsd") == 1) {
+			modprobe("usbhid");
+			start_ups();
+		}
 #endif
 
 #ifdef TCONFIG_USBAP
