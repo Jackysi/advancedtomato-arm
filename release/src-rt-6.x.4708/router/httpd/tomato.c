@@ -1243,6 +1243,9 @@ static const nvset_t nvset_list[] = {
 	{ "usb_fs_ntfs",		V_01				},
 	{ "usb_ntfs_driver",		V_LENGTH(0, 10)			},
 #endif
+#ifdef TCONFIG_UPS
+	{ "usb_apcupsd",		V_01				},
+#endif
 #ifdef TCONFIG_HFS
 	{ "usb_fs_hfs",			V_01				}, //!Victek
 #endif
