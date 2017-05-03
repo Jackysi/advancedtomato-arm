@@ -156,6 +156,7 @@ ifeq ($(BCMSMP),y)
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,image/tomato-RT-N18U-$(V1)$(V2)-$(current_BUILD_DESC).trx
 else
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,image/tomato-RT-N18U-$(V1)$(V2)-$(current_BUILD_DESC)-NOSMP.trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC56U,3.0.0.4,image/tomato-RT-AC56S-$(V1)$(V2)-$(current_BUILD_DESC)-NOSMP.trx
 endif
 endif
 # for dlink
@@ -521,6 +522,10 @@ define RouterOptions
 			echo "# TCONFIG_SAMBASRV is not set" >>$(1); \
 			echo "# TCONFIG_SAMBA3 is not set" >>$(1); \
 		fi; \
+	fi; \
+	if [ "$(BUILD_DESC)" = "AIO" ]; then \
+		sed -i "/TCONFIG_AIO/d" $(1); \
+		echo "TCONFIG_AIO=y" >>$(1); \
 	fi; \
 	if [ "$(ASUS_TRX)" = "RT-AC66U" ]; then \
 		sed -i "/TCONFIG_AC66U/d" $(1); \
@@ -1092,8 +1097,8 @@ ifeq ($(CONFIG_LINUX26),y)
 	@echo "ASUS ARM Builds - RT-N18U, RT-AC56U, RT-AC68U, RT-AC68R, RT-AC68P"
 	@echo "ac68e         RT-N18U/AC56U/AC68U(R/P) build VPN"
 	@echo "ac68z         RT-N18U/AC56U/AC68U(R/P) build AIO"
-	@echo "n18e          RT-N18U without SMP build VPN"
-	@echo "n18z          RT-N18U without SMP build AIO"
+	@echo "n18e          RT-N18U/AC56S without SMP build VPN"
+	@echo "n18z          RT-N18U/AC56S without SMP build AIO"
 	@echo "DLINK ARM Builds"
 	@echo "dir868l       DLINK DIR868L"
 	@echo "NETGEAR ARM Builds"

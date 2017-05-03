@@ -154,11 +154,11 @@ struct undo_private_data {
 #define E2UNDO_FEATURE_COMPAT_FS_OFFSET 0x1	/* the filesystem offset */
 
 static inline void e2undo_set_feature_fs_offset(struct undo_header *header) {
-	header->f_compat |= E2UNDO_FEATURE_COMPAT_FS_OFFSET;
+	header->f_compat |= ext2fs_le32_to_cpu(E2UNDO_FEATURE_COMPAT_FS_OFFSET);
 }
 
 static inline void e2undo_clear_feature_fs_offset(struct undo_header *header) {
-	header->f_compat &= ~E2UNDO_FEATURE_COMPAT_FS_OFFSET;
+	header->f_compat &= ~ext2fs_le32_to_cpu(E2UNDO_FEATURE_COMPAT_FS_OFFSET);
 }
 
 static io_manager undo_io_backing_manager;
@@ -419,7 +419,7 @@ static errcode_t undo_write_tdb(io_channel channel,
 			block_num++;
 			continue;
 		}
-		dbg_printf("Read %llu bytes from FS block %llu (blk=%llu cnt=%u)\n",
+		dbg_printf("Read %llu bytes from FS block %llu (blk=%llu cnt=%llu)\n",
 		       data_size, backing_blk_num, block, data->tdb_data_size);
 		if ((data_size % data->undo_file->block_size) == 0)
 			sz = data_size / data->undo_file->block_size;

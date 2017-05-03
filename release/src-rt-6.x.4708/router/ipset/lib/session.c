@@ -636,7 +636,10 @@ attr2data(struct ipset_session *session, struct nlattr *nla[],
 		D("netorder attr type %u", type);
 		switch (attr->type) {
 		case MNL_TYPE_U64: {
-			v64  = be64toh(*(const uint64_t *)d);
+			uint64_t tmp;
+			/* Ensure data alignment */
+			memcpy(&tmp, d, sizeof(tmp));
+			v64  = be64toh(tmp);
 			d = &v64;
 			break;
 		}
@@ -703,33 +706,47 @@ call_outfn(struct ipset_session *session)
 /* Handle printing failures */
 static jmp_buf printf_failure;
 
-static int __attribute__((format(printf, 2, 3)))
-safe_snprintf(struct ipset_session *session, const char *fmt, ...)
+static int
+handle_snprintf_error(struct ipset_session *session,
+		      int len, int ret, int loop)
 {
-	va_list args;
-	int len, ret, loop = 0;
-
-retry:
-	len = strlen(session->outbuf);
-	D("len: %u, retry %u", len, loop);
-	va_start(args, fmt);
-	ret = vsnprintf(session->outbuf + len, IPSET_OUTBUFLEN - len,
-			fmt, args);
-	va_end(args);
-
 	if (ret < 0 || ret >= IPSET_OUTBUFLEN - len) {
 		/* Buffer was too small, push it out and retry */
-		D("print buffer and try again: %u", len);
-		if (loop++) {
+		D("print buffer and try again: len: %u, ret: %d", len, ret);
+		if (loop) {
 			ipset_err(session,
 				"Internal error at printing, loop detected!");
 			longjmp(printf_failure, 1);
 		}
 
 		session->outbuf[len] = '\0';
-		if (!call_outfn(session))
-			goto retry;
+		if (call_outfn(session)) {
+			ipset_err(session,
+				"Internal error, could not print output buffer!");
+			longjmp(printf_failure, 1);
+		}
+		return 1;
 	}
+	return 0;
+}
+
+static int __attribute__((format(printf, 2, 3)))
+safe_snprintf(struct ipset_session *session, const char *fmt, ...)
+{
+	va_list args;
+	int len, ret, loop = 0;
+
+	do {
+		len = strlen(session->outbuf);
+		D("len: %u, retry %u", len, loop);
+		va_start(args, fmt);
+		ret = vsnprintf(session->outbuf + len,
+				IPSET_OUTBUFLEN - len,
+				fmt, args);
+		va_end(args);
+		loop = handle_snprintf_error(session, len, ret, loop);
+	} while (loop);
+
 	return ret;
 }
 
@@ -739,25 +756,14 @@ safe_dprintf(struct ipset_session *session, ipset_printfn fn,
 {
 	int len, ret, loop = 0;
 
-retry:
-	len = strlen(session->outbuf);
-	D("len: %u, retry %u", len, loop);
-	ret = fn(session->outbuf + len, IPSET_OUTBUFLEN - len,
-		 session->data, opt, session->envopts);
+	do {
+		len = strlen(session->outbuf);
+		D("len: %u, retry %u", len, loop);
+		ret = fn(session->outbuf + len, IPSET_OUTBUFLEN - len,
+			 session->data, opt, session->envopts);
+		loop = handle_snprintf_error(session, len, ret, loop);
+	} while (loop);
 
-	if (ret < 0 || ret >= IPSET_OUTBUFLEN - len) {
-		/* Buffer was too small, push it out and retry */
-		D("print buffer and try again: %u", len);
-		if (loop++) {
-			ipset_err(session,
-				"Internal error at printing, loop detected!");
-			longjmp(printf_failure, 1);
-		}
-
-		session->outbuf[len] = '\0';
-		if (!call_outfn(session))
-			goto retry;
-	}
 	return ret;
 }
 
@@ -931,6 +937,10 @@ list_create(struct ipset_session *session, struct nlattr *nla[])
 		safe_dprintf(session, ipset_print_number, IPSET_OPT_MEMSIZE);
 		safe_snprintf(session, "\nReferences: ");
 		safe_dprintf(session, ipset_print_number, IPSET_OPT_REFERENCES);
+		if (ipset_data_test(data, IPSET_OPT_ELEMENTS)) {
+			safe_snprintf(session, "\nNumber of entries: ");
+			safe_dprintf(session, ipset_print_number, IPSET_OPT_ELEMENTS);
+		}
 		safe_snprintf(session,
 			session->envopts & IPSET_ENV_LIST_HEADER ?
 			"\n" : "\nMembers:\n");
@@ -940,10 +950,16 @@ list_create(struct ipset_session *session, struct nlattr *nla[])
 		safe_dprintf(session, ipset_print_number, IPSET_OPT_MEMSIZE);
 		safe_snprintf(session, "</memsize>\n<references>");
 		safe_dprintf(session, ipset_print_number, IPSET_OPT_REFERENCES);
+		safe_snprintf(session, "</references>\n");
+		if (ipset_data_test(data, IPSET_OPT_ELEMENTS)) {
+			safe_snprintf(session, "<numentries>");
+			safe_dprintf(session, ipset_print_number, IPSET_OPT_ELEMENTS);
+			safe_snprintf(session, "</numentries>\n");
+		}
 		safe_snprintf(session,
 			session->envopts & IPSET_ENV_LIST_HEADER ?
-			"</references>\n</header>\n" :
-			"</references>\n</header>\n<members>\n");
+			"</header>\n" :
+			"</header>\n<members>\n");
 		break;
 	default:
 		break;

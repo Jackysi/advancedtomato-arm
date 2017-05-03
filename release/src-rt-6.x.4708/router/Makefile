@@ -525,6 +525,10 @@ endif
 
 	@cd $(TARGETDIR) && $(TOP)/others/rootprep.sh
 
+ifeq ($(TCONFIG_TOR),y)
+		@cd $(TARGETDIR) && $(TOP)/others/rootprep.sh ln_Tor
+endif
+
 	@echo ---
 
 ifeq ($(TCONFIG_OPTIMIZE_SHARED_LIBS),y)
@@ -873,6 +877,8 @@ openssl/stamp-h1:
 	@touch openssl/stamp-h1
 
 openssl: openssl/stamp-h1
+	@$(SEP)
+	@$(MAKE) -C openssl $(PARALLEL_BUILD)
 
 openssl-clean:
 	-@$(MAKE) -C openssl clean
@@ -942,7 +948,7 @@ dnsmasq-install:
 nettle/stamp-h1: gmp
 	@cd nettle && CC=$(CC) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) \
 	CPPFLAGS="-I$(TOP)/gmp" \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
+	CFLAGS="-O2 -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
 	LDFLAGS="-L$(TOP)/gmp/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	$(CONFIGURE) prefix=$(TOP)/nettle --disable-documentation
 	@touch nettle/stamp-h1
@@ -1370,7 +1376,7 @@ rp-l2tp-install:
 	$(STRIP) $(INSTALLDIR)/rp-l2tp/usr/sbin/l2tpd
 
 xl2tpd: pppd
-	CFLAGS="-g $(EXTRACFLAGS)" $(MAKE) -C $@ PREFIX=/usr xl2tpd
+	CFLAGS="-g $(EXTRACFLAGS)" $(MAKE) -C $@ PREFIX=/usr xl2tpd $(PARALLEL_BUILD)
 
 xl2tpd-install: xl2tpd
 	install -D xl2tpd/xl2tpd $(INSTALLDIR)/xl2tpd/usr/sbin/xl2tpd
@@ -1466,6 +1472,7 @@ dropbear/config.h:
 
 sqlite/stamp-h1:
 	cd sqlite && \
+	autoreconf -fsi && \
 	CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static \
@@ -1909,13 +1916,13 @@ pcre: pcre/stamp-h1
 
 pcre-install: pcre
 	@$(SEP)
-	install -D pcre/.libs/libpcre.so.1 $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.3
-	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.3
-	install -D pcre/.libs/libpcreposix.so.0.0.2 $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.2
-	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.2
+	install -D pcre/.libs/libpcre.so.1 $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.7
+	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcre.so.1.2.7
+	install -D pcre/.libs/libpcreposix.so.0.0.4 $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.4
+	$(STRIP) -s $(INSTALLDIR)/pcre/usr/lib/libpcreposix.so.0.0.4
 	cd $(INSTALLDIR)/pcre/usr/lib/ && \
-		ln -sf libpcre.so.1.2.3 libpcre.so.1 && \
-		ln -sf libpcreposix.so.0.0.2 libpcreposix.so.0
+		ln -sf libpcre.so.1.2.7 libpcre.so.1 && \
+		ln -sf libpcreposix.so.0.0.4 libpcreposix.so.0
 
 pcre-clean:
 	( if [ -f pcre/Makefile ]; then \
@@ -2278,11 +2285,12 @@ openvpn_plugin_auth_nvram: nvram$(BCMEX)
 #shibby
 nano/stamp-h1: libncurses
 	cd nano && CC=$(CC) STRIP=$(STRIP) \
-		CFLAGS="-O3 -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libncurses/staged/usr/lib -fPIC" \
+		NCURSES_LIBS="-lncurses" \
 		ac_cv_lib_ncursesw_get_wch=no \
-		$(CONFIGURE) --prefix=/usr --disable-nls --enable-all --without-libiconv-prefix --disable-utf8
+		$(CONFIGURE) --prefix=/usr --disable-nls --enable-tiny --without-libiconv-prefix --disable-utf8
 	touch nano/stamp-h1
 
 nano: nano/stamp-h1
@@ -2297,6 +2305,12 @@ nano-install: nano
 	install -D nano/src/nano $(INSTALLDIR)/nano/usr/sbin/nano
 	$(STRIP) -s $(INSTALLDIR)/nano/usr/sbin/nano
 
+ifeq ($(TCONFIG_AIO),y)
+CACERT:=--with-ca-bundle=/rom/cacert.pem
+else
+CACERT:=
+endif
+
 libcurl/stamp-h1: zlib openssl
 	cd libcurl && CC=$(CC) STRIP=$(STRIP) \
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/zlib" \
@@ -2308,7 +2322,7 @@ libcurl/stamp-h1: zlib openssl
 		--disable-ldap --disable-manual --disable-telnet --disable-verbose \
 		--with-random="/dev/urandom" --with-ssl="$(TOP)/openssl/ssl" \
 		--without-gnutls --without-krb4 --without-libidn \
-		--with-linux-headers=$(LINUXDIR)/include \
+		--with-linux-headers=$(LINUXDIR)/include $(CACERT) \
 		OPENSSL_CFLAGS="-I$(TOP)/openssl/include" \
 		OPENSSL_LIBS="-L$(TOP)/openssl -lcrypto -lssl"
 		touch libcurl/stamp-h1
@@ -2374,11 +2388,11 @@ libiconv-clean:
 
 libiconv-install: libiconv
 	install -d $(INSTALLDIR)/libiconv/usr/lib
-	install libiconv/lib/.libs/libiconv.so.2.5.1 $(INSTALLDIR)/libiconv/usr/lib/libiconv.so.2.5.1
-	$(STRIP) -s $(INSTALLDIR)/libiconv/usr/lib/libiconv.so.2.5.1
+	install libiconv/lib/.libs/libiconv.so.2.6.0 $(INSTALLDIR)/libiconv/usr/lib/libiconv.so.2.6.0
+	$(STRIP) -s $(INSTALLDIR)/libiconv/usr/lib/libiconv.so.2.6.0
 	cd $(INSTALLDIR)/libiconv/usr/lib/ && \
-		ln -sf libiconv.so.2.5.1 libiconv.so.2 && \
-		ln -sf libiconv.so.2.5.1 libiconv.so
+		ln -sf libiconv.so.2.6.0 libiconv.so.2 && \
+		ln -sf libiconv.so.2.6.0 libiconv.so
 
 transmission/stamp-h1: openssl libcurl libevent zlib
 	cd transmission && CC=$(CC) STRIP=$(STRIP) \
@@ -2437,6 +2451,7 @@ btgui-install: btgui
 libnfsidmap/stamp-h1:
 	cd libnfsidmap && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+	autoreconf -fsi && \
 	ac_cv_func_malloc_0_nonnull=yes \
 	ac_cv_func_realloc_0_nonnull=yes \
 	$(CONFIGURE) --prefix=/usr --enable-shared --enable-static
@@ -2563,7 +2578,7 @@ tinc/stamp-h1: openssl zlib lzo
 
 tinc: tinc/stamp-h1
 	@$(SEP)
-	@$(MAKE) -C tinc LIBS="-lcrypto $(TOP)/zlib/libz.a -llzo2" $(PARALLEL_BUILD)
+	@$(MAKE) -C tinc LIBS="-lcrypto $(TOP)/zlib/libz.a -llzo2 -lm" $(PARALLEL_BUILD)
 
 tinc-clean:
 	-@$(MAKE) -C tinc clean
@@ -2643,6 +2658,7 @@ apcupsd-install: apcupsd
 
 libsodium/stamp-h1:
 	cd $(TOP)/libsodium && CC=$(CC) STRIP=$(STRIP) \
+	autoreconf -fsi && \
 	$(CONFIGURE) --prefix=/usr --disable-ssp --enable-minimal
 	touch libsodium/stamp-h1
 
@@ -2651,11 +2667,11 @@ libsodium: libsodium/stamp-h1
 
 libsodium-install: libsodium
 	install -d $(INSTALLDIR)/libsodium/usr/lib
-	install -D libsodium/src/libsodium/.libs/libsodium.so.18.1.0 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.0
-	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.1.0
+	install -D libsodium/src/libsodium/.libs/libsodium.so.18.2.0 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.2.0
+	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.18.2.0
 	cd $(INSTALLDIR)/libsodium/usr/lib/ && \
-		ln -sf libsodium.so.18.1.0 libsodium.so.18 && \
-		ln -sf libsodium.so.18.1.0 libsodium.so
+		ln -sf libsodium.so.18.2.0 libsodium.so.18 && \
+		ln -sf libsodium.so.18.2.0 libsodium.so
 
 libsodium-clean:
 	-$(MAKE) -C libsodium clean
@@ -2663,6 +2679,7 @@ libsodium-clean:
 
 dnscrypt/stamp-h1: libsodium
 	cd $(TOP)/dnscrypt && CC=$(CC) STRIP=$(STRIP) \
+	autoreconf -fsi && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	CPPFLAGS="-I$(TOP)/libsodium/src/libsodium/include" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libsodium/src/libsodium/.libs" \
@@ -2688,7 +2705,7 @@ tor/stamp-h1: openssl zlib libevent
 	CFLAGS="-O2 -Wall $(EXTRACFLAGS)" \
 	$(CONFIGURE) --prefix=/usr --with-libevent-dir=$(TOP)/libevent/staged/usr/local \
 		--with-openssl-dir=$(TOP)/openssl --with-zlib-dir=$(TOP)/zlib \
-		--disable-asciidoc --disable-tool-name-check
+		--disable-asciidoc --disable-tool-name-check --disable-unittests
 	touch tor/stamp-h1
 
 tor: tor/stamp-h1
@@ -2703,16 +2720,19 @@ tor-clean:
 	@rm -rf tor/stamp-h1 tor/Makefile
 
 udpxy/stamp-h1:
-	cd udpxy \
 	$(MAKE) -C udpxy CFLAGS="-Os -Wall --host=$(HOST) --target=$(HOST) $(EXTRACFLAGS)" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections"
 	touch udpxy/stamp-h1
+
+udpxy: udpxy/stamp-h1
+	@$(SEP)
 
 udpxy-clean:
 	-@$(MAKE) -C udpxy clean
 	@rm -f udpxy/stamp-h1
 
-udpxy-install: udpxy/stamp-h1
+udpxy-install: udpxy
+	@$(SEP)
 	install -d $(INSTALLDIR)/udpxy/usr/bin
 	install -D udpxy/udpxy $(INSTALLDIR)/udpxy/bin/udpxy
 	$(STRIP) -s $(INSTALLDIR)/udpxy/bin/udpxy
@@ -2752,7 +2772,7 @@ libmnl-clean:
 
 ipset/stamp-h1: libmnl
 	cd $(TOP)/ipset && CC=$(CC) STRIP=$(STRIP) \
-	autoreconf && \
+	autoreconf -fsi && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	libmnl_CFLAGS="-I$(TOP)/libmnl/staged/usr/include" \

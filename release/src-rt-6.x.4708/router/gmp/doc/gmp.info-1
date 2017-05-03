@@ -1,9 +1,9 @@
-This is gmp.info, produced by makeinfo version 5.2 from gmp.texi.
+This is gmp.info, produced by makeinfo version 6.1 from gmp.texi.
 
 This manual describes how to install and use the GNU multiple precision
-arithmetic library, version 6.1.0.
+arithmetic library, version 6.1.2.
 
-   Copyright 1991, 1993-2015 Free Software Foundation, Inc.
+   Copyright 1991, 1993-2016 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -24,9 +24,9 @@ GNU MP
 ******
 
 This manual describes how to install and use the GNU multiple precision
-arithmetic library, version 6.1.0.
+arithmetic library, version 6.1.2.
 
-   Copyright 1991, 1993-2015 Free Software Foundation, Inc.
+   Copyright 1991, 1993-2016 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -230,7 +230,7 @@ Build Directory
      directory.  For example
 
           cd /my/build/dir
-          /my/sources/gmp-6.1.0/configure
+          /my/sources/gmp-6.1.2/configure
 
      Not all 'make' programs have the necessary features ('VPATH') to
      support this.  In particular, SunOS and Slowaris 'make' have bugs
@@ -244,8 +244,8 @@ Build Directory
      '--exec-prefix' can be used to direct architecture-dependent files
      like 'libgmp.a' to a different location.  This can be used to share
      architecture-independent parts like the documentation, but separate
-     the dependent parts.  Note however that 'gmp.h' and 'mp.h' are
-     architecture-dependent since they encode certain aspects of
+     the dependent parts.  Note however that 'gmp.h' is
+     architecture-dependent since it encodes certain aspects of
      'libgmp', so it will be necessary to ensure both '$prefix/include'
      and '$exec_prefix/include' are available to the compiler.
 
@@ -1497,7 +1497,7 @@ File: gmp.info,  Node: Useful Macros and Constants,  Next: Compatibility with ol
 
  -- Global Constant: const char * const gmp_version
      The GMP version number, as a null-terminated string, in the form
-     "i.j.k".  This release is "6.1.0".  Note that the format "i.j" was
+     "i.j.k".  This release is "6.1.2".  Note that the format "i.j" was
      used, before version 4.3.0, when k was zero.
 
  -- Macro: __GMP_CC
@@ -1803,7 +1803,7 @@ Source File Paths
      to the source directory.
 
           cd /my/build/dir
-          /my/source/dir/gmp-6.1.0/configure
+          /my/source/dir/gmp-6.1.2/configure
 
      This works via 'VPATH', and might require GNU 'make'.  Alternately
      it might be possible to change the '.c.lo' rules appropriately.
@@ -2988,7 +2988,7 @@ number functions.
      the binary representation.  Useful for testing functions and
      algorithms, since this kind of random numbers have proven to be
      more likely to trigger corner-case bugs.  The random number will be
-     in the range 0 to 2^N-1, inclusive.
+     in the range 2^N-1 to 2^N-1, inclusive.
 
      The variable STATE must be initialized by calling one of the
      'gmp_randinit' functions (*note Random State Initialization::)
@@ -3247,7 +3247,7 @@ rational numbers.  These functions start with the prefix 'mpq_'.
    Rational numbers are stored in objects of type 'mpq_t'.
 
    All rational arithmetic functions assume operands have a canonical
-form, and canonicalize their result.  The canonical from means that the
+form, and canonicalize their result.  The canonical form means that the
 denominator and the numerator have no common factors, and that the
 denominator is positive.  Zero has the unique representation 0/1.
 
@@ -4305,8 +4305,8 @@ For example, {S1P, S1N}.
      'mpn_divrem_1' on CPUs with fast multiplication but slow division.
 
      The source a, result q, size n, initial carry i, and return value c
-     satisfy c*b^n + a-i = 3*q, where b=2^GMP_NUMB_BITS.  The return c
-     is always 0, 1 or 2, and the initial carry i must also be 0, 1 or 2
+     satisfy c*b^n + a-i = 3*q, where b=2^GMP_NUMB_BITS. The return c is
+     always 0, 1 or 2, and the initial carry i must also be 0, 1 or 2
      (these are both borrows really).  When c=0 clearly q=(a-i)/3.  When
      c!=0, the remainder (a-i) mod 3 is given by 3-c, because b == 1 mod
      3 (when 'mp_bits_per_limb' is even, which is always so currently).
@@ -4368,13 +4368,13 @@ For example, {S1P, S1N}.
           mp_size_t VN)
      Let U be defined by {UP, UN} and let V be defined by {VP, VN}.
 
-     Compute the greatest common divisor G of U and V.  Compute a
-     cofactor S such that G = US + VT.  The second cofactor T is not
+     Compute the greatest common divisor G of U and V. Compute a
+     cofactor S such that G = US + VT. The second cofactor T is not
      computed but can easily be obtained from (G - U*S) / V (the
      division will be exact).  It is required that UN >= VN > 0, and the
      most significant limb of {VP, VN} must be non-zero.
 
-     S satisfies S = 1 or abs(S) < V / (2 G).  S = 0 if and only if V
+     S satisfies S = 1 or abs(S) < V / (2 G). S = 0 if and only if V
      divides U (i.e., G = V).
 
      Store G at GP and let the return value define its limb count.
@@ -6463,10 +6463,10 @@ limbs.  The 'SQR' threshold is usually about twice the 'MUL'.
 b*N + c and the Karatsuba algorithm K(N) = 3*M(N/2) + d*N + e, which
 expands to K(N) = 3/4*a*N^2 + 3/2*b*N + 3*c + d*N + e.  The factor 3/4
 for a means per-crossproduct speedups in the basecase code will increase
-the threshold since they benefit M(N) more than K(N).  And conversely
-the 3/2 for b means linear style speedups of b will increase the
-threshold since they benefit K(N) more than M(N).  The latter can be
-seen for instance when adding an optimized 'mpn_sqr_diagonal' to
+the threshold since they benefit M(N) more than K(N). And conversely the
+3/2 for b means linear style speedups of b will increase the threshold
+since they benefit K(N) more than M(N). The latter can be seen for
+instance when adding an optimized 'mpn_sqr_diagonal' to
 'mpn_sqr_basecase'.  Of course all speedups reduce total time, and in
 that sense the algorithm thresholds are merely of academic interest.
 
@@ -6686,7 +6686,7 @@ FFTs in various forms can be found in many textbooks, for instance Knuth
 section 4.3.3 part C or Lipson chapter IX.  A brief description of the
 form used in GMP is given here.
 
-   The multiplication done is x*y mod 2^N+1, for a given N.  A full
+   The multiplication done is x*y mod 2^N+1, for a given N. A full
 product x*y is obtained by choosing N>=bits(x)+bits(y) and padding x and
 y with high zero limbs.  The modular product is the native form for the
 algorithm, so padding to get a full product is unavoidable.
@@ -6719,7 +6719,7 @@ interpolation do only shifts, adds and negations.
 
    The pointwise multiplications are done modulo 2^N'+1 and either
 recurse into a further FFT or use a plain multiplication (Toom-3,
-Karatsuba or basecase), whichever is optimal at the size N'.  The
+Karatsuba or basecase), whichever is optimal at the size N'. The
 interpolation is an inverse fast Fourier transform.  The resulting set
 of sums of x[i]*y[j] are added at appropriate offsets to give the final
 result.
@@ -6972,8 +6972,8 @@ repeated 'mpn_submul_1' calls.
 time for an NxN multiplication done with FFTs.  The actual time is a sum
 over multiplications of the recursed sizes, as can be seen near the end
 of section 2.2 of Burnikel and Ziegler.  For example, within the Toom-3
-range, divide and conquer is 2.63*M(N).  With higher algorithms the M(N)
-term improves and the multiplier tends to log(N).  In practice, at
+range, divide and conquer is 2.63*M(N). With higher algorithms the M(N)
+term improves and the multiplier tends to log(N). In practice, at
 moderate to large sizes, a 2NxN division is about 2 to 4 times slower
 than an NxN multiplication.
 

@@ -14,7 +14,7 @@ INSTALL = @INSTALL@
 PROGS=		debugfs
 MANPAGES=	debugfs.8
 
-MK_CMDS=	_SS_DIR_OVERRIDE=../lib/ss ../lib/ss/mk_cmds
+MK_CMDS=	_SS_DIR_OVERRIDE=$(srcdir)/../lib/ss ../lib/ss/mk_cmds
 
 DEBUG_OBJS= debug_cmds.o debugfs.o util.o ncheck.o icheck.o ls.o \
 	lsdel.o dump.o set_fields.o logdump.o htree.o unused.o e2freefrag.o \
@@ -66,6 +66,11 @@ debugfs: $(DEBUG_OBJS) $(DEPLIBS)
 debugfs.static: $(DEBUG_OBJS) $(STATIC_DEPLIBS)
 	$(E) "	LD $@"
 	$(Q) $(CC) $(LDFLAGS_STATIC) -o debugfs.static $(DEBUG_OBJS) \
+		$(STATIC_LIBS) $(READLINE_LIB)
+
+debugfs.static-libs: $(DEBUG_OBJS) $(STATIC_DEPLIBS)
+	$(E) "	LD $@"
+	$(Q) $(CC) -o debugfs.static-libs $(DEBUG_OBJS) \
 		$(STATIC_LIBS) $(READLINE_LIB)
 
 rdebugfs: $(RO_DEBUG_OBJS) $(DEPLIBS)
@@ -146,7 +151,7 @@ uninstall:
 clean::
 	$(RM) -f $(PROGS) debugfs.8 \#* *.s *.o *.a *~ debug_cmds.c \
 		extent_cmds.c ro_debug_cmds.c core rdebugfs debugfs.static \
-		tst_set_fields
+		debugfs.static-libs tst_set_fields
 
 mostlyclean: clean
 distclean: clean
@@ -335,7 +340,8 @@ create_inode.o: $(srcdir)/../misc/create_inode.c $(top_builddir)/lib/config.h \
  $(top_srcdir)/lib/ext2fs/fiemap.h $(srcdir)/../misc/create_inode.h \
  $(top_srcdir)/lib/e2p/e2p.h $(top_srcdir)/lib/support/nls-enable.h
 xattrs.o: $(srcdir)/xattrs.c $(top_builddir)/lib/config.h \
- $(top_builddir)/lib/dirpaths.h $(srcdir)/debugfs.h $(top_srcdir)/lib/ss/ss.h \
+ $(top_builddir)/lib/dirpaths.h $(top_srcdir)/lib/support/cstring.h \
+ $(srcdir)/debugfs.h $(top_srcdir)/lib/ss/ss.h \
  $(top_builddir)/lib/ss/ss_err.h $(top_srcdir)/lib/et/com_err.h \
  $(top_srcdir)/lib/ext2fs/ext2_fs.h $(top_builddir)/lib/ext2fs/ext2_types.h \
  $(top_srcdir)/lib/ext2fs/ext2fs.h $(top_srcdir)/lib/ext2fs/ext3_extents.h \
@@ -355,11 +361,11 @@ quota.o: $(srcdir)/quota.c $(top_builddir)/lib/config.h \
  $(top_srcdir)/lib/support/quotaio.h $(top_srcdir)/lib/support/dqblk_v2.h \
  $(top_srcdir)/lib/support/quotaio_tree.h
 journal.o: $(srcdir)/journal.c $(top_builddir)/lib/config.h \
- $(top_builddir)/lib/dirpaths.h $(srcdir)/../e2fsck/jfs_user.h \
- $(top_srcdir)/lib/ext2fs/ext2_fs.h $(top_builddir)/lib/ext2fs/ext2_types.h \
- $(top_srcdir)/lib/ext2fs/ext2fs.h $(top_srcdir)/lib/ext2fs/ext3_extents.h \
- $(top_srcdir)/lib/et/com_err.h $(top_srcdir)/lib/ext2fs/ext2_io.h \
- $(top_builddir)/lib/ext2fs/ext2_err.h \
+ $(top_builddir)/lib/dirpaths.h $(srcdir)/journal.h \
+ $(srcdir)/../e2fsck/jfs_user.h $(top_srcdir)/lib/ext2fs/ext2_fs.h \
+ $(top_builddir)/lib/ext2fs/ext2_types.h $(top_srcdir)/lib/ext2fs/ext2fs.h \
+ $(top_srcdir)/lib/ext2fs/ext3_extents.h $(top_srcdir)/lib/et/com_err.h \
+ $(top_srcdir)/lib/ext2fs/ext2_io.h $(top_builddir)/lib/ext2fs/ext2_err.h \
  $(top_srcdir)/lib/ext2fs/ext2_ext_attr.h $(top_srcdir)/lib/ext2fs/bitops.h \
  $(top_srcdir)/lib/ext2fs/kernel-jbd.h $(top_srcdir)/lib/ext2fs/jfs_compat.h \
  $(top_srcdir)/lib/ext2fs/kernel-list.h
@@ -388,6 +394,7 @@ do_journal.o: $(srcdir)/do_journal.c $(top_builddir)/lib/config.h \
  $(top_srcdir)/lib/ext2fs/ext2_ext_attr.h $(top_srcdir)/lib/ext2fs/bitops.h \
  $(srcdir)/../misc/create_inode.h $(top_srcdir)/lib/e2p/e2p.h \
  $(top_srcdir)/lib/support/quotaio.h $(top_srcdir)/lib/support/dqblk_v2.h \
- $(top_srcdir)/lib/support/quotaio_tree.h $(srcdir)/../e2fsck/jfs_user.h \
+ $(top_srcdir)/lib/support/quotaio_tree.h \
  $(top_srcdir)/lib/ext2fs/kernel-jbd.h $(top_srcdir)/lib/ext2fs/jfs_compat.h \
- $(top_srcdir)/lib/ext2fs/kernel-list.h
+ $(top_srcdir)/lib/ext2fs/kernel-list.h $(srcdir)/journal.h \
+ $(srcdir)/../e2fsck/jfs_user.h

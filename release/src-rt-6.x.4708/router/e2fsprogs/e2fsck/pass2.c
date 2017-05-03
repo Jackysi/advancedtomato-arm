@@ -97,7 +97,6 @@ void e2fsck_pass2(e2fsck_t ctx)
 	struct check_dir_struct cd;
 	struct dx_dir_info	*dx_dir;
 	struct dx_dirblock_info	*dx_db, *dx_parent;
-	unsigned int		save_type;
 	int			b;
 	int			i, depth;
 	problem_t		code;
@@ -116,23 +115,13 @@ void e2fsck_pass2(e2fsck_t ctx)
 	if (!(ctx->options & E2F_OPT_PREEN))
 		fix_problem(ctx, PR_2_PASS_HEADER, &cd.pctx);
 
-	e2fsck_setup_tdb_icount(ctx, EXT2_ICOUNT_OPT_INCREMENT,
-				&ctx->inode_count);
-	if (ctx->inode_count)
-		cd.pctx.errcode = 0;
-	else {
-		e2fsck_set_bitmap_type(fs, EXT2FS_BMAP64_RBTREE,
-				       "inode_count", &save_type);
-		cd.pctx.errcode = ext2fs_create_icount2(fs,
-						EXT2_ICOUNT_OPT_INCREMENT,
-						0, ctx->inode_link_info,
-						&ctx->inode_count);
-		fs->default_bitmap_type = save_type;
-	}
+	cd.pctx.errcode = e2fsck_setup_icount(ctx, "inode_count",
+				EXT2_ICOUNT_OPT_INCREMENT,
+				ctx->inode_link_info, &ctx->inode_count);
 	if (cd.pctx.errcode) {
 		fix_problem(ctx, PR_2_ALLOCATE_ICOUNT, &cd.pctx);
 		ctx->flags |= E2F_FLAG_ABORT;
-		return;
+		goto cleanup;
 	}
 	buf = (char *) e2fsck_allocate_memory(ctx, 2*fs->blocksize,
 					      "directory scan buffer");
@@ -167,17 +156,17 @@ void e2fsck_pass2(e2fsck_t ctx)
 	}
 
 	if (ctx->flags & E2F_FLAG_RUN_RETURN)
-		return;
+		goto cleanup;
 
 	if (cd.pctx.errcode) {
 		fix_problem(ctx, PR_2_DBLIST_ITERATE, &cd.pctx);
 		ctx->flags |= E2F_FLAG_ABORT;
-		return;
+		goto cleanup;
 	}
 
 	for (i=0; (dx_dir = e2fsck_dx_dir_info_iter(ctx, &i)) != 0;) {
 		if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-			return;
+			goto cleanup;
 		if (e2fsck_dir_will_be_rehashed(ctx, dx_dir->ino) ||
 		    dx_dir->numblocks == 0)
 			continue;
@@ -296,6 +285,8 @@ void e2fsck_pass2(e2fsck_t ctx)
 	}
 
 	print_resource_track(ctx, _("Pass 2"), &rtrack, fs->io);
+cleanup:
+	ext2fs_free_mem(&buf);
 }
 
 #define MAX_DEPTH 32000
@@ -779,11 +770,11 @@ static errcode_t insert_dirent_tail(ext2_filsys fs, void *dirbuf)
 		d = NEXT_DIRENT(d);
 
 	if (d != top) {
-		size_t min_size = EXT2_DIR_REC_LEN(
+		unsigned int min_size = EXT2_DIR_REC_LEN(
 				ext2fs_dirent_name_len(dirbuf));
-		if (min_size > top - (void *)d)
+		if (min_size > (char *)top - (char *)d)
 			return EXT2_ET_DIR_NO_SPACE_FOR_CSUM;
-		d->rec_len = top - (void *)d;
+		d->rec_len = (char *)top - (char *)d;
 	}
 
 	t = (struct ext2_dir_entry_tail *)top;
@@ -1148,7 +1139,7 @@ skip_checksum:
 			if ((offset + rec_len > max_block_size) ||
 			    (rec_len < 12) ||
 			    ((rec_len % 4) != 0) ||
-			    ((ext2fs_dirent_name_len(dirent) + EXT2_DIR_ENTRY_HEADER_LEN) > rec_len)) {
+			    (((unsigned) ext2fs_dirent_name_len(dirent) + EXT2_DIR_ENTRY_HEADER_LEN) > rec_len)) {
 				if (fix_problem(ctx, PR_2_DIR_CORRUPTED,
 						&cd->pctx)) {
 #ifdef WORDS_BIGENDIAN
@@ -1908,7 +1899,7 @@ static int allocate_dir_block(e2fsck_t ctx,
 	 * Update the inode block count
 	 */
 	ext2fs_iblk_add_blocks(fs, &inode, 1);
-	if (EXT2_I_SIZE(&inode) < (db->blockcnt+1) * fs->blocksize) {
+	if (EXT2_I_SIZE(&inode) < ((__u64) db->blockcnt+1) * fs->blocksize) {
 		pctx->errcode = ext2fs_inode_size_set(fs, &inode,
 					(db->blockcnt+1) * fs->blocksize);
 		if (pctx->errcode) {

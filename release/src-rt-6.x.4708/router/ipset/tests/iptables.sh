@@ -95,6 +95,11 @@ del)
 	$cmd -F INPUT
 	$cmd -A INPUT -j SET --del-set ipport src,src
 	;;
+add)
+	$ipset n test hash:net $family 2>/dev/null
+	$cmd -F INPUT
+	$cmd -A INPUT -j SET --add-set test src
+	;;
 timeout)
 	$ipset n test hash:ip,port timeout 2
 	$cmd -A INPUT -j SET --add-set test src,src --timeout 10 --exist
@@ -105,6 +110,12 @@ mangle)
 	$cmd -t mangle -A INPUT -j SET --map-set test src --map-mark
 	$cmd -t mangle -A INPUT -m mark --mark 0x1234 -j LOG --log-prefix "in set mark: "
 	$cmd -t mangle -A INPUT -s 10.255.0.0/16 -j DROP
+	;;
+netiface)
+	$ipset n test hash:net,iface
+	$ipset a test 0.0.0.0/0,eth0
+	$cmd -A OUTPUT -m set --match-set test dst,dst -j LOG --log-prefix "in set netiface: "
+	$cmd -A OUTPUT -d 10.255.255.254 -j DROP
 	;;
 stop)
 	$cmd -F

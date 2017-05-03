@@ -134,7 +134,7 @@ If you test it please contact the Dropbear author */
 #define DROPBEAR_SHA1_96_HMAC
 #define DROPBEAR_SHA2_256_HMAC
 #define DROPBEAR_SHA2_512_HMAC
-#define DROPBEAR_MD5_HMAC
+/* #define DROPBEAR_MD5_HMAC */
 
 /* You can also disable integrity. Don't bother disabling this if you're
  * still using a cipher, it's relatively cheap. If you disable this it's dead
@@ -151,11 +151,6 @@ If you test it please contact the Dropbear author */
  * code (either ECDSA or ECDH) increases binary size - around 30kB
  * on x86-64 */
 #define DROPBEAR_ECDSA
-
-/* Group14 (2048 bit) is recommended. Group1 is less secure (1024 bit) though
-   is the only option for interoperability with some older SSH programs */
-#define DROPBEAR_DH_GROUP1 1
-#define DROPBEAR_DH_GROUP14 1
 
 /* Generate hostkeys as-needed when the first connection using that key type occurs.
    This avoids the need to otherwise run "dropbearkey" and avoids some problems

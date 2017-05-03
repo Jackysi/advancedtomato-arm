@@ -184,7 +184,7 @@ static int jbd2_descr_block_csum_verify(journal_t *j,
 	if (!journal_has_csum_v2or3(j))
 		return 1;
 
-	tail = (struct journal_block_tail *)(buf + j->j_blocksize -
+	tail = (struct journal_block_tail *)((char *)buf + j->j_blocksize -
 			sizeof(struct journal_block_tail));
 	provided = tail->t_checksum;
 	tail->t_checksum = 0;
@@ -338,12 +338,24 @@ int journal_skip_recovery(journal_t *journal)
 	return err;
 }
 
+static inline __u32 get_be32(__be32 *p)
+{
+	unsigned char *cp = (unsigned char *) p;
+	__u32 ret;
+
+	ret = *cp++;
+	ret = (ret << 8) + *cp++;
+	ret = (ret << 8) + *cp++;
+	ret = (ret << 8) + *cp++;
+	return ret;
+}
+
 static inline unsigned long long read_tag_block(journal_t *journal,
 						journal_block_tag_t *tag)
 {
-	unsigned long long block = ext2fs_be32_to_cpu(tag->t_blocknr);
+	unsigned long long block = get_be32(&tag->t_blocknr);
 	if (jfs_has_feature_64bit(journal))
-		block |= (u64)ext2fs_be32_to_cpu(tag->t_blocknr_high) << 32;
+		block |= (u64)get_be32(&tag->t_blocknr_high) << 32;
 	return block;
 }
 
@@ -626,8 +638,9 @@ static int do_one_pass(journal_t *journal,
 					memcpy(nbh->b_data, obh->b_data,
 							journal->j_blocksize);
 					if (flags & JFS_FLAG_ESCAPE) {
-						*((__u32 *)nbh->b_data) =
-						ext2fs_cpu_to_be32(JFS_MAGIC_NUMBER);
+						__u32 magic = ext2fs_cpu_to_be32(JFS_MAGIC_NUMBER);
+						memcpy(nbh->b_data, &magic,
+						       sizeof(magic));
 					}
 
 					BUFFER_TRACE(nbh, "marking dirty");
@@ -818,7 +831,7 @@ static int jbd2_revoke_block_csum_verify(journal_t *j,
 	if (!journal_has_csum_v2or3(j))
 		return 1;
 
-	tail = (struct journal_revoke_tail *)(buf + j->j_blocksize -
+	tail = (struct journal_revoke_tail *)((char *)buf + j->j_blocksize -
 			sizeof(struct journal_revoke_tail));
 	provided = tail->r_checksum;
 	tail->r_checksum = 0;
@@ -835,7 +848,7 @@ static int scan_revoke_records(journal_t *journal, struct buffer_head *bh,
 {
 	journal_revoke_header_t *header;
 	int offset, max;
-	int csum_size = 0;
+	unsigned csum_size = 0;
 	__u32 rcount;
 	int record_len = 4;
 

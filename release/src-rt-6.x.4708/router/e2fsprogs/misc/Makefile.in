@@ -43,7 +43,8 @@ SMANPAGES=	tune2fs.8 mklost+found.8 mke2fs.8 dumpe2fs.8 badblocks.8 \
 FMANPAGES=	mke2fs.conf.5 ext4.5
 
 UPROGS=		chattr lsattr @UUID_CMT@ uuidgen
-UMANPAGES=	chattr.1 fuse2fs.1 lsattr.1 @UUID_CMT@ uuidgen.1
+UMANPAGES=	chattr.1 lsattr.1 @UUID_CMT@ uuidgen.1
+UMANPAGES+=	@FUSE_CMT@ fuse2fs.1
 
 LPROGS=		@E2INITRD_PROG@
 
@@ -108,13 +109,13 @@ DEPLIBS= $(LIBEXT2FS) $(DEPLIBCOM_ERR) $(DEPLIBSUPPORT)
 PROFILED_LIBS= $(PROFILED_LIBEXT2FS) $(PROFILED_LIBCOM_ERR) $(LIBSUPPORT)
 PROFILED_DEPLIBS= $(PROFILED_LIBEXT2FS) $(DEPPROFILED_LIBCOM_ERR) $(DEPLIBSUPPORT)
 
-STATIC_LIBS= $(STATIC_LIBEXT2FS) $(STATIC_LIBCOM_ERR) $(LIBSUPPORT)
-STATIC_DEPLIBS= $(STATIC_LIBEXT2FS) $(DEPSTATIC_LIBCOM_ERR) $(DEPLIBSUPPORT)
+STATIC_LIBS= $(LIBSUPPORT) $(STATIC_LIBEXT2FS) $(STATIC_LIBCOM_ERR)
+STATIC_DEPLIBS= $(DEPLIBSUPPORT) $(STATIC_LIBEXT2FS) $(DEPSTATIC_LIBCOM_ERR)
 
 LIBS_E2P= $(LIBE2P) $(LIBCOM_ERR)
 DEPLIBS_E2P= $(LIBE2P) $(DEPLIBCOM_ERR)
 
-COMPILE_ET=$(top_builddir)/lib/et/compile_et --build-tree
+COMPILE_ET=	_ET_DIR_OVERRIDE=$(srcdir)/../lib/et/et ../lib/et/compile_et
 
 # This nastyness is needed because of jfs_user.h hackery; when we finally
 # clean up this mess, we should be able to drop it
@@ -156,9 +157,9 @@ findsuper: findsuper.o
 	$(E) "	LD $@"
 	$(Q) $(CC) $(ALL_LDFLAGS) -o findsuper findsuper.o $(LIBS) $(SYSLIBS)
 
-partinfo: partinfo.o
+partinfo: partinfo.o $(DEPLIBCOM_ERR)
 	$(E) "	LD $@"
-	$(Q) $(CC) $(ALL_LDFLAGS) -o partinfo partinfo.o
+	$(Q) $(CC) $(ALL_LDFLAGS) -o partinfo partinfo.o $(LIBCOM_ERR)
 
 e2initrd_helper: e2initrd_helper.o $(DEPLIBS) $(DEPLIBBLKID) $(LIBEXT2FS)
 	$(E) "	LD $@"
@@ -233,7 +234,7 @@ e4defrag: $(E4DEFRAG_OBJS) $(DEPLIBS)
 e4crypt: $(E4CRYPT_OBJS) $(DEPLIBS) $(DEPSTATIC_LIBUUID)
 	$(E) "	LD $@"
 	$(Q) $(CC) $(ALL_LDFLAGS) -o e4crypt $(E4CRYPT_OBJS) \
-		$(STATIC_LIBUUID) $(STATIC_LIBS)
+		$(LIBUUID) $(LIBS)
 
 e4defrag.profiled: $(E4DEFRAG_OBJS) $(PROFILED_DEPLIBS)
 	$(E) "	LD $@"
@@ -270,7 +271,7 @@ mke2fs: $(MKE2FS_OBJS) $(DEPLIBS) $(LIBE2P) $(DEPLIBBLKID) $(DEPLIBUUID) \
 mke2fs.static: $(MKE2FS_OBJS) $(STATIC_DEPLIBS) $(STATIC_LIBE2P) $(DEPSTATIC_LIBUUID) \
 		$(DEPSTATIC_LIBBLKID)
 	$(E) "	LD $@"
-	$(Q) $(CC) $(ALL_LDFLAGS) -static -o mke2fs.static $(MKE2FS_OBJS) \
+	$(Q) $(CC) $(LDFLAGS_STATIC) -o mke2fs.static $(MKE2FS_OBJS) \
 		$(STATIC_LIBS) $(STATIC_LIBE2P) \
 		$(STATIC_LIBBLKID) $(STATIC_LIBUUID) $(LIBINTL) $(SYSLIBS) \
 		$(LIBMAGIC)
@@ -387,7 +388,8 @@ fuse2fs: $(FUSE2FS_OBJS) $(DEPLIBS) $(DEPLIBBLKID) $(DEPLIBUUID) \
 		$(LIBEXT2FS)
 	$(E) "	LD $@"
 	$(Q) $(CC) $(ALL_LDFLAGS) -o fuse2fs $(FUSE2FS_OBJS) $(LIBS) \
-		$(LIBFUSE) $(LIBBLKID) $(LIBUUID) $(LIBEXT2FS) $(LIBINTL)
+		$(LIBFUSE) $(LIBBLKID) $(LIBUUID) $(LIBEXT2FS) $(LIBINTL) \
+		$(CLOCK_GETTIME_LIB) $(SYSLIBS)
 
 journal.o: $(srcdir)/../debugfs/journal.c
 	$(E) "	CC $@"
@@ -522,7 +524,7 @@ install: all $(SMANPAGES) $(UMANPAGES) installdirs
 		$(ES) "	INSTALL $(sbindir)/$$i"; \
 		$(INSTALL_PROGRAM) $$i $(DESTDIR)$(sbindir)/$$i; \
 	done
-	$(Q) for i in ext2 ext3 ext4 ext4dev; do \
+	$(Q) for i in ext2 ext3 ext4; do \
 		$(ES) "	LINK $(root_sbindir)/mkfs.$$i"; \
 		(cd $(DESTDIR)$(root_sbindir); \
 			$(LN) $(LINK_INSTALL_FLAGS) mke2fs mkfs.$$i); \
@@ -551,7 +553,7 @@ install: all $(SMANPAGES) $(UMANPAGES) installdirs
 	done
 	$(Q) $(RM) -f $(DESTDIR)$(man8dir)/mkfs.ext2.8.gz \
 		$(DESTDIR)$(man8dir)/mkfs.ext3.8.gz
-	$(Q) for i in ext2 ext3 ext4 ext4dev; do \
+	$(Q) for i in ext2 ext3 ext4; do \
 		$(ES) "	LINK mkfs.$$i.8"; \
 		(cd $(DESTDIR)$(man8dir); \
 			$(LN) $(LINK_INSTALL_FLAGS) mke2fs.8 mkfs.$$i.8); \
@@ -626,8 +628,7 @@ uninstall:
 	done
 	$(RM) -f $(DESTDIR)$(root_sbindir)/mkfs.ext2 \
 			$(DESTDIR)$(root_sbindir)/mkfs.ext3 \
-			$(DESTDIR)$(root_sbindir)/mkfs.ext4 \
-			$(DESTDIR)$(root_sbindir)/mkfs.ext4dev
+			$(DESTDIR)$(root_sbindir)/mkfs.ext4
 	for i in $(UPROGS); do \
 		$(RM) -f $(DESTDIR)$(bindir)/$$i; \
 	done
@@ -637,11 +638,9 @@ uninstall:
 	$(RM) -f $(DESTDIR)$(man8dir)/mkfs.ext2.8 \
 		$(DESTDIR)$(man8dir)/mkfs.ext3.8 \
 		$(DESTDIR)$(man8dir)/mkfs.ext4.8 \
-		$(DESTDIR)$(man8dir)/mkfs.ext4dev.8 \
 		$(DESTDIR)$(man8dir)/fsck.ext2.8 \
 		$(DESTDIR)$(man8dir)/fsck.ext3.8 \
-		$(DESTDIR)$(man8dir)/fsck.ext4.8 \
-		$(DESTDIR)$(man8dir)/fsck.ext4dev.8
+		$(DESTDIR)$(man8dir)/fsck.ext4.8
 
 	for i in $(UMANPAGES); do \
 		$(RM) -f $(DESTDIR)$(man1dir)/$$i; \

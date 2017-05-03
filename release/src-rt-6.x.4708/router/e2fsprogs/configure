@@ -625,14 +625,15 @@ gl_use_threads_default=
 ac_func_list=
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+LDFLAGS_SHLIB
+CFLAGS_STLIB
+CFLAGS_SHLIB
 BUILD_LDFLAGS
 BUILD_CFLAGS
 MKINSTALLDIRS
 INCLUDES
 DO_TEST_SUITE
-ET_DIR
-SS_DIR
-LDFLAG_STATIC
+LDFLAGS_STATIC
 root_sysconfdir
 root_libdir
 root_sbindir
@@ -645,8 +646,10 @@ UNI_DIFF_OPTS
 SEM_INIT_LIB
 FUSE_CMT
 FUSE_LIB
+CLOCK_GETTIME_LIB
 MAGIC_LIB
 SOCKET_LIB
+SIZEOF_TIME_T
 SIZEOF_OFF_T
 SIZEOF_LONG_LONG
 SIZEOF_LONG
@@ -727,6 +730,8 @@ SET_MAKE
 VERSION
 PACKAGE
 GETTEXT_PACKAGE
+TDB_MAN_COMMENT
+TDB_CMT
 UUIDD_CMT
 E2INITRD_MAN
 E2INITRD_PROG
@@ -857,6 +862,7 @@ enable_elf_shlibs
 enable_bsd_shlibs
 enable_profile
 enable_gcov
+enable_hardening
 enable_jbd_debug
 enable_blkid_debug
 enable_testio_debug
@@ -872,6 +878,7 @@ enable_e2initrd_helper
 enable_tls
 enable_uuidd
 enable_mmp
+enable_tdb
 enable_bmap_stats
 enable_bmap_stats_ops
 enable_nls
@@ -1529,6 +1536,7 @@ Optional Features:
   --enable-bsd-shlibs	  select BSD shared libraries
   --enable-profile	  build profiling libraries
   --enable-gcov	  	  build for coverage testing using gcov
+  --enable-hardening	  	  build for coverage testing using gcov
   --enable-jbd-debug  	  enable journal debugging
   --enable-blkid-debug    enable blkid debugging
   --disable-testio-debug  disable the use of the test I/O manager for debugging
@@ -1544,6 +1552,7 @@ Optional Features:
   --disable-tls           disable use of thread local support
   --disable-uuidd         disable building the uuid daemon
   --disable-mmp           disable support mmp, Multi Mount Protection
+  --disable-tdb           disable tdb support
   --disable-bmap-stats    disable collection of bitmap stats.
   --enable-bmap-stats-ops enable collection of additional bitmap stats
   --disable-nls           do not use Native Language Support
@@ -3718,9 +3727,6 @@ fi
 $as_echo "$ac_cv_lib_dl_dlopen" >&6; }
 if test "x$ac_cv_lib_dl_dlopen" = xyes; then :
   DLOPEN_LIB=-ldl
-
-$as_echo "#define HAVE_DLOPEN 1" >>confdefs.h
-
 fi
 
 
@@ -5012,6 +5018,27 @@ fi
 
 fi
 
+CFLAGS_SHLIB="${CFLAGS_SHLIB:-$CFLAGS}"
+CFLAGS_STLIB="${CFLAGS_STLIB:-$CFLAGS}"
+LDFLAGS_SHLIB=${LDFLAGS_SHLIB:-$LDFLAGS}
+LDFLAGS_STATIC=${LDFLAGS_STATIC:-$LDFLAGS}
+# Check whether --enable-hardening was given.
+if test "${enable_hardening+set}" = set; then :
+  enableval=$enable_hardening; if test "$enableval" = "yes"
+then
+	HARDEN_CFLAGS="-D_FORTIFY_SOURCE=2 -fstack-protector-strong"
+	HARDEN_LDFLAGS="-Wl,-z,relro -Wl,-z,now"
+	CFLAGS="$CFLAGS $HARDEN_CFLAGS -fPIE"
+	CFLAGS_SHLIB="$CFLAGS_SHLIB $HARDEN_CFLAGS"
+	CFLAGS_STLIB="$CFLAGS_STLIB $HARDEN_CFLAGS -fPIE"
+	LDFLAGS="$LDFLAGS $HARDEN_LDFLAGS -fPIE -pie"
+	LDFLAGS_STATIC="$LDFLAGS_STATIC $HARDEN_LDFLAGS"
+	LDFLAGS_SHLIB="$LDFLAGS_SHLIB $HARDEN_LDFLAGS"
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Enabling hardening support" >&5
+$as_echo "Enabling hardening support" >&6; }
+fi
+
+fi
 
 
 
@@ -5911,6 +5938,36 @@ $as_echo "#define CONFIG_MMP 1" >>confdefs.h
 
 
 fi
+
+
+# Check whether --enable-tdb was given.
+if test "${enable_tdb+set}" = set; then :
+  enableval=$enable_tdb; if test "$enableval" = "no"
+then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Disabling tdb support" >&5
+$as_echo "Disabling tdb support" >&6; }
+	TDB_CMT="#"
+	TDB_MAN_COMMENT='.\"'
+else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Enabling tdb support" >&5
+$as_echo "Enabling tdb support" >&6; }
+	$as_echo "#define CONFIG_TDB 1" >>confdefs.h
+
+	TDB_CMT=""
+	TDB_MAN_COMMENT=""
+fi
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: Enabling mmp support by default" >&5
+$as_echo "Enabling mmp support by default" >&6; }
+$as_echo "#define CONFIG_TDB 1" >>confdefs.h
+
+TDB_CMT=""
+TDB_MAN_COMMENT=""
+
+fi
+
+
 
 
 # Check whether --enable-bmap-stats was given.
@@ -11458,7 +11515,12 @@ if ${_cv_gnu_make_command+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   _cv_gnu_make_command='' ;
-                for a in "$MAKE" make gmake gnumake ; do
+                if test -n "$FORCE_NATIVE_MAKE" ; then
+                   MAKES="make"
+                else
+                   MAKES="make gmake gnumake"
+                fi
+                for a in "$MAKE" $MAKES ; do
                         if test -z "$a" ; then continue ; fi ;
                         if  ( sh -c "$a --version" 2> /dev/null | grep GNU  2>&1 > /dev/null ) ;  then
                                 _cv_gnu_make_command=$a ;
@@ -12243,7 +12305,7 @@ fi
 
 
 if test "_$MAKEINFO" = "_"; then
-    MAKEINFO="@echo Makeinfo is missing. Info documentation will not be built.;true"
+    MAKEINFO="echo Makeinfo is missing. Info documentation will not be built."
 else
     case "$MAKEINFO" in
       */missing.*)
@@ -12567,11 +12629,46 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of time_t" >&5
+$as_echo_n "checking size of time_t... " >&6; }
+if ${ac_cv_sizeof_time_t+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (time_t))" "ac_cv_sizeof_time_t"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_time_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (time_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_time_t=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_time_t" >&5
+$as_echo "$ac_cv_sizeof_time_t" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_TIME_T $ac_cv_sizeof_time_t
+_ACEOF
+
+
 SIZEOF_SHORT=$ac_cv_sizeof_short
 SIZEOF_INT=$ac_cv_sizeof_int
 SIZEOF_LONG=$ac_cv_sizeof_long
 SIZEOF_LONG_LONG=$ac_cv_sizeof_long_long
 SIZEOF_OFF_T=$ac_cv_sizeof_off_t
+SIZEOF_TIME_T=$ac_cv_sizeof_time_t
+
 
 
 
@@ -12973,7 +13070,10 @@ if test "$ac_res" != no; then :
 fi
 
 fi
-for ac_func in  	__secure_getenv 	add_key 	backtrace 	blkid_probe_get_topology 	blkid_probe_enable_partitions 	chflags 	fadvise64 	fallocate 	fallocate64 	fchown 	fdatasync 	fstat64 	ftruncate64 	futimes 	getcwd 	getdtablesize 	getmntinfo 	getpwuid_r 	getrlimit 	getrusage 	jrand48 	keyctl 	llistxattr 	llseek 	lseek64 	mallinfo 	mbstowcs 	memalign 	mempcpy 	mmap 	msync 	nanosleep 	open64 	pathconf 	posix_fadvise 	posix_fadvise64 	posix_memalign 	prctl 	pread 	pwrite 	pread64 	pwrite64 	secure_getenv 	setmntent 	setresgid 	setresuid 	snprintf 	srandom 	stpcpy 	strcasecmp 	strdup 	strnlen 	strptime 	strtoull 	sync_file_range 	sysconf 	usleep 	utime 	utimes 	valloc
+if test -n "$DLOPEN_LIB" ; then
+   ac_cv_func_dlopen=yes
+fi
+for ac_func in  	__secure_getenv 	add_key 	backtrace 	blkid_probe_get_topology 	blkid_probe_enable_partitions 	chflags 	dlopen 	fadvise64 	fallocate 	fallocate64 	fchown 	fdatasync 	fstat64 	ftruncate64 	futimes 	getcwd 	getdtablesize 	getmntinfo 	getpwuid_r 	getrlimit 	getrusage 	jrand48 	keyctl 	llistxattr 	llseek 	lseek64 	mallinfo 	mbstowcs 	memalign 	mempcpy 	mmap 	msync 	nanosleep 	open64 	pathconf 	posix_fadvise 	posix_fadvise64 	posix_memalign 	prctl 	pread 	pwrite 	pread64 	pwrite64 	secure_getenv 	setmntent 	setresgid 	setresuid 	snprintf 	srandom 	stpcpy 	strcasecmp 	strdup 	strnlen 	strptime 	strtoull 	sync_file_range 	sysconf 	usleep 	utime 	utimes 	valloc
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -13079,9 +13179,50 @@ done
 
 fi
 
-if test "$ac_cv_lib_dl_dlopen" = yes ; then
+if test "$ac_cv_func_dlopen" = yes ; then
    MAGIC_LIB=$DLOPEN_LIB
 fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for clock_gettime in -lrt" >&5
+$as_echo_n "checking for clock_gettime in -lrt... " >&6; }
+if ${ac_cv_lib_rt_clock_gettime+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrt  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char clock_gettime ();
+int
+main ()
+{
+return clock_gettime ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_rt_clock_gettime=yes
+else
+  ac_cv_lib_rt_clock_gettime=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rt_clock_gettime" >&5
+$as_echo "$ac_cv_lib_rt_clock_gettime" >&6; }
+if test "x$ac_cv_lib_rt_clock_gettime" = xyes; then :
+  CLOCK_GETTIME_LIB=-lrt
+fi
+
 
 FUSE_CMT=
 FUSE_LIB=
@@ -13625,7 +13766,7 @@ $as_echo_n "checking whether we can link with -static... " >&6; }
 if ${ac_cv_e2fsprogs_use_static+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  SAVE_LDFLAGS=$LDFLAGS; LDFLAGS="$LDFLAGS -static"
+  SAVE_LDFLAGS=$LDFLAGS; LDFLAGS="$LDFLAGS_STATIC -static"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <stdio.h>
@@ -13654,9 +13795,8 @@ solaris2.*)
 esac
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_e2fsprogs_use_static" >&5
 $as_echo "$ac_cv_e2fsprogs_use_static" >&6; }
-LDFLAG_STATIC=
 if test $ac_cv_e2fsprogs_use_static = yes; then
-	LDFLAG_STATIC=-static
+	LDFLAGS_STATIC="$LDFLAGS_STATIC -static"
 fi
 
 case "$host_os" in
@@ -13668,10 +13808,6 @@ $as_echo "#define _INTL_REDIRECT_MACROS 1" >>confdefs.h
 
 	;;
 esac
-SS_DIR=`cd ${srcdir}/lib/ss; pwd`
-ET_DIR=`cd ${srcdir}/lib/et; pwd`
-
-
 if test "$cross_compiling" = yes ; then
   DO_TEST_SUITE=
 else
@@ -13706,6 +13842,12 @@ if test $cross_compiling = no; then
    BUILD_CFLAGS="$CFLAGS $CPPFLAGS $INCLUDES -DHAVE_CONFIG_H"
    BUILD_LDFLAGS="$LDFLAGS"
 fi
+
+
+CFLAGS_SHLIB=${CFLAGS_SHLIB:-$CFLAGS}
+CFLAGS_STLIB=${CFLAGS_STLIB:-$CFLAGS}
+LDFLAGS_SHLIB=${LDFLAGS_SHLIB:-$LDFLAGS}
+
 
 
 test -d lib || mkdir lib

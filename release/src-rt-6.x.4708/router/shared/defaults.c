@@ -615,7 +615,7 @@ struct nvram_tuple router_defaults[] = {
 
 // advanced-wireless
 	{ "wl_txant",			"3"				, 0 },
-	{ "wl_txpwr",			"42"				, 0 },
+	{ "wl_txpwr",			"0"				, 0 },
 	{ "wl_maxassoc",		"128"				, 0 },	// Max associations driver could support
 	{ "wl_bss_maxassoc",		"128"				, 0 },
 	{ "wl_distance",		""				, 0 },
@@ -727,6 +727,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "sshd_authkeys",		""				, 0 },
 	{ "sshd_hostkey",		""				, 0 },
 	{ "sshd_dsskey",		""				, 0 },
+	{ "sshd_ecdsakey",		""				, 0 },
 	{ "sshd_forwarding",		"1"				, 0 },
 	{ "rmgt_sip",			""				, 0 },	// remote management: source ip address
 
@@ -850,7 +851,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "usb_ext_opt",		""				, 0 },
 	{ "usb_fat_opt",		""				, 0 },
 	{ "usb_ntfs_opt",		""				, 0 },
-	{ "usb_fs_ext3",		"1"				, 0 },
 	{ "usb_fs_ext4",		"1"				, 0 },
 	{ "usb_fs_fat",			"1"				, 0 },
 	{ "usb_fs_exfat",		"1"				, 0 },
@@ -866,6 +866,9 @@ struct nvram_tuple router_defaults[] = {
 #endif //TCONFIG_NTFS
 #ifdef TCONFIG_HFS
 	{ "usb_fs_hfs",			"0"				, 0 }, //!Victek
+#endif
+#ifdef TCONFIG_UPS
+	{ "usb_apcupsd",		"0"				, 0 },
 #endif
 	{ "usb_automount",		"1"				, 0 },
 #if 0
@@ -925,6 +928,7 @@ struct nvram_tuple router_defaults[] = {
 	, 0 },
 	{ "smbd_user",			"nas"				, 0 },
 	{ "smbd_passwd",		""				, 0 },
+	{ "smbd_ifnames",		"br0"				, 0 },
 #endif
 
 #ifdef TCONFIG_MEDIA_SERVER
@@ -933,6 +937,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "ms_dirs",			"/mnt<"				, 0 },
 	{ "ms_port",			"0"				, 0 },
 	{ "ms_dbdir",			""				, 0 },
+	{ "ms_ifname",			"br0"				, 0 },
 	{ "ms_tivo",			"0"				, 0 },
 	{ "ms_stdlna",			"0"				, 0 },
 	{ "ms_sas",			"0"				, 0 },
@@ -988,7 +993,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server1_firewall", "auto"          , 0 },
 	{ "vpn_server1_crypt",    "tls"           , 0 },
 	{ "vpn_server1_comp",     "adaptive"      , 0 },
-	{ "vpn_server1_cipher",   "default"       , 0 },
+	{ "vpn_server1_cipher",   "AES-128-CBC"   , 0 },
 	{ "vpn_server1_dhcp",     "1"             , 0 },
 	{ "vpn_server1_r1",       "192.168.1.50"  , 0 },
 	{ "vpn_server1_r2",       "192.168.1.55"  , 0 },
@@ -1017,11 +1022,11 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server2_poll",     "0"             , 0 },
 	{ "vpn_server2_if",       "tun"           , 0 },
 	{ "vpn_server2_proto",    "udp"           , 0 },
-	{ "vpn_server2_port",     "1194"          , 0 },
+	{ "vpn_server2_port",     "1195"          , 0 },
 	{ "vpn_server2_firewall", "auto"          , 0 },
 	{ "vpn_server2_crypt",    "tls"           , 0 },
 	{ "vpn_server2_comp",     "adaptive"      , 0 },
-	{ "vpn_server2_cipher",   "default"       , 0 },
+	{ "vpn_server2_cipher",   "AES-128-CBC"   , 0 },
 	{ "vpn_server2_dhcp",     "1"             , 0 },
 	{ "vpn_server2_r1",       "192.168.1.50"  , 0 },
 	{ "vpn_server2_r2",       "192.168.1.55"  , 0 },

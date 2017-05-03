@@ -1438,7 +1438,11 @@ static int init_nvram(void)
 		break;
 	case MODEL_RTAC56U:
 		mfr = "Asus";
+#ifdef TCONFIG_BCMSMP
 		name = "RT-AC56U";
+#else
+		name = "RT-AC56S"; //single-core (NOSMP) clone of RT-AC56U
+#endif
 		features = SUP_SES | SUP_80211N | SUP_1000ET | SUP_80211AC;
 #ifdef TCONFIG_USB
 		nvram_set("usb_uhci", "-1");
@@ -2356,6 +2360,7 @@ static int init_nvram(void)
 		features = SUP_80211N | SUP_1000ET | SUP_80211AC;
 #ifdef TCONFIG_USB
 		nvram_set("usb_uhci", "-1");
+		nvram_set("usb_usb3", "-1"); // R1D doesn't have USB 3.0
 #endif
 
 		if (!nvram_match("t_fix1", (char *)name)) {

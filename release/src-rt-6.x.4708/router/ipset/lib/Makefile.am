@@ -14,6 +14,7 @@ IPSET_SETTYPE_LIST = \
 	ipset_hash_netportnet.c \
 	ipset_hash_netport.c \
 	ipset_hash_netiface.c \
+	ipset_hash_ipmac.c \
 	ipset_hash_mac.c \
 	ipset_list_set.c
 
@@ -24,7 +25,7 @@ lib_LTLIBRARIES = libipset.la
 include $(top_srcdir)/lib/Make_extra.am
 
 libipset_la_LDFLAGS = -Wl,--version-script=$(top_srcdir)/lib/libipset.map -version-info $(LIBVERSION)
-libipset_la_LIBADD  = ${libmnl_LIBS} $(IPSET_SETTYPE_STATIC_OBJECTS)
+libipset_la_LIBADD  = ${libmnl_LIBS} $(IPSET_SETTYPE_STATIC_OBJECTS) $(LIBADD_DLOPEN)
 libipset_la_SOURCES = \
 	data.c \
 	errcode.c \

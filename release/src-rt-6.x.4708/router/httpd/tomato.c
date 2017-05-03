@@ -204,21 +204,6 @@ static void wo_blank(char *url)
 	web_puts("\n\n\n\n");
 }
 
-static void wo_favicon(char *url)
-{
-	send_header(200, NULL, "image/vnd.microsoft.icon", 0);
-	do_file(url);
-/*
-	if (nvram_match("web_favicon", "1")) {
-		send_header(200, NULL, "image/vnd.microsoft.icon", 0);
-		do_file(url);
-	}
-	else {
-		send_error(404, NULL, NULL);
-	}
-*/
-}
-
 static void wo_cfe(char *url)
 {
 	do_file(MTD_DEV(0ro));
@@ -298,7 +283,7 @@ const struct mime_handler mime_handlers[] = {
 
 	{ "**.asp",			NULL,						0,	wi_generic_noid,	wo_asp,			1 },
 	{ "**.css",			"text/css",					12,	wi_generic_noid,	do_file,		1 },
-	{ "**.htm|**.html",		mime_html,		  		2,	wi_generic_noid,	do_file,		1 },
+	{ "**.htm|**.html",	mime_html,		  			2,	wi_generic_noid,	do_file,		1 },
 	{ "**.gif",			"image/gif",				12,	wi_generic_noid,	do_file,		1 },
 	{ "**.jpg",			"image/jpeg",				12,	wi_generic_noid,	do_file,		1 },
 	{ "**.png",			"image/png",				12,	wi_generic_noid,	do_file,		1 },
@@ -314,7 +299,7 @@ const struct mime_handler mime_handlers[] = {
 	{ "**.txt",			mime_plain,					2,	wi_generic_noid,	do_file,		1 },
 	{ "**.bin",			mime_binary,				0,	wi_generic_noid,	do_file,		1 },
 	{ "**.bino",		mime_octetstream,			0,	wi_generic_noid,	do_file,		1 },
-	{ "favicon.ico",	NULL,						24,	wi_generic_noid,	wo_favicon,		1 },
+	{ "favicon.ico",	"image/x-icon",				24,	wi_generic_noid,	do_file,		1 },
 // !!TB - CGI Support, enable downloading archives
 	{ "**/cgi-bin/**|**.sh",	NULL,					0,	wi_cgi_bin,		wo_cgi_bin,			1 },
 	{ "**.tar|**.gz",		mime_binary,				0,	wi_generic_noid,	do_file,		1 },
@@ -1271,6 +1256,9 @@ static const nvset_t nvset_list[] = {
 	{ "usb_fs_ntfs",		V_01				},
 	{ "usb_ntfs_driver",		V_LENGTH(0, 10)			},
 #endif
+#ifdef TCONFIG_UPS
+	{ "usb_apcupsd",		V_01				},
+#endif
 #ifdef TCONFIG_HFS
 	{ "usb_fs_hfs",			V_01				}, //!Victek
 #endif
@@ -1327,6 +1315,7 @@ static const nvset_t nvset_list[] = {
 	{ "smbd_shares",		V_LENGTH(0, 4096)		},
 	{ "smbd_user",			V_LENGTH(0, 50)			},
 	{ "smbd_passwd",		V_LENGTH(0, 50)			},
+	{ "smbd_ifnames",		V_LENGTH(0, 50)			},
 #endif
 
 #ifdef TCONFIG_MEDIA_SERVER
@@ -1335,6 +1324,7 @@ static const nvset_t nvset_list[] = {
 	{ "ms_dirs",			V_LENGTH(0, 1024)		},
 	{ "ms_port",			V_RANGE(0, 65535)		},
 	{ "ms_dbdir",			V_LENGTH(0, 256)		},
+	{ "ms_ifname",			V_LENGTH(0, 256)		},
 	{ "ms_tivo",			V_01				},
 	{ "ms_stdlna",			V_01				},
 	{ "ms_rescan",			V_01				},

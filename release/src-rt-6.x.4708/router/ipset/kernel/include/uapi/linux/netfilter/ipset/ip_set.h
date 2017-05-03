@@ -10,7 +10,6 @@
 #ifndef _UAPI_IP_SET_H
 #define _UAPI_IP_SET_H
 
-
 #include <linux/types.h>
 
 /* The protocol version */
@@ -19,7 +18,7 @@
 /* The max length of strings including NUL: set and type identifiers */
 #define IPSET_MAXNAMELEN	32
 
-/* The maximum permissible length we will accept over netlink (inc. comments) */
+/* The maximum permissible comment length we will accept over netlink */
 #define IPSET_MAX_COMMENT_SIZE	255
 
 /* Message types and commands */
@@ -119,6 +118,7 @@ enum {
 	IPSET_ATTR_SKBMARK,
 	IPSET_ATTR_SKBPRIO,
 	IPSET_ATTR_SKBQUEUE,
+	IPSET_ATTR_PAD,
 	__IPSET_ATTR_ADT_MAX,
 };
 #define IPSET_ATTR_ADT_MAX	(__IPSET_ATTR_ADT_MAX - 1)
@@ -264,7 +264,7 @@ struct ip_set_counter_match0 {
 };
 
 struct ip_set_counter_match {
-	__aligned_u64 value;
+	__u64 __attribute__((aligned(8))) value;
 	__u8 op;
 };
 
