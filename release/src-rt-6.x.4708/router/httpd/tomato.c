@@ -832,6 +832,9 @@ static const nvset_t nvset_list[] = {
 	{ "ipv6_vlan",			V_RANGE(0, 7)			},	// Enable IPv6 on 1=LAN1 2=LAN2 4=LAN3
 	{ "ipv6_pdonly",		V_01				},	// Request DHCPv6 Prefix Delegation Only
 	{ "ipv6_ipsec",			V_01				},	// Enable Incoming IPv6 IPSec
+	{ "ipv6_wan_addr",		V_IPV6(0)			}, //Static IPv6 Wan Address
+	{ "ipv6_prefix_len_wan",V_RANGE(3, 64)		}, //Static IPv6 Wan Prefix Length
+	{ "ipv6_isp_gw",		V_IPV6(0)			}, //Static IPv6 ISP Router Gateway
 #endif
 
 // basic-wfilter
