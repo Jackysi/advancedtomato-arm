@@ -221,7 +221,7 @@ static FILE *_ssl_fopen(int sd, int client)
 		mssl_print_err(kuki->ssl);
 		goto ERROR;
 	}
-	
+
 	_dprintf("SSL connection using %s cipher\n", SSL_get_cipher(kuki->ssl));
 
 	if ((f = fopencookie(kuki, "r+", mssl)) == NULL) {
@@ -262,7 +262,7 @@ int mssl_init(char *cert, char *priv)
 	SSL_load_error_strings();
 	SSLeay_add_ssl_algorithms();
 
-	// Create the new CTX with the method 
+	// Create the new CTX with the method
 	// If server=1, use TLSv1_server_method() or SSLv23_server_method()
 	// else 	use TLSv1_client_method() or SSLv23_client_method()
 	ctx = SSL_CTX_new(server ? SSLv23_server_method() : SSLv23_client_method());
@@ -299,7 +299,7 @@ int mssl_init(char *cert, char *priv)
 		}
 	}
 
-	fprintf(stderr,"[ssl_init] success!!\n"); // tmp test
+	//fprintf(stderr,"[ssl_init] success!!\n"); // tmp test
 	_dprintf("%s() success\n", __FUNCTION__);
 	return 1;
 }

@@ -290,6 +290,12 @@ const struct mime_handler mime_handlers[] = {
 	{ "**.js",			mime_javascript,			12,	wi_generic_noid,	do_file,		1 },
 	{ "**.jsx",			mime_javascript,			0,	wi_generic,			wo_asp,			1 },
 	{ "**.svg",			"image/svg+xml",			12,	wi_generic_noid,	do_file,		1 },
+
+// Required mimetype for fonts & icons
+	{ "**.woff",		"application/font-woff",		12,	wi_generic_noid,do_file,		1 },
+	{ "**.eot",			"application/vnd.ms-fontobject",12,	wi_generic_noid,do_file,		1 },
+	{ "**.ttf",			"application/octet-stream",	12,	wi_generic_noid,	do_file,		1 },
+
 	{ "**.txt",			mime_plain,					2,	wi_generic_noid,	do_file,		1 },
 	{ "**.bin",			mime_binary,				0,	wi_generic_noid,	do_file,		1 },
 	{ "**.bino",		mime_octetstream,			0,	wi_generic_noid,	do_file,		1 },
@@ -1222,6 +1228,12 @@ static const nvset_t nvset_list[] = {
 	{ "tomatoanon_id",		V_LENGTH(0, 32)			},
 	{ "tomatoanon_notify",		V_01				},
 
+// AdvancedTomato
+	{ "at_update",      V_LENGTH(0, 32)      },
+	{ "at_nav",         V_TEXT(0, 2048)      },
+	{ "at_nav_state",   V_LENGTH(0, 32)      },
+	{ "at_nav_action",  V_LENGTH(0, 32)      },
+
 // nas-usb - !!TB
 #ifdef TCONFIG_USB
 	{ "usb_enable",			V_01				},
@@ -2093,5 +2105,3 @@ static void wo_nvcommit(char *url)
 	web_close();
 	nvram_commit();
 }
-
-
