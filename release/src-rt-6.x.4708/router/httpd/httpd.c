@@ -148,6 +148,7 @@ void send_header(int status, const char* header, const char* mime, int cache)
 	if (cache > 0 && !disable_maxage) {
 		web_printf("Cache-Control: max-age=%d\r\n", cache * 3600);
 	}
+	else {
 		web_puts("Cache-Control: no-cache, no-store, must-revalidate, private\r\n"
 				 "Expires: Thu, 31 Dec 1970 00:00:00 GMT\r\n"
 				 "Pragma: no-cache\r\n");
