@@ -275,6 +275,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_vlan",			"0"				, 0 },	// Enable IPv6 on 1=LAN1 2=LAN2 4=LAN3
 	{ "ipv6_pdonly",		"0"				, 0 },	// Request DHCPv6 Prefix Delegation Only
 	{ "ipv6_ipsec",			"1"				, 0 },	// Enable Incoming IPv6 IPSec
+	{ "ipv6_wan_addr",		""				, 0 },	// Static IPv6 WAN Address
+	{ "ipv6_prefix_len_wan",""				, 0 },	// Static IPv6 WAN Prefix Length
+	{ "ipv6_isp_gw",		""				, 0 },	// Static IPv6 ISP Gateway
 #endif
 
 #ifdef RTCONFIG_FANCTRL

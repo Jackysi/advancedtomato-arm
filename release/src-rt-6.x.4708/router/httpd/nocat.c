@@ -81,11 +81,10 @@ ERROR:
 void wo_uploadsplash(char *url)
 {
         if (rboot) {
-                redirect("/splashd.asp");
+                redirect("/#advanced-splashd.asp");
 		exit(0);
         }
         else {
               parse_asp("error.asp");
         }
 }
-

@@ -1049,7 +1049,12 @@ void start_wan6_done(const char *wan_ifname)
 
 	switch (service) {
 	case IPV6_NATIVE:
-		eval("ip", "route", "add", "::/0", "dev", (char *)wan_ifname, "metric", "2048");
+		snprintf(addr6, sizeof(addr6), "%s/%d", nvram_safe_get("ipv6_wan_addr"), nvram_get_int("ipv6_prefix_len_wan"));
+		eval("ip", "-6", "addr", "add", addr6, "dev", (char *)wan_ifname);
+		eval("ip", "-6", "route", "del", "::/0");
+		eval("ip", "-6", "route", "add", nvram_safe_get("ipv6_isp_gw"), "dev", (char *)wan_ifname);
+		eval("ip", "-6", "route", "add", "::/0", "via", nvram_safe_get("ipv6_isp_gw"), "dev", (char *)wan_ifname);
+		// eval("ip", "route", "add", "::/0", "dev", (char *)wan_ifname, "metric", "2048");
 		break;
 	case IPV6_NATIVE_DHCP:
 		if (nvram_get_int("ipv6_pdonly") == 1) {
