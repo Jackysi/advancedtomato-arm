@@ -172,7 +172,7 @@ endif
 # Only include IPv6 options if IPv6 is configured in.
 ifneq ($(TCONFIG_IPV6),y)
 	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp *.js *.jsx); do \
+	for F in $(wildcard js/*.js js/*.jsx *.asp *.js *.jsx); do \
 		[ -f $(INSTALLDIR)/www/$$F ] && sed -i $$F \
 		-e "/IPV6-BEGIN/,/IPV6-END/d" \
 		|| true; \
@@ -313,10 +313,10 @@ else
 # Fonts
 	mkdir -p $(INSTALLDIR)/www/css/fonts
 	cp -r css/fonts/* $(INSTALLDIR)/www/css/fonts/.
-		
+
 # clean up compiler directives
 	cd $(INSTALLDIR)/www && \
-	for F in $(wildcard *.asp *.js *.jsx *.html); do \
+	for F in $(wildcard *.asp *.js *.jsx js/*.js js/*.jsx *.html); do \
 		[ -f $(INSTALLDIR)/www/$$F ] && sed -i $$F \
 		-e "/LINUX26-BEGIN/d"	-e "/LINUX26-END/d" \
 		-e "/LINUX24-BEGIN/d"	-e "/LINUX24-END/d" \
